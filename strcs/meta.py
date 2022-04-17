@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from attrs import define
 import typing as tp
 import fnmatch
 
@@ -26,16 +27,47 @@ class Narrower:
 
     Where the narrow options are fnmatch globs for top level keys in the obj
     and the obj is either a Mapping (dictionary like) or any other kind of object.
+
+    If a pattern has a dot in it, then it will be used to match against nested objects
+    with preference given to keys that match with the dot.
+
+    So::
+
+        obj = {"a": {"b": {"d": 4, "e": 5}}, "a.b": 1, "a.c": 3}
+        assert Narrower(obj).narrow("a.b") == {"a.b": 1}
+        assert Narrower(obj).narrow("a.c") == {"a.c": 3}
+        assert Narrower(obj).narrow("a.b.d") == {"a.b.d": 4}
+        assert Narrower(obj).narrow("a.b.*") == {"a.b.d": 4, "a.b.e": 5}
+        assert Narrower(obj).narrow("a.b*") == {"a.b.d": 4, "a.b.e": 5}
+
+        obj = {"a": {"b": {"d": 4, "e": 5}}, "a.b": {"f": 6}, "a.bc": True}
+        assert Narrower(obj).narrow("a.b") == {"a.b": {"f": 6}}
+        assert Narrower(obj).narrow("a.b.d") == {"a.b.d": 4}
+        assert Narrower(obj).narrow("a.b.*") == {"a.b.d": 4, "a.b.e": 5, "a.b.f": 6}
+        assert Narrower(obj).narrow("a.b*") == {"a.b": {"f": 6}, "a.bc": True}
     """
+
+    @define
+    class Further:
+        value: tp.Any
+        patterns: list[str]
 
     class Progress:
         def __init__(self, obj: Mapping | object):
             self.obj = obj
 
+            self.further: dict[str, Narrower.Further] = {}
             self.collected: dict[str, tp.Any] = {}
             self.obj_is_mapping = isinstance(self.obj, Mapping)
 
         def collect(self, narrow: NarrowCB) -> dict[str, bool]:
+            for n, ft in self.further.items():
+                found = narrow(*ft.patterns, obj=ft.value)
+                for k, v in found.items():
+                    key = f"{n}.{k}"
+                    if key not in self.collected:
+                        self.collected[key] = v
+
             return self.collected
 
         def add(self, pattern: str, n: str, v: tp.Any):
@@ -43,8 +75,19 @@ class Narrower:
                 return
 
             patt = pattern
+            if pattern.startswith("*"):
+                patt = f"{n}{pattern[1:]}"
 
-            if fnmatch.fnmatch(n, patt):
+            is_nestable = not (
+                not isinstance(v, (Mapping, type))
+                and v.__class__.__module__ in ("__builtin__", "builtins")
+            )
+
+            if patt.startswith(f"{n}.") and is_nestable:
+                if n not in self.further:
+                    self.further[n] = Narrower.Further(value=v, patterns=[])
+                self.further[n].patterns.append(patt[len(f"{n}.") :])
+            elif fnmatch.fnmatch(n, patt):
                 self.collected[n] = v
 
     def __init__(self, obj: Mapping | object):
