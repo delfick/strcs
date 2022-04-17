@@ -1,6 +1,6 @@
 # coding: spec
 
-from structures.meta import extract_type
+from strcs.meta import extract_type, Narrower
 
 import typing as tp
 
@@ -36,3 +36,19 @@ describe "extract_type":
             pass
 
         assert extract_type(tp.Optional[Thing]) == (True, Thing)
+
+describe "Narrower":
+    describe "narrow":
+
+        it "can return a copy of the dictionary with matching options":
+            a = {"a": 1, "b": 2, "c": 3}
+
+            assert Narrower(a).narrow("a") == {"a": 1}
+            assert Narrower(a).narrow("f") == {}
+
+            assert a == Narrower(a).narrow("*") == {"a": 1, "b": 2, "c": 3}
+
+            a = {"a": 1, "aa": 2, "baa": 3}
+            assert Narrower(a).narrow("a*") == {"a": 1, "aa": 2}
+            assert Narrower(a).narrow("*") == {"a": 1, "aa": 2, "baa": 3}
+            assert Narrower(a).narrow() == {}
