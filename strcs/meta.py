@@ -1,7 +1,10 @@
+from .converter import converter
+
 from collections.abc import Mapping
 from attrs import define
 import typing as tp
 import fnmatch
+import cattrs
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
@@ -147,3 +150,50 @@ def extract_type(typ: T) -> tp.Tuple[bool, U]:
             optional = True
 
     return optional, tp.cast(U, typ)
+
+
+class Meta:
+    """
+    A store for holding data and cattrs converter
+
+    Data may be added and removed using dictionary syntax (__setitem__, __delitem__, __contains__, update)
+
+    Data may not be retrieved using dictionary syntax
+    """
+
+    def __init__(
+        self, converter: cattrs.Converter = converter, data: tp.Optional[dict[str, tp.Any]] = None
+    ):
+        self._converter = converter
+        self.data = data if data is not None else {}
+
+    def clone(
+        self,
+        converter: tp.Optional[cattrs.Converter] = None,
+        data_override: tp.Optional[dict[str, tp.Any]] = None,
+        data_extra: tp.Optional[dict[str, tp.Any]] = None,
+    ) -> "Meta":
+        if converter is None:
+            converter = self._converter
+
+        if data_override is None:
+            data = dict(self.data)
+        else:
+            data = dict(data_override)
+
+        if data_extra:
+            data.update(data_extra)
+
+        return Meta(converter, data=data)
+
+    def __setitem__(self, name: str, value: tp.Any) -> None:
+        self.data[name] = value
+
+    def __delitem__(self, name: str) -> None:
+        del self.data[name]
+
+    def __contains__(self, name: str) -> bool:
+        return name in self.data
+
+    def update(self, data: dict[str, tp.Any]) -> None:
+        self.data.update(data)

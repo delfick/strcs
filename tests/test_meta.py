@@ -1,8 +1,11 @@
 # coding: spec
 
-from strcs.meta import extract_type, Narrower
+from strcs.meta import extract_type, Narrower, Meta
+import strcs
 
 import typing as tp
+import secrets
+import cattrs
 
 
 describe "extract_type":
@@ -122,3 +125,151 @@ describe "Narrower":
             }
 
             assert a == Narrower(a).narrow("*") == {"config": config}
+
+describe "Meta":
+    it "can be created":
+        meta = Meta()
+        assert meta._converter is strcs.converter
+        assert meta.data == {}
+
+        convs = cattrs.Converter()
+        meta = Meta(converter=convs)
+        assert meta._converter is convs
+        assert meta.data == {}
+
+    describe "cloning":
+
+        def assertCloned(self, old: Meta, new: Meta) -> None:
+            data_old = old.data
+            data_new = new.data
+            assert data_old is not data_new
+
+            key = secrets.token_hex(64)
+            value = secrets.token_hex(64)
+            assert key not in data_old
+            assert key not in data_new
+            old[key] = value
+            assert data_old[key] == value
+            assert key not in data_new
+
+            key = secrets.token_hex(64)
+            value = secrets.token_hex(64)
+            assert key not in data_old
+            assert key not in data_new
+            new[key] = value
+            assert key not in data_old
+            assert data_new[key] == value
+
+        it "can be cloned":
+            old = Meta()
+            new = old.clone()
+
+            assert old._converter is new._converter
+            assert old.data == new.data
+
+            self.assertCloned(old, new)
+
+        it "can be cloned with a different converter":
+            convs2 = cattrs.Converter()
+
+            old = Meta()
+            new = old.clone(converter=convs2)
+
+            assert old._converter is strcs.converter
+            assert new._converter is convs2
+            assert old.data == new.data
+            self.assertCloned(old, new)
+
+        it "can be cloned with different data":
+            old = Meta()
+            old["b"] = 5
+            new = old.clone(data_override={"a": 3})
+
+            assert old.data == {"b": 5}
+            assert new.data == {"a": 3}
+
+            assert old._converter is new._converter
+            self.assertCloned(old, new)
+
+        it "can be cloned with extended data":
+            old = Meta()
+            old["b"] = 5
+            new = old.clone(data_extra={"a": 3})
+
+            assert old.data == {"b": 5}
+            assert new.data == {"b": 5, "a": 3}
+
+            assert old._converter is new._converter
+            self.assertCloned(old, new)
+
+        it "can be cloned with new and extended data":
+            old = Meta()
+            old["b"] = 5
+
+            override = {"c": 6}
+            new = old.clone(data_override=override, data_extra={"a": 3})
+
+            assert old.data == {"b": 5}
+            assert new.data == {"c": 6, "a": 3}
+            assert override == {"c": 6}
+
+            assert old._converter is new._converter
+            self.assertCloned(old, new)
+
+    describe "Changing data":
+        it "can have data added":
+            meta = Meta()
+            assert meta.data == {}
+
+            assert "a" not in meta
+            meta["a"] = 3
+            assert meta.data == {"a": 3}
+            assert "a" in meta
+
+            Thing = type("Thing", (), {})
+            thing = Thing()
+            assert "asdf" not in meta
+            meta["asdf"] = thing
+            assert "asdf" in meta
+            assert meta.data == {"a": 3, "asdf": thing}
+
+            other = Thing()
+            meta["asdf"] = other
+            assert meta.data == {"a": 3, "asdf": other}
+
+            other = Thing()
+            meta["asdf"] = 3
+            assert "asdf" in meta
+            assert meta.data == {"a": 3, "asdf": 3}
+
+        it "can remove a name from meta":
+            meta = Meta()
+            assert meta.data == {}
+
+            assert "a" not in meta
+            meta["a"] = 3
+            assert meta.data == {"a": 3}
+            del meta["a"]
+            assert meta.data == {}
+
+            meta["b"] = 4
+            meta["c"] = 5
+            assert meta.data == {"b": 4, "c": 5}
+            assert "a" not in meta
+            assert "b" in meta
+            assert "c" in meta
+
+            del meta["b"]
+            assert "a" not in meta
+            assert "b" not in meta
+            assert "c" in meta
+
+        it "can bulk update data":
+            meta = Meta()
+            assert meta.data == {}
+
+            meta.update({"a": 1, "b": 3, "c": 3})
+            assert meta.data == {"a": 1, "b": 3, "c": 3}
+
+            meta.update({"b": 2, "d": 4})
+            assert meta.data == {"a": 1, "b": 2, "c": 3, "d": 4}
