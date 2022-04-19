@@ -5,6 +5,7 @@ import strcs
 
 import typing as tp
 import secrets
+import pytest
 import cattrs
 
 
@@ -273,3 +274,124 @@ describe "Meta":
 
             meta.update({"b": 2, "d": 4})
             assert meta.data == {"a": 1, "b": 2, "c": 3, "d": 4}
+
+    describe "find_by_type":
+        it "can return everything if type is object":
+            meta = Meta()
+            meta.update({"a": 1, "b": 2})
+            meta["c"] = 3
+
+            assert meta.find_by_type(object) == (False, {"a": 1, "b": 2, "c": 3})
+            assert meta.find_by_type(tp.Optional[object]) == (True, {"a": 1, "b": 2, "c": 3})
+
+        it "can be given the data to operate on":
+            meta = Meta()
+            data = {"a": 1, "b": 2, "c": 3}
+
+            assert meta.find_by_type(object, data=data) == (False, {"a": 1, "b": 2, "c": 3})
+            assert meta.find_by_type(tp.Optional[object], data=data) == (
+                True,
+                {"a": 1, "b": 2, "c": 3},
+            )
+
+        it "can find the correct type in meta":
+            meta = Meta()
+
+            class Shape:
+                pass
+
+            class Square(Shape):
+                pass
+
+            square = Square()
+            meta.update({"a": 1, "b": True, "c": 2.0, "d": "asdf", "e": square, "f": 20})
+
+            assert meta.find_by_type(int) == (False, {"a": 1, "f": 20})
+            assert meta.find_by_type(bool) == (False, {"b": True})
+            assert meta.find_by_type(tp.Optional[bool]) == (True, {"b": True})
+            assert meta.find_by_type(str) == (False, {"d": "asdf"})
+            assert meta.find_by_type(Shape) == (False, {"e": square})
+            assert meta.find_by_type(tp.Optional[Shape]) == (True, {"e": square})
+            assert meta.find_by_type(tp.Union[int, float]) == (False, {"a": 1, "c": 2.0, "f": 20})
+            assert meta.find_by_type(tp.Union[int, bool, float]) == (
+                False,
+                {"a": 1, "b": True, "c": 2.0, "f": 20},
+            )
+            assert meta.find_by_type(tp.Optional[tp.Union[str, float]]) == (
+                True,
+                {"d": "asdf", "c": 2.0},
+            )
+
+        it "can not find anything":
+            meta = Meta()
+            meta["nup"] = None
+
+            class Shape:
+                pass
+
+            assert meta.find_by_type(int) == (False, {})
+            assert meta.find_by_type(bool) == (False, {})
+            assert meta.find_by_type(tp.Optional[bool]) == (True, {})
+            assert meta.find_by_type(str) == (False, {})
+            assert meta.find_by_type(Shape) == (False, {})
+            assert meta.find_by_type(tp.Optional[Shape]) == (True, {})
+            assert meta.find_by_type(tp.Union[int, float]) == (False, {})
+            assert meta.find_by_type(tp.Union[int, bool, float]) == (False, {})
+            assert meta.find_by_type(tp.Optional[tp.Union[str, float]]) == (True, {})
+
+    describe "retrieve one":
+        it "can retrieve the one matching value":
+            meta = Meta()
+            meta.update({"a": 1, "b": 2.0})
+
+            assert meta.retrieve_one(int) == 1
+            assert meta.retrieve_one(float) == 2.0
+
+        it "can optionally retrieve the one value":
+            meta = Meta()
+            meta["nup"] = "hello"
+
+            assert meta.retrieve_one(tp.Optional[int]) is None
+
+        it "can complain if there are 0 found values":
+            meta = Meta()
+            meta["nup"] = None
+
+            with pytest.raises(strcs.errors.NoDataByTypeName):
+                meta.retrieve_one(int)
+
+        it "can complain if there are more than 1 found values":
+            meta = Meta()
+            meta.update({"a": 1, "b": 2})
+
+            with pytest.raises(strcs.errors.MultipleNamesForType):
+                meta.retrieve_one(int)
+
+        it "can get the one value based on patterns too":
+            meta = Meta()
+            meta.update({"a": 1, "b": 2})
+
+            assert meta.retrieve_one(int, "a") == 1
+            assert meta.retrieve_one(int, "b") == 2
+
+            class Blah:
+                pass
+
+            blah = Blah()
+
+            class Thing:
+                e: Blah = blah
+
+            meta["d"] = Thing()
+
+            with pytest.raises(strcs.errors.NoDataByTypeName):
+                assert meta.retrieve_one(Blah)
+
+            assert meta.retrieve_one(Blah, "d.e") is blah
+
+        it "can still find based just on type if patterns don't match":
+            meta = Meta()
+            meta.update({"a": 1, "b": "asdf"})
+
+            assert meta.retrieve_one(int, "c") == 1
+            assert meta.retrieve_one(int, "d") == 1

@@ -1,4 +1,5 @@
 from .converter import converter
+from . import errors
 
 from collections.abc import Mapping
 from attrs import define
@@ -158,7 +159,13 @@ class Meta:
 
     Data may be added and removed using dictionary syntax (__setitem__, __delitem__, __contains__, update)
 
-    Data may not be retrieved using dictionary syntax
+    Data may not be retrieved using dictionary syntax, but rather from one of these methods:
+
+    .. automethod:: find_by_type
+
+    .. automethod:: retrieve_one
+
+    Because getting data depends on the type of the data as well as the name of the data in the store
     """
 
     def __init__(
@@ -197,3 +204,68 @@ class Meta:
 
     def update(self, data: dict[str, tp.Any]) -> None:
         self.data.update(data)
+
+    def find_by_type(
+        self, typ: tp.Type[T], data: dict[str, tp.Any] | tp.Type[Empty] = Empty
+    ) -> tp.Tuple[bool, dict[str, T]]:
+        """
+        Return (optional, found)
+
+        Where optional is True if the type is a tp.Optional and found is a dictionary
+        of names in Meta to the found data for that name, which matches the specified type
+        """
+        if data is Empty:
+            data = self.data
+
+        data = tp.cast(dict[str, tp.Any], data)
+
+        if typ is object:
+            return False, data
+
+        optional, typ = extract_type(typ)
+        available = {n: v for n, v in data.items() if isinstance(v, typ)}
+
+        remove_bools = typ is int
+        ags = getattr(typ, "__args__", None)
+        if ags:
+            if int in ags and bool not in ags:
+                remove_bools = True
+
+        if remove_bools:
+            available = {n: v for n, v in available.items() if not isinstance(v, bool)}
+
+        return optional, available
+
+    def retrieve_one(self, typ: tp.Type[T], *patterns: str) -> T:
+        """
+        Retrieve a single value for this type and patterns restrictions
+
+        If we get a single value from the type restriction alone we ignore the patterns restrictions
+
+        Multiple patterns can be used to cater for a situation where we know a meta may contain only
+        one of a few possibilities and we want to retrieve whichever is in use for that meta
+
+        Raise an error if we can't find exactly one value
+        """
+        data = self.data
+        if patterns:
+            with_patterns = Narrower(data).narrow(*patterns)
+            if with_patterns:
+                data = with_patterns
+
+        optional, found = self.find_by_type(typ, data=data)
+        if optional and not found:
+            return tp.cast(T, None)
+
+        if len(found) == 1:
+            for thing in found.values():
+                return thing
+
+        if found:
+            raise errors.MultipleNamesForType(want=typ, found=sorted(found))
+
+        raise errors.NoDataByTypeName(
+            want=typ,
+            patterns=sorted(patterns),
+            available={n: type(v) for n, v in self.data.items()},
+        )
