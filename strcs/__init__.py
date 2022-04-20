@@ -1,3 +1,4 @@
+from .base import ConvertResponse, NotSpecified
 from .converter import converter
 from .version import VERSION
 from .meta import Meta
@@ -8,5 +9,7 @@ __all__ = [
     "VERSION",
     "converter",
     "Meta",
+    "ConvertResponse",
+    "NotSpecified",
     "errors",
 ]
