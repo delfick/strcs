@@ -46,4 +46,49 @@ ConvertDefinition: tp.TypeAlias = tp.Union[
     ConvertDefinitionValueAndData,
     ConvertDefinitionValueAndTypeAndData,
 ]
-ConvertFunction: tp.TypeAlias = tp.Callable[[tp.Any, Meta, cattrs.Converter], T]
+ConvertFunction: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type, Meta, cattrs.Converter], T]
+
+
+class CreateRegister:
+    def __init__(self):
+        self.register: dict[tp.Type[T], ConvertFunction[T]] = {}
+
+    def __setitem__(self, typ: tp.Type[T], creator: ConvertFunction[T]) -> None:
+        self.register[typ] = creator
+
+    def __contains__(self, typ: tp.Type[T]) -> bool:
+        return self.creator_for(typ) is not None
+
+    def creator_for(self, typ: tp.Type[T]) -> tp.Optional[ConvertFunction[T]]:
+        if not isinstance(typ, type):
+            return None
+
+        if typ in self.register:
+            return self.register[typ]
+
+        for t, func in self.register.items():
+            if issubclass(typ, t):
+                return func
+
+        return None
+
+    def create(self, typ: tp.Type[T], value: tp.Any = NotSpecified, meta: tp.Any = NotSpecified):
+        if meta is NotSpecified:
+            meta = Meta()
+
+        converter = cattrs.Converter()
+
+        cache: dict[tp.Type[T], ConvertFunction[T]] = {}
+
+        def convert(value: tp.Any, want: tp.Type[T]) -> T:
+            return cache[want](value, want, meta, converter)
+
+        def check_func(want: tp.Type[T]) -> bool:
+            creator = self.creator_for(want)
+            if creator is not None:
+                cache[want] = creator
+                return True
+            return False
+
+        converter.register_structure_hook_func(check_func, convert)
+        return converter.structure(value, typ)
