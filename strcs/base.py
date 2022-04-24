@@ -1,4 +1,5 @@
 from .meta import Meta
+from . import errors
 
 import typing as tp
 import cattrs
@@ -54,6 +55,8 @@ class CreateRegister:
         self.register: dict[tp.Type[T], ConvertFunction[T]] = {}
 
     def __setitem__(self, typ: tp.Type[T], creator: ConvertFunction[T]) -> None:
+        if not isinstance(typ, type):
+            raise errors.CanOnlyRegisterTypes(got=typ)
         self.register[typ] = creator
 
     def __contains__(self, typ: tp.Type[T]) -> bool:

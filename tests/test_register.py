@@ -71,6 +71,18 @@ describe "Register":
 
         assert creg.register == {Thing: thing_maker, Stuff: stuff_maker}
 
+    it "cannot register things that aren't types", creg: strcs.CreateRegister:
+
+        class Thing:
+            pass
+
+        converter = mock.Mock(name="converter")
+        creg[Thing] = converter
+        assert creg.register == {Thing: converter}
+
+        with pytest.raises(strcs.errors.CanOnlyRegisterTypes):
+            creg[tp.cast(tp.Type, Thing())] = mock.Mock(name="nup")
+
     describe "can use the converters":
         it "works on anything", creg: strcs.CreateRegister:
 

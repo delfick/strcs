@@ -37,3 +37,8 @@ class RequiredParam(StructuresError):
 class MultipleNamesForType(StructuresError):
     want: tp.Type
     found: list[str]
+
+
+@define
+class CanOnlyRegisterTypes(StructuresError):
+    got: tp.Any
