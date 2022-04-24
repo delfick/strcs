@@ -1,7 +1,9 @@
 # coding: spec
 
+from strcs.base import NotSpecifiedMeta
 import strcs
 
+from functools import partial
 from unittest import mock
 from attrs import define
 import typing as tp
@@ -12,6 +14,11 @@ import pytest
 @pytest.fixture()
 def creg() -> strcs.CreateRegister:
     return strcs.CreateRegister()
+
+
+@pytest.fixture()
+def creator(creg) -> strcs.Creator:
+    return partial(strcs.CreatorDecorator, creg)
 
 
 class IsMeta:
@@ -164,6 +171,39 @@ describe "Register":
             assert made.stuff.one == 45
             assert made.stuff.two == 76
 
+        it "doesn't recreate cattrs objects already created", creg: strcs.CreateRegister:
+
+            @define
+            class Stuff:
+                one: int
+
+            @define
+            class Thing:
+                stuff: Stuff
+
+            creg[Thing] = lambda v, w, m, c: c.structure_attrs_fromdict(v, w)
+
+            stuff = Stuff(one=4)
+            made = creg.create(Thing, {"stuff": stuff})
+            assert isinstance(made, Thing)
+            assert made.stuff is stuff
+
+        it "still fails to recreate normal objects", creg: strcs.CreateRegister:
+
+            class Stuff:
+                def __init__(self, one: int):
+                    self.one = one
+
+            @define
+            class Thing:
+                stuff: Stuff
+
+            creg[Thing] = lambda v, w, m, c: c.structure_attrs_fromdict(v, w)
+
+            stuff = Stuff(one=4)
+            with pytest.raises(cattrs.errors.StructureHandlerNotFoundError):
+                creg.create(Thing, {"stuff": stuff})
+
         it "let's us convert with super types", creg: strcs.CreateRegister:
 
             @define
@@ -234,3 +274,120 @@ describe "Register":
             creg[Thing] = tp.cast(strcs.ConvertFunction, mock.Mock(name="creator"))
             assert Thing in creg
             assert tp.cast(tp.Type, Thing()) not in creg
+
+describe "Creators":
+    it "stores the type and the register", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+        class Thing:
+            pass
+
+        dec = creator(Thing)
+        assert dec.typ is Thing
+        assert dec.register is creg
+
+    it "takes a ConvertDefinition", creator: strcs.Creator:
+
+        class Thing:
+            pass
+
+        thing = Thing()
+
+        dec = creator(Thing)
+        assert not hasattr(dec, "func")
+
+        make = mock.Mock(name="make", side_effect=lambda: thing)
+        decorated = dec(make)
+
+        assert decorated is make
+        assert dec.func is make
+
+        assert dec.register.create(Thing) is thing
+        make.assert_called_once_with()
+
+    describe "invoking function":
+        it "calls func if it has no arguments", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            class Thing:
+                pass
+
+            thing = Thing()
+
+            @creator(Thing)
+            def make() -> strcs.ConvertResponse[Thing]:
+                called.append(1)
+                return thing
+
+            assert creg.create(Thing) is thing
+            assert called == [1]
+
+    describe "interpreting the response":
+        it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            class Thing:
+                pass
+
+            @creator(Thing)
+            def make() -> strcs.ConvertResponse[Thing]:
+                called.append(1)
+                return None
+
+            with pytest.raises(strcs.errors.UnableToConvert):
+                creg.create(Thing)
+            assert called == [1]
+
+        it "returns the result if the result is of the correct type", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            class Thing:
+                pass
+
+            thing = Thing()
+
+            @creator(Thing)
+            def make() -> strcs.ConvertResponse[Thing]:
+                called.append(1)
+                return thing
+
+            assert creg.create(Thing) is thing
+            assert called == [1]
+
+        it "returns the value created with if the result is True and value is not NotSpecified", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            class Thing:
+                pass
+
+            thing1 = Thing()
+            thing2 = Thing()
+            thing3 = Thing()
+
+            @creator(Thing)
+            def make() -> strcs.ConvertResponse[Thing]:
+                called.append(1)
+                return True
+
+            with pytest.raises(strcs.errors.UnableToConvert):
+                creg.create(Thing)
+            assert called == [1]
+
+            assert creg.create(Thing, thing1) is thing1
+            assert called == [1, 1]
+
+            assert creg.create(Thing, thing2) is thing2
+            assert called == [1, 1, 1]
+
+            assert creg.create(Thing, thing3) is thing3
+            assert called == [1, 1, 1, 1]
+
+        it "can use NotSpecified if the type we want is that and we return True", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            @creator(NotSpecifiedMeta)
+            def make() -> strcs.ConvertResponse[NotSpecifiedMeta]:
+                called.append(1)
+                return True
+
+            assert creg.create(NotSpecifiedMeta) is strcs.NotSpecified
+            assert called == [1]

@@ -84,14 +84,65 @@ class CreateRegister:
         cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
         def convert(value: tp.Any, want: tp.Type[T]) -> T:
-            return cache[want](value, want, meta, converter)
+            if want in cache:
+                return cache[want](value, want, meta, converter)
+            elif isinstance(value, want):
+                return value
+            else:
+                return converter.structure_attrs_fromdict(value, want)
 
         def check_func(want: tp.Type[T]) -> bool:
             creator = self.creator_for(want)
             if creator is not None:
                 cache[want] = creator
                 return True
-            return False
+            return hasattr(want, "__attrs_attrs__")
 
         converter.register_structure_hook_func(check_func, convert)
         return converter.structure(value, typ)
+
+
+class CreatorDecorator(tp.Generic[T]):
+    func: ConvertDefinition[T]
+
+    def __init__(self, register: CreateRegister, typ: tp.Type[T]):
+        self.typ = typ
+        self.register = register
+
+    def __call__(self, func: ConvertDefinition[T]) -> ConvertDefinition[T]:
+        self.func = func
+        self.register[self.typ] = self.wrapped
+        return func
+
+    def wrapped(self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter) -> T:
+        res = self._invoke_func(value, want, meta, converter)
+
+        def deal(res: ConvertResponse[T], value: tp.Any) -> T:
+            if res is None:
+                raise errors.UnableToConvert(
+                    converting=type(value),
+                    into=want,
+                    reason="Converter didn't return a value to use",
+                )
+            elif isinstance(res, want):
+                return tp.cast(T, res)
+            elif res is True:
+                if value is NotSpecified and not issubclass(want, type(NotSpecified)):
+                    raise errors.UnableToConvert(
+                        converting=value,
+                        into=want,
+                        reason="Told to use NotSpecified as the final value",
+                    )
+                return tp.cast(T, value)
+            else:
+                raise NotImplementedError()
+
+        return deal(res, value)
+
+    def _invoke_func(
+        self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter
+    ) -> ConvertResponse[T]:
+        return tp.cast(ConvertDefinitionNoValue[T], self.func)()
+
+
+Creator: tp.TypeAlias = tp.Callable[[tp.Type[T]], CreatorDecorator[T]]

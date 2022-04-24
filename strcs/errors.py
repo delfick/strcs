@@ -17,6 +17,7 @@ class NoCreatorFound(StructuresError):
 class UnableToConvert(StructuresError):
     converting: tp.Type
     into: tp.Type
+    reason: str
 
 
 @define
