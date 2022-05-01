@@ -321,6 +321,74 @@ describe "Creators":
             assert creg.create(Thing) is thing
             assert called == [1]
 
+        it "calls the func with the value if we ask for value", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            class Thing:
+                pass
+
+            thing = Thing()
+
+            @creator(Thing)
+            def make(value: tp.Any) -> strcs.ConvertResponse[Thing]:
+                called.append(value)
+                return thing
+
+            assert creg.create(Thing) is thing
+            assert called == [strcs.NotSpecified]
+
+            assert creg.create(Thing, 1) is thing
+            assert called == [strcs.NotSpecified, 1]
+
+            assert creg.create(Thing, {"one": 2}) is thing
+            assert called == [strcs.NotSpecified, 1, {"one": 2}]
+
+            assert creg.create(Thing, thing) is thing
+            assert called == [strcs.NotSpecified, 1, {"one": 2}, thing]
+
+        it "calls the func with the value and type if we ask for value and type", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            class Thing:
+                pass
+
+            thing = Thing()
+
+            @creator(Thing)
+            def make(value: tp.Any, want: tp.Type, /) -> strcs.ConvertResponse[Thing]:
+                called.append((value, want))
+                return thing
+
+            assert creg.create(Thing) is thing
+            assert called == [(strcs.NotSpecified, Thing)]
+
+            assert creg.create(Thing, 1) is thing
+            assert called == [(strcs.NotSpecified, Thing), (1, Thing)]
+
+            assert creg.create(Thing, {"one": 2}) is thing
+            assert called == [(strcs.NotSpecified, Thing), (1, Thing), ({"one": 2}, Thing)]
+
+            assert creg.create(Thing, thing) is thing
+            assert called == [
+                (strcs.NotSpecified, Thing),
+                (1, Thing),
+                ({"one": 2}, Thing),
+                (thing, Thing),
+            ]
+
+            @define
+            class Child(Thing):
+                pass
+
+            assert creg.create(Child, thing) is thing
+            assert called == [
+                (strcs.NotSpecified, Thing),
+                (1, Thing),
+                ({"one": 2}, Thing),
+                (thing, Thing),
+                (thing, Child),
+            ]
+
     describe "interpreting the response":
         it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
@@ -391,3 +459,68 @@ describe "Creators":
 
             assert creg.create(NotSpecifiedMeta) is strcs.NotSpecified
             assert called == [1]
+
+        it "turns a dictionary into the object", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            @define
+            class Thing:
+                one: int
+                two: str
+
+            @creator(Thing)
+            def make() -> strcs.ConvertResponse[NotSpecifiedMeta]:
+                called.append(1)
+                return {"one": 3, "two": "twenty"}
+
+            made = creg.create(Thing)
+            assert isinstance(made, Thing)
+            assert made.one == 3
+            assert made.two == "twenty"
+            assert called == [1]
+
+        it "uses creator for other registered classes", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            @define
+            class Other:
+                three: int
+                four: int
+
+            @creator(Other)
+            def make() -> strcs.ConvertResponse[Other]:
+                called.append(2)
+                return {"three": 20, "four": 50}
+
+            @define
+            class Stuff:
+                five: int = 1
+                six: int = 2
+
+            @define
+            class Thing:
+                one: int
+                two: str
+                other1: Other
+                other2: Other
+                stuff: Stuff
+
+            @creator(Thing)
+            def make2() -> strcs.ConvertResponse[NotSpecifiedMeta]:
+                called.append(1)
+                return {"one": 3, "two": "twenty", "stuff": {}, "other1": {}}
+
+            made = creg.create(Thing)
+            assert isinstance(made, Thing)
+            assert made.one == 3
+            assert made.two == "twenty"
+            assert isinstance(made.other1, Other)
+            assert made.other1.three == 20
+            assert made.other1.four == 50
+            assert isinstance(made.other2, Other)
+            assert made.other2.three == 20
+            assert made.other2.four == 50
+            assert isinstance(made.stuff, Stuff)
+            assert made.stuff.five == 1
+            assert made.stuff.six == 2
+            assert called == [1, 2, 2]

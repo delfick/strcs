@@ -2,7 +2,9 @@ from .meta import Meta
 from . import errors
 
 import typing as tp
+import inspect
 import cattrs
+import attrs
 
 T = tp.TypeVar("T")
 
@@ -111,6 +113,13 @@ class CreatorDecorator(tp.Generic[T]):
 
     def __call__(self, func: ConvertDefinition[T]) -> ConvertDefinition[T]:
         self.func = func
+
+        if hasattr(self.func, "side_effect"):
+            # Hack to deal with mock objects
+            self.signature = inspect.signature(self.func.side_effect)  # type: ignore
+        else:
+            self.signature = inspect.signature(self.func)
+
         self.register[self.typ] = self.wrapped
         return func
 
@@ -124,7 +133,7 @@ class CreatorDecorator(tp.Generic[T]):
                     into=want,
                     reason="Converter didn't return a value to use",
                 )
-            elif isinstance(res, want):
+            elif isinstance(res, want) or issubclass(type(res), self.typ):
                 return tp.cast(T, res)
             elif res is True:
                 if value is NotSpecified and not issubclass(want, type(NotSpecified)):
@@ -135,14 +144,36 @@ class CreatorDecorator(tp.Generic[T]):
                     )
                 return tp.cast(T, value)
             else:
-                raise NotImplementedError()
+                if res is NotSpecified:
+                    res = {}
+                if isinstance(res, dict):
+                    for field in attrs.fields(want):
+                        if (
+                            field.type is not None
+                            and field.type in self.register
+                            and field.name not in res
+                        ):
+                            res[field.name] = NotSpecified
+                return converter.structure_attrs_fromdict(tp.cast(dict, res), want)
 
         return deal(res, value)
 
     def _invoke_func(
         self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter
     ) -> ConvertResponse[T]:
-        return tp.cast(ConvertDefinitionNoValue[T], self.func)()
+        if len(self.signature.parameters) == 0:
+            return tp.cast(ConvertDefinitionNoValue, self.func)()
+
+        elif len(self.signature.parameters) == 1:
+            return tp.cast(ConvertDefinitionValue, self.func)(value)
+
+        elif len(self.signature.parameters) == 2 and all(
+            v.kind is inspect.Parameter.POSITIONAL_ONLY for v in self.signature.parameters.values()
+        ):
+            return tp.cast(ConvertDefinitionValueAndType, self.func)(value, want)
+
+        else:
+            raise NotImplementedError()
 
 
 Creator: tp.TypeAlias = tp.Callable[[tp.Type[T]], CreatorDecorator[T]]
