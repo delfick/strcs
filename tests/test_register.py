@@ -524,3 +524,30 @@ describe "Creators":
             assert made.stuff.five == 1
             assert made.stuff.six == 2
             assert called == [1, 2, 2]
+
+        it "can have a creator with no function", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define
+            class Thing:
+                one: int = 1
+
+            creator(Thing)()
+
+            made = creg.create(Thing)
+            assert isinstance(made, Thing)
+            assert made.one == 1
+
+            thing = Thing(one=2)
+            assert creg.create(Thing, thing) is thing
+
+            made = creg.create(Thing, {"one": 20})
+            assert isinstance(made, Thing)
+            assert made.one == 20
+
+            @define
+            class Other:
+                pass
+
+            for nope in (0, 1, False, True, [], [1], lambda: 1, Other, Other(), Thing):
+                with pytest.raises(strcs.errors.UnableToConvert):
+                    creg.create(Thing, nope)

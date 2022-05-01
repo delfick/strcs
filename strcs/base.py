@@ -52,6 +52,15 @@ ConvertDefinition: tp.TypeAlias = tp.Union[
 ConvertFunction: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type, Meta, cattrs.Converter], T]
 
 
+def take_or_make(value: tp.Any, typ: tp.Type[T], /) -> ConvertResponse:
+    if isinstance(value, typ):
+        return value
+    elif value is NotSpecified or isinstance(value, dict):
+        return value
+    else:
+        return None
+
+
 class CreateRegister:
     def __init__(self):
         self.register: dict[tp.Type[T], ConvertFunction[T]] = {}
@@ -111,8 +120,11 @@ class CreatorDecorator(tp.Generic[T]):
         self.typ = typ
         self.register = register
 
-    def __call__(self, func: ConvertDefinition[T]) -> ConvertDefinition[T]:
-        self.func = func
+    def __call__(self, func: tp.Optional[ConvertDefinition[T]] = None) -> ConvertDefinition[T]:
+        if func is None:
+            self.func = take_or_make
+        else:
+            self.func = func
 
         if hasattr(self.func, "side_effect"):
             # Hack to deal with mock objects
@@ -121,7 +133,7 @@ class CreatorDecorator(tp.Generic[T]):
             self.signature = inspect.signature(self.func)
 
         self.register[self.typ] = self.wrapped
-        return func
+        return self.func
 
     def wrapped(self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter) -> T:
         res = self._invoke_func(value, want, meta, converter)
