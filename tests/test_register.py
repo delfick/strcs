@@ -551,3 +551,136 @@ describe "Creators":
             for nope in (0, 1, False, True, [], [1], lambda: 1, Other, Other(), Thing):
                 with pytest.raises(strcs.errors.UnableToConvert):
                     creg.create(Thing, nope)
+
+        describe "generator creator":
+            it "can modify the created object inside the creator", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+                @define(slots=False)
+                class Thing:
+                    one: int
+
+                    def __post_attrs_init__(self):
+                        self.two = None
+
+                @creator(Thing)
+                def make(value: tp.Any):
+                    made = yield value
+                    made.two = 2
+                    yield True
+
+                made = creg.create(Thing, {"one": 20})
+                assert isinstance(made, Thing)
+                assert made.one == 20
+                assert made.two == 2
+
+            it "can modify the created object inside the creator without yielding second time", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+                @define(slots=False)
+                class Thing:
+                    one: int
+
+                    def __post_attrs_init__(self):
+                        self.two = None
+
+                @creator(Thing)
+                def make(value: tp.Any):
+                    made = yield value
+                    made.two = 2
+
+                made = creg.create(Thing, {"one": 20})
+                assert isinstance(made, Thing)
+                assert made.one == 20
+                assert made.two == 2
+
+            it "considers not yielding means it could not convert", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+                @define(slots=False)
+                class Thing:
+                    one: int
+
+                @creator(Thing)
+                def make(value: tp.Any):
+                    if False:
+                        yield value
+
+                with pytest.raises(strcs.errors.UnableToConvert):
+                    creg.create(Thing, {"one": 20})
+
+            it "uses the first yielded thing to determine what is made", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+                @define(slots=False)
+                class Thing:
+                    one: int = 1
+
+                @creator(Thing)
+                def make(value: tp.Any):
+                    yield value
+
+                made = creg.create(Thing, {"one": 20})
+                assert isinstance(made, Thing)
+                assert made.one == 20
+
+                made = creg.create(Thing)
+                assert isinstance(made, Thing)
+                assert made.one == 1
+
+                thing = Thing(one=4)
+                made = creg.create(Thing, thing)
+                assert made is thing
+
+            it "can yield another generator because recursion is fun", creator: strcs.Creator, creg: strcs.CreateRegister:
+                called = []
+
+                @define(slots=False)
+                class Thing:
+                    one: int = 1
+
+                    def __post_attrs_init__(self):
+                        self.two = None
+                        self.three = None
+
+                def recursion_is_fun(value: tp.Any):
+                    assert isinstance(value, dict)
+                    assert value == {"one": 20}
+                    called.append(2)
+                    made = yield {"one": 60}
+                    made.two = 500
+                    called.append(3)
+
+                @creator(Thing)
+                def make(value: tp.Any):
+                    called.append(1)
+                    made = yield recursion_is_fun(value)
+                    made.three = 222
+                    called.append(4)
+
+                made = creg.create(Thing, {"one": 20})
+                assert isinstance(made, Thing)
+                assert made.one == 60
+                assert made.two == 500
+                assert made.three == 222
+
+            it "uses what is yielded the second time", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+                @define(slots=False)
+                class Thing:
+                    one: int = 1
+
+                @creator(Thing)
+                def make(value: tp.Any):
+                    made = yield {"one": 0}
+                    assert isinstance(made, Thing)
+                    assert made.one == 0
+                    yield value
+
+                made = creg.create(Thing, {"one": 20})
+                assert isinstance(made, Thing)
+                assert made.one == 20
+
+                made = creg.create(Thing)
+                assert isinstance(made, Thing)
+                assert made.one == 1
+
+                thing = Thing(one=4)
+                made = creg.create(Thing, thing)
+                assert made is thing

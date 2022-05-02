@@ -139,7 +139,9 @@ class CreatorDecorator(tp.Generic[T]):
         res = self._invoke_func(value, want, meta, converter)
 
         def deal(res: ConvertResponse[T], value: tp.Any) -> T:
-            if res is None:
+            if inspect.isgenerator(res):
+                return self._process_generator(res, value, deal)
+            elif res is None:
                 raise errors.UnableToConvert(
                     converting=type(value),
                     into=want,
@@ -169,6 +171,32 @@ class CreatorDecorator(tp.Generic[T]):
                 return converter.structure_attrs_fromdict(tp.cast(dict, res), want)
 
         return deal(res, value)
+
+    def _process_generator(
+        self,
+        res: ConvertResponseGenerator[T],
+        value: tp.Any,
+        deal: tp.Callable[[ConvertResponse[T], tp.Any], T],
+    ) -> T:
+        try:
+            made: ConvertResponse[T]
+
+            try:
+                made = deal(next(res), value)
+            except StopIteration:
+                made = None
+            else:
+                try:
+                    made2 = res.send(tp.cast(T, made))
+                    if made2 is True:
+                        value = made
+                    made = made2
+                except StopIteration:
+                    pass
+
+            return deal(made, value)
+        finally:
+            res.close()
 
     def _invoke_func(
         self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter
