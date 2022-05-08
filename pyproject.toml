@@ -1,0 +1,16 @@
+[tool.black]
+line-length = 100
+include = '\.py$'
+exclude = '''
+/(
+     \.git
+   | \.tox
+   | dist
+   | tools
+)/
+'''
+
+[tool.mypy]
+plugins = 'noseOfYeti.plugins.mypy'
+ignore_missing_imports = true
+exclude = 'tools'

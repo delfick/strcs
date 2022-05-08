@@ -1,0 +1,4 @@
+.tox/
+strcs.egg-info/
+__pycache__/
+.dmypy.json
