@@ -5,6 +5,7 @@ from .base import (
     ConvertFunction,
     Creator,
     Annotation,
+    MergedAnnotation,
     NotSpecified,
 )
 from .converter import converter
@@ -18,6 +19,7 @@ __all__ = [
     "converter",
     "Meta",
     "Annotation",
+    "MergedAnnotation",
     "ConvertFunction",
     "ConvertResponse",
     "CreateRegister",

@@ -74,7 +74,17 @@ def fromdict(converter: cattrs.Converter, register: "CreateRegister", res: tp.An
 
 @define
 class Annotation:
-    pass
+    def adjusted_meta(self, meta: Meta) -> Meta:
+        return meta.clone(data_extra={"__call_defined_annotation__": self})
+
+
+@define
+class MergedAnnotation:
+    def adjusted_meta(self, meta: Meta) -> Meta:
+        clone = meta.clone()
+        for field in attrs.fields(self.__class__):
+            clone[field.name] = getattr(self, field.name)
+        return clone
 
 
 class CreateRegister:
@@ -114,11 +124,11 @@ class CreateRegister:
         cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
         def convert(value: tp.Any, want: tp.Type[T]) -> T:
-            nonlocal meta
-
             if hasattr(want, "__origin__"):
-                meta = meta.clone(data_extra={"__call_defined_annotation__": want.__metadata__[0]})
+                ann = want.__metadata__[0]
+                m = ann.adjusted_meta(meta)
                 want = want.__origin__
+                return self.create(want, value, meta=m)
 
             if want in cache:
                 return cache[want](value, want, meta, converter)

@@ -448,6 +448,35 @@ describe "Creators":
                 creg.create(Thing, {"one": " there"}, meta=meta).one.sentence == "hello there mate"
             )
 
+        it "can get data spread into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define(frozen=True)
+            class ChildAnnotation(strcs.MergedAnnotation):
+                two: int
+
+            @define(frozen=True)
+            class ThingAnnotation(strcs.MergedAnnotation):
+                one: int
+
+            @define
+            class Child:
+                data: int
+
+            @define
+            class Thing:
+                child: tp.Annotated[Child, ChildAnnotation(two=30)]
+
+            @define
+            class Overall:
+                thing: tp.Annotated[Thing, ThingAnnotation(one=40)]
+
+            @creator(Child)
+            def create_thing(val: int, /, one: int, two: int):
+                return {"data": val + one + two}
+
+            assert creg.create(Overall, {"thing": {"child": 3}}).thing.child.data == 73
+            assert creg.create(Overall, {"thing": {"child": 10}}).thing.child.data == 80
+
     describe "interpreting the response":
         it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
