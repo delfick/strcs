@@ -174,9 +174,10 @@ class _ArgsExtractor:
 class CreatorDecorator(tp.Generic[T]):
     func: ConvertDefinition[T]
 
-    def __init__(self, register: CreateRegister, typ: tp.Type[T]):
+    def __init__(self, register: CreateRegister, typ: tp.Type[T], assume_unchanged_converted=True):
         self.typ = typ
         self.register = register
+        self.assume_unchanged_converted = assume_unchanged_converted
 
     def __call__(self, func: tp.Optional[ConvertDefinition[T]] = None) -> ConvertDefinition[T]:
         if func is None:
@@ -194,6 +195,9 @@ class CreatorDecorator(tp.Generic[T]):
         return self.func
 
     def wrapped(self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter) -> T:
+        if self.assume_unchanged_converted and isinstance(value, want):
+            return value
+
         res = self._invoke_func(value, want, meta, converter)
 
         def deal(res: ConvertResponse[T], value: tp.Any) -> T:

@@ -30,19 +30,15 @@ class Projects:
 
 @creator(Projects)
 def create_projects(projects: Projects | tp.List | tp.Dict, /) -> strcs.ConvertResponse:
-    if isinstance(projects, Projects):
-        return True
-    elif isinstance(projects, list):
+    if isinstance(projects, list):
         return {"projects": projects}
     elif isinstance(projects, dict) and "projects" in projects:
         return {"projects": projects["projects"]}
 
 
 @creator(Project)
-def create_project(project: tp.Dict | Project, /, meta: strcs.Meta, converter: cattrs.Converter):
-    if isinstance(project, Project):
-        yield True
-    elif isinstance(project, dict):
+def create_project(project: Project | tp.Dict, /, meta: strcs.Meta, converter: cattrs.Converter):
+    if isinstance(project, dict):
         details = []
         if "details" in project:
             details = project.pop("details")
@@ -57,9 +53,7 @@ def create_project(project: tp.Dict | Project, /, meta: strcs.Meta, converter: c
 
 @creator(Detail)
 def create_detail(detail: Detail | tp.Dict, /, project: Project) -> strcs.ConvertResponse:
-    if isinstance(detail, Detail):
-        return True
-    elif isinstance(detail, dict):
+    if isinstance(detail, dict):
         detail["project"] = project
         return detail
 

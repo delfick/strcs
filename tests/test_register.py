@@ -329,7 +329,7 @@ describe "Creators":
 
             thing = Thing()
 
-            @creator(Thing)
+            @creator(Thing, assume_unchanged_converted=False)
             def make(value: tp.Any) -> strcs.ConvertResponse[Thing]:
                 called.append(value)
                 return thing
@@ -354,7 +354,7 @@ describe "Creators":
 
             thing = Thing()
 
-            @creator(Thing)
+            @creator(Thing, assume_unchanged_converted=False)
             def make(value: tp.Any, want: tp.Type, /) -> strcs.ConvertResponse[Thing]:
                 called.append((value, want))
                 return thing
@@ -466,7 +466,7 @@ describe "Creators":
             thing2 = Thing()
             thing3 = Thing()
 
-            @creator(Thing)
+            @creator(Thing, assume_unchanged_converted=False)
             def make() -> strcs.ConvertResponse[Thing]:
                 called.append(1)
                 return True
@@ -484,10 +484,40 @@ describe "Creators":
             assert creg.create(Thing, thing3) is thing3
             assert called == [1, 1, 1, 1]
 
+        it "returns the value as is without going through function if assume unchanged and value is of the same type", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            @define
+            class Thing:
+                pass
+
+            thing = Thing()
+
+            @creator(Thing)
+            def make(thing: Thing | tp.Dict) -> strcs.ConvertResponse:
+                called.append(1)
+                return thing
+
+            assert creg.create(Thing, thing) is thing
+            assert called == []
+
+            got = creg.create(Thing, {})
+            assert isinstance(got, Thing)
+            assert got is not thing
+            assert called == [1]
+
+            class Child(Thing):
+                pass
+
+            child = Child()
+
+            assert creg.create(Thing, child) is child
+            assert called == [1]
+
         it "can use NotSpecified if the type we want is that and we return True", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
 
-            @creator(NotSpecifiedMeta)
+            @creator(NotSpecifiedMeta, assume_unchanged_converted=False)
             def make() -> strcs.ConvertResponse[NotSpecifiedMeta]:
                 called.append(1)
                 return True
