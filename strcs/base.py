@@ -141,7 +141,14 @@ class _ArgsExtractor:
             use.append(self.want)
 
         for param in values:
-            use.append(self.meta.retrieve_one(param.annotation, param.name))
+            if (
+                param.annotation is Meta
+                or param.annotation is inspect._empty
+                and param.name == "meta"
+            ):
+                use.append(self.meta)
+            else:
+                use.append(self.meta.retrieve_one(param.annotation, param.name))
 
         return use
 

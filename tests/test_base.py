@@ -91,3 +91,34 @@ describe "_ArgsExtractor":
 
         extractor = _ArgsExtractor(inspect.signature(func), val, Other, meta, cattrs.Converter())
         assert extractor.extract() == [o]
+
+    it "can get us the meta object":
+
+        def func(meta):
+            ...
+
+        val = mock.Mock(name="val")
+        meta = strcs.Meta()
+        extractor = _ArgsExtractor(
+            inspect.signature(func), val, mock.Mock, meta, cattrs.Converter()
+        )
+
+        assert extractor.extract() == [meta]
+
+        def func(m: strcs.Meta):
+            ...
+
+        extractor = _ArgsExtractor(
+            inspect.signature(func), val, mock.Mock, meta, cattrs.Converter()
+        )
+
+        assert extractor.extract() == [meta]
+
+        def func(val, /, m: strcs.Meta):
+            ...
+
+        extractor = _ArgsExtractor(
+            inspect.signature(func), val, mock.Mock, meta, cattrs.Converter()
+        )
+
+        assert extractor.extract() == [val, meta]
