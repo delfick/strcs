@@ -147,6 +147,12 @@ class _ArgsExtractor:
                 and param.name == "meta"
             ):
                 use.append(self.meta)
+            elif (
+                param.annotation is not tp.Any
+                and isinstance(param.annotation, type)
+                and issubclass(param.annotation, cattrs.Converter)
+            ) or (param.annotation is inspect._empty and param.name == "converter"):
+                use.append(self.converter)
             elif param.annotation in (inspect._empty, tp.Any):
                 use.append(self.meta.retrieve_one(object, param.name))
             else:

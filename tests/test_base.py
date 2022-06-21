@@ -141,3 +141,28 @@ describe "_ArgsExtractor":
 
         extractor = _ArgsExtractor(inspect.signature(func), val, Other, meta, cattrs.Converter())
         assert extractor.extract() == [val, Other, o, 12, "one"]
+
+    it "can get us the converter object":
+
+        def func(converter):
+            ...
+
+        val = mock.Mock(name="val")
+        converter = cattrs.Converter()
+        extractor = _ArgsExtractor(inspect.signature(func), val, mock.Mock, strcs.Meta(), converter)
+
+        assert extractor.extract() == [converter]
+
+        def func(c: cattrs.Converter):
+            ...
+
+        extractor = _ArgsExtractor(inspect.signature(func), val, mock.Mock, strcs.Meta(), converter)
+
+        assert extractor.extract() == [converter]
+
+        def func(val, /, c: cattrs.Converter):
+            ...
+
+        extractor = _ArgsExtractor(inspect.signature(func), val, mock.Mock, strcs.Meta(), converter)
+
+        assert extractor.extract() == [val, converter]
