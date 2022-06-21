@@ -477,6 +477,79 @@ describe "Creators":
             assert creg.create(Overall, {"thing": {"child": 3}}).thing.child.data == 73
             assert creg.create(Overall, {"thing": {"child": 10}}).thing.child.data == 80
 
+        it "can convert lists one thing at a time", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            counts = {"upto": 0}
+
+            @define
+            class Thing:
+                one: int
+                upto: int
+
+            @define
+            class Things:
+                things: list[Thing]
+
+            @creator(Thing)
+            def create_thing(one: int):
+                counts["upto"] += 1
+                return {"one": one, "upto": counts["upto"]}
+
+            made = creg.create(Things, {"things": [4, 5, 6]})
+            assert isinstance(made, Things)
+
+            assert [(t.one, t.upto) for t in made.things] == [(4, 1), (5, 2), (6, 3)]
+
+        it "can adjust meta from a method on the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
+            """Entirely possible I got a bit carried away with this example and I agree this is a stupid way of whatever this is"""
+
+            @define(frozen=True)
+            class LottoAnnotation(strcs.Annotation):
+                numbers: tp.Tuple[int, int, int, int, int]
+
+                def adjusted_meta(self, meta: strcs.Meta) -> strcs.Meta:
+                    return meta.clone(
+                        data_extra={"powerball": self.numbers[-1], "numbers": self.numbers[:-1]}
+                    )
+
+            @define
+            class Result:
+                winner: bool
+
+            @define
+            class Ticket:
+                numbers: list[int]
+                powerball: int
+
+            @define
+            class Lotto:
+                results: tp.Annotated[list[Result], LottoAnnotation(numbers=(2, 6, 8, 10, 69))]
+
+            @creator(Result)
+            def create_result(
+                val: Ticket, /, numbers: tp.Tuple, powerball: int
+            ) -> strcs.ConvertResponse:
+                return {"winner": val.numbers == list(numbers) and val.powerball == powerball}
+
+            lotto = creg.create(
+                Lotto,
+                {
+                    "results": [
+                        Ticket(numbers=[1, 2, 3, 4], powerball=2),
+                        Ticket(numbers=[2, 6, 8, 10], powerball=22),
+                        Ticket(numbers=[2, 6, 8, 10], powerball=69),
+                        Ticket(numbers=[5, 8, 4, 3], powerball=3),
+                    ]
+                },
+            )
+
+            assert lotto.results == [
+                Result(winner=False),
+                Result(winner=False),
+                Result(winner=True),
+                Result(winner=False),
+            ]
+
     describe "interpreting the response":
         it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []

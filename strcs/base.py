@@ -124,7 +124,7 @@ class CreateRegister:
         cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
         def convert(value: tp.Any, want: tp.Type[T]) -> T:
-            if hasattr(want, "__origin__"):
+            if hasattr(want, "__origin__") and want.__origin__ is not list:
                 ann = want.__metadata__[0]
                 m = ann.adjusted_meta(meta)
                 want = want.__origin__
@@ -138,8 +138,15 @@ class CreateRegister:
                 return fromdict(converter, self, value, want)
 
         def check_func(want: tp.Type[T]) -> bool:
-            if hasattr(want, "__origin__"):
+            if hasattr(want, "__origin__") and want.__origin__ is not list:
                 want = want.__origin__
+
+                if (
+                    hasattr(want, "__origin__")
+                    and want.__origin__ is list
+                    and len(want.__args__) == 1
+                ):
+                    want = want.__args__[0]
 
             creator = self.creator_for(want)
             if creator is not None:
