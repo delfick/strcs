@@ -61,6 +61,16 @@ def take_or_make(value: tp.Any, typ: tp.Type[T], /) -> ConvertResponse:
         return None
 
 
+def fromdict(converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: T) -> T:
+    if res is NotSpecified:
+        res = {}
+    if isinstance(res, dict):
+        for field in attrs.fields(want):
+            if field.type is not None and field.type in register and field.name not in res:
+                res[field.name] = NotSpecified
+    return converter.structure_attrs_fromdict(tp.cast(dict, res), want)
+
+
 class CreateRegister:
     def __init__(self):
         self.register: dict[tp.Type[T], ConvertFunction[T]] = {}
@@ -100,7 +110,7 @@ class CreateRegister:
             elif isinstance(value, want):
                 return value
             else:
-                return converter.structure_attrs_fromdict(value, want)
+                return fromdict(converter, self, value, want)
 
         def check_func(want: tp.Type[T]) -> bool:
             creator = self.creator_for(want)
@@ -206,17 +216,7 @@ class CreatorDecorator(tp.Generic[T]):
                     )
                 return tp.cast(T, value)
             else:
-                if res is NotSpecified:
-                    res = {}
-                if isinstance(res, dict):
-                    for field in attrs.fields(want):
-                        if (
-                            field.type is not None
-                            and field.type in self.register
-                            and field.name not in res
-                        ):
-                            res[field.name] = NotSpecified
-                return converter.structure_attrs_fromdict(tp.cast(dict, res), want)
+                return fromdict(converter, self.register, res, want)
 
         return deal(res, value)
 
