@@ -166,3 +166,41 @@ describe "_ArgsExtractor":
         extractor = _ArgsExtractor(inspect.signature(func), val, mock.Mock, strcs.Meta(), converter)
 
         assert extractor.extract() == [val, converter]
+
+    it "complains if it can't find something":
+
+        def func(wat):
+            ...
+
+        extractor = _ArgsExtractor(
+            inspect.signature(func),
+            mock.Mock(name="val"),
+            mock.Mock,
+            strcs.Meta(),
+            cattrs.Converter(),
+        )
+
+        with pytest.raises(strcs.errors.NoDataByTypeName) as exc_info:
+            extractor.extract()
+
+        assert exc_info.value.args[1] == ["wat"]
+
+        def func(wat: int):
+            ...
+
+        meta = strcs.Meta()
+        meta["one"] = 1
+        meta["two"] = 2
+
+        extractor = _ArgsExtractor(
+            inspect.signature(func),
+            mock.Mock(name="val"),
+            mock.Mock,
+            meta,
+            cattrs.Converter(),
+        )
+
+        with pytest.raises(strcs.errors.MultipleNamesForType) as exc_info:
+            extractor.extract()
+
+        assert exc_info.value.args[1] == ["one", "two"]
