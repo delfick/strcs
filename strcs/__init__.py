@@ -4,6 +4,7 @@ from .base import (
     CreatorDecorator,
     ConvertFunction,
     Creator,
+    Annotation,
     NotSpecified,
 )
 from .converter import converter
@@ -16,6 +17,7 @@ __all__ = [
     "VERSION",
     "converter",
     "Meta",
+    "Annotation",
     "ConvertFunction",
     "ConvertResponse",
     "CreateRegister",

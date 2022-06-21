@@ -1,6 +1,7 @@
 from .meta import Meta
 from . import errors
 
+from attrs import define
 import typing as tp
 import inspect
 import cattrs
@@ -71,6 +72,11 @@ def fromdict(converter: cattrs.Converter, register: "CreateRegister", res: tp.An
     return converter.structure_attrs_fromdict(tp.cast(dict, res), want)
 
 
+@define
+class Annotation:
+    pass
+
+
 class CreateRegister:
     def __init__(self):
         self.register: dict[tp.Type[T], ConvertFunction[T]] = {}
@@ -84,6 +90,9 @@ class CreateRegister:
         return self.creator_for(typ) is not None
 
     def creator_for(self, typ: tp.Type[T]) -> tp.Optional[ConvertFunction[T]]:
+        if hasattr(typ, "__origin__"):
+            typ = typ.__origin__
+
         if not isinstance(typ, type):
             return None
 
@@ -105,6 +114,12 @@ class CreateRegister:
         cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
         def convert(value: tp.Any, want: tp.Type[T]) -> T:
+            nonlocal meta
+
+            if hasattr(want, "__origin__"):
+                meta = meta.clone(data_extra={"__call_defined_annotation__": want.__metadata__[0]})
+                want = want.__origin__
+
             if want in cache:
                 return cache[want](value, want, meta, converter)
             elif isinstance(value, want):
@@ -113,6 +128,9 @@ class CreateRegister:
                 return fromdict(converter, self, value, want)
 
         def check_func(want: tp.Type[T]) -> bool:
+            if hasattr(want, "__origin__"):
+                want = want.__origin__
+
             creator = self.creator_for(want)
             if creator is not None:
                 cache[want] = creator

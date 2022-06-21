@@ -424,6 +424,30 @@ describe "Creators":
             assert creg.create(Thing, meta=meta) is thing
             assert called == [(strcs.NotSpecified, Thing, 30, child)]
 
+        it "can get annotated data from class definition into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define(frozen=True)
+            class SentenceAnnotation(strcs.Annotation):
+                prefix: str
+
+            @define
+            class Sentence:
+                sentence: str
+
+            @define
+            class Thing:
+                one: tp.Annotated[Sentence, SentenceAnnotation(prefix="hello")]
+
+            @creator(Sentence)
+            def create_sentence(val: str | tp.Dict, /, ann: SentenceAnnotation, suffix: str):
+                return {"sentence": ann.prefix + val + suffix}
+
+            meta = strcs.Meta()
+            meta["suffix"] = " mate"
+            assert (
+                creg.create(Thing, {"one": " there"}, meta=meta).one.sentence == "hello there mate"
+            )
+
     describe "interpreting the response":
         it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
