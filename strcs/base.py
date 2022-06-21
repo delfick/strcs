@@ -113,6 +113,36 @@ class CreateRegister:
         return converter.structure(value, typ)
 
 
+class _ArgsExtractor:
+    def __init__(
+        self,
+        signature: inspect.Signature,
+        value: tp.Any,
+        want: tp.Type,
+        meta: Meta,
+        converter: cattrs.Converter,
+    ):
+        self.meta = meta
+        self.want = want
+        self.value = value
+        self.converter = converter
+        self.signature = signature
+
+    def extract(self) -> list[tp.Any]:
+        use = []
+        values = list(self.signature.parameters.values())
+
+        if values and values[0].kind is inspect.Parameter.POSITIONAL_ONLY:
+            values.pop(0)
+            use.append(self.value)
+
+        if values and values[0].kind is inspect.Parameter.POSITIONAL_ONLY:
+            values.pop(0)
+            use.append(self.want)
+
+        return use
+
+
 class CreatorDecorator(tp.Generic[T]):
     func: ConvertDefinition[T]
 
