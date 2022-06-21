@@ -122,3 +122,22 @@ describe "_ArgsExtractor":
         )
 
         assert extractor.extract() == [val, meta]
+
+    it "can get us based just off the name of the argument":
+
+        class Other:
+            pass
+
+        o = Other()
+
+        def func(value: tp.Any, want: tp.Type, /, other, blah, stuff):
+            ...
+
+        val = mock.Mock(name="val")
+        meta = strcs.Meta()
+        meta["stuff"] = "one"
+        meta["blah"] = 12
+        meta["other"] = o
+
+        extractor = _ArgsExtractor(inspect.signature(func), val, Other, meta, cattrs.Converter())
+        assert extractor.extract() == [val, Other, o, 12, "one"]

@@ -147,6 +147,8 @@ class _ArgsExtractor:
                 and param.name == "meta"
             ):
                 use.append(self.meta)
+            elif param.annotation in (inspect._empty, tp.Any):
+                use.append(self.meta.retrieve_one(object, param.name))
             else:
                 use.append(self.meta.retrieve_one(param.annotation, param.name))
 
