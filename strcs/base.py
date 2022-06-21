@@ -140,6 +140,9 @@ class _ArgsExtractor:
             values.pop(0)
             use.append(self.want)
 
+        for param in values:
+            use.append(self.meta.retrieve_one(param.annotation, param.name))
+
         return use
 
 

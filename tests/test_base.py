@@ -53,3 +53,41 @@ describe "_ArgsExtractor":
         )
 
         assert extractor.extract() == [val, mock.Mock]
+
+    it "can get arbitrary values from meta":
+
+        class Other:
+            pass
+
+        o = Other()
+
+        def func(value: tp.Any, want: tp.Type, /, other: Other, blah: int, stuff: str):
+            ...
+
+        val = mock.Mock(name="val")
+        meta = strcs.Meta()
+        meta["stuff"] = "one"
+        meta["one"] = 12
+        meta["two"] = "two"
+        meta["o"] = o
+
+        extractor = _ArgsExtractor(inspect.signature(func), val, Other, meta, cattrs.Converter())
+        assert extractor.extract() == [val, Other, o, 12, "one"]
+
+        def func(value: tp.Any, /, other: Other, blah: int, stuff: str):
+            ...
+
+        extractor = _ArgsExtractor(inspect.signature(func), val, Other, meta, cattrs.Converter())
+        assert extractor.extract() == [val, o, 12, "one"]
+
+        def func(other: Other, blah: int, stuff: str):
+            ...
+
+        extractor = _ArgsExtractor(inspect.signature(func), val, Other, meta, cattrs.Converter())
+        assert extractor.extract() == [o, 12, "one"]
+
+        def func(other: Other):
+            ...
+
+        extractor = _ArgsExtractor(inspect.signature(func), val, Other, meta, cattrs.Converter())
+        assert extractor.extract() == [o]
