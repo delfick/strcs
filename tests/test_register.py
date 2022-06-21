@@ -389,6 +389,41 @@ describe "Creators":
                 (thing, Child),
             ]
 
+        it "calls function with information from meta if it asks for it", creator: strcs.Creator, creg: strcs.CreateRegister:
+            called = []
+
+            class Thing:
+                pass
+
+            thing = Thing()
+
+            @creator(Thing)
+            def make(
+                value: tp.Any, want: tp.Type, /, number: int, specific: Thing
+            ) -> strcs.ConvertResponse[Thing]:
+                called.append((value, want, number, specific))
+                return thing
+
+            meta = strcs.Meta()
+            meta["one"] = 1
+            meta["specific"] = thing
+
+            assert creg.create(Thing, meta=meta) is thing
+            assert called == [(strcs.NotSpecified, Thing, 1, thing)]
+
+            @define
+            class Child(Thing):
+                pass
+
+            child = Child()
+            del meta["one"]
+            meta["number"] = 30
+            meta["specific"] = child
+
+            called.clear()
+            assert creg.create(Thing, meta=meta) is thing
+            assert called == [(strcs.NotSpecified, Thing, 30, child)]
+
     describe "interpreting the response":
         it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []

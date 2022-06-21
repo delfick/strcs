@@ -261,7 +261,8 @@ class CreatorDecorator(tp.Generic[T]):
             return tp.cast(ConvertDefinitionValueAndType, self.func)(value, want)
 
         else:
-            raise NotImplementedError()
+            args = _ArgsExtractor(self.signature, value, want, meta, converter).extract()
+            return self.func(*args)
 
 
 Creator: tp.TypeAlias = tp.Callable[[tp.Type[T]], CreatorDecorator[T]]
