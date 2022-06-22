@@ -203,24 +203,24 @@ class _CreateStructureHook:
             elif callable(ann):
                 ann = Ann(creator=ann)
 
-        m = self.meta
-        c = self.creator
+        meta = self.meta
+        creator = self.creator
 
-        if want in self.cache and c is None:
-            c = self.cache[want]
+        if want in self.cache and creator is None:
+            creator = self.cache[want]
 
         if ann:
-            m = ann.adjusted_meta(m)
+            meta = ann.adjusted_meta(meta)
             want = want.__origin__
             if want in self.cache:
-                c = self.cache[want]
+                creator = self.cache[want]
 
-            c = ann.adjusted_creator(c, self.register, want)
-            if m is not self.meta:
-                return self.register.create(want, value, meta=m, creator=c)
+            creator = ann.adjusted_creator(creator, self.register, want)
+            if meta is not self.meta:
+                return self.register.create(want, value, meta=meta, creator=creator)
 
-        if c:
-            return c(value, want, m, self.converter)
+        if creator:
+            return creator(value, want, meta, self.converter)
         elif isinstance(value, want):
             return value
         else:
