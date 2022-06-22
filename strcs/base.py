@@ -117,7 +117,12 @@ class Ann:
         if self.creator is None:
             return creator
 
-        return CreatorDecorator(register, typ, return_wrapped=True)(self.creator)
+        return CreatorDecorator(
+            register,
+            typ,
+            assume_unchanged_converted=hasattr(typ, "__attrs_attrs__"),
+            return_wrapped=True,
+        )(self.creator)
 
 
 class CreateRegister:
@@ -174,7 +179,10 @@ class _CreateStructureHook:
         converter = cattrs.Converter()
         hooks = kls(register, converter, typ, value, meta, creator)
         converter.register_structure_hook_func(hooks.check_func, hooks.convert)
-        return converter.structure(value, typ)
+        if hooks.check_func(typ):
+            return hooks.convert(value, typ)
+        else:
+            return converter.structure(value, typ)
 
     def __init__(
         self,
@@ -244,7 +252,7 @@ class _CreateStructureHook:
             self.cache[want] = creator
             return True
 
-        return hasattr(want, "__attrs_attrs__")
+        return ann or self.creator or hasattr(want, "__attrs_attrs__")
 
 
 class _ArgsExtractor:

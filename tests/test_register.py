@@ -304,6 +304,23 @@ describe "Creators":
         assert dec.register.create(Thing) is thing
         make.assert_called_once_with()
 
+    it "can work on things that aren't attrs classes", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+        @define(frozen=True)
+        class Info(strcs.MergedAnnotation):
+            multiple: int
+
+        def multiply(val: int, /, multiple: int):
+            return val * multiple
+
+        assert creg.create(tp.Annotated[int, strcs.Ann(Info(multiple=2), multiply)], 3) == 6
+
+        @define
+        class Thing:
+            thing: tp.Annotated[int, strcs.Ann(Info(multiple=5), multiply)]
+
+        assert creg.create(Thing, {"thing": 20}).thing == 100
+
     describe "invoking function":
         it "calls func if it has no arguments", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
