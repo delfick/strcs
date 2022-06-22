@@ -550,6 +550,57 @@ describe "Creators":
                 Result(winner=False),
             ]
 
+        it "can override a creator in the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define
+            class Thing:
+                val: int
+
+            @creator(Thing)
+            def create_thing(val: int) -> strcs.ConvertResponse:
+                return {"val": val * 2}
+
+            @define
+            class Things:
+                thing1: Thing
+                thing2: tp.Annotated[Thing, lambda val: {"val": val * 3}]
+                thing3: Thing
+
+            things = creg.create(Things, {"thing1": 1, "thing2": 5, "thing3": 10})
+            assert isinstance(things, Things)
+            assert things.thing1.val == 2
+            assert things.thing2.val == 15
+            assert things.thing3.val == 20
+
+        it "can override a creator and meta in the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define(frozen=True)
+            class ThingAnnotation(strcs.MergedAnnotation):
+                add: int
+
+            @define
+            class Thing:
+                val: int
+
+            @creator(Thing)
+            def create_thing(val: int) -> strcs.ConvertResponse:
+                return {"val": val * 2}
+
+            def other_creator(val: int, /, add: int) -> strcs.ConvertResponse:
+                return {"val": val + add}
+
+            @define
+            class Things:
+                thing1: Thing
+                thing2: tp.Annotated[Thing, strcs.Ann(ThingAnnotation(add=20), other_creator)]
+                thing3: Thing
+
+            things = creg.create(Things, {"thing1": 1, "thing2": 5, "thing3": 10})
+            assert isinstance(things, Things)
+            assert things.thing1.val == 2
+            assert things.thing2.val == 25
+            assert things.thing3.val == 20
+
     describe "interpreting the response":
         it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []

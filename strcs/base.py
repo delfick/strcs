@@ -74,17 +74,50 @@ def fromdict(converter: cattrs.Converter, register: "CreateRegister", res: tp.An
 
 @define
 class Annotation:
-    def adjusted_meta(self, meta: Meta) -> Meta:
-        return meta.clone(data_extra={"__call_defined_annotation__": self})
+    @property
+    def merge_meta(self) -> bool:
+        return False
 
 
 @define
-class MergedAnnotation:
+class MergedAnnotation(Annotation):
+    @property
+    def merge_meta(self) -> bool:
+        return True
+
+
+class Ann:
+    _func: tp.Optional[ConvertFunction] = None
+
+    def __init__(
+        self, meta: tp.Optional[Annotation] = None, creator: tp.Optional[ConvertFunction] = None
+    ):
+        self.meta = meta
+        self.creator = creator
+
     def adjusted_meta(self, meta: Meta) -> Meta:
-        clone = meta.clone()
-        for field in attrs.fields(self.__class__):
-            clone[field.name] = getattr(self, field.name)
-        return clone
+        if self.meta is None:
+            return meta
+
+        if hasattr(self.meta, "adjusted_meta"):
+            return self.meta.adjusted_meta(meta)
+
+        if self.meta.merge_meta:
+            clone = meta.clone()
+            for field in attrs.fields(self.meta.__class__):
+                if not field.name.startswith("_"):
+                    clone[field.name] = getattr(self.meta, field.name)
+            return clone
+        else:
+            return meta.clone(data_extra={"__call_defined_annotation__": self.meta})
+
+    def adjusted_creator(
+        self, creator: ConvertFunction, register: "CreateRegister", typ: tp.Type[T]
+    ) -> ConvertFunction[T]:
+        if self.creator is None:
+            return creator
+
+        return CreatorDecorator(register, typ, return_wrapped=True)(self.creator)
 
 
 class CreateRegister:
@@ -115,7 +148,13 @@ class CreateRegister:
 
         return None
 
-    def create(self, typ: tp.Type[T], value: tp.Any = NotSpecified, meta: tp.Any = NotSpecified):
+    def create(
+        self,
+        typ: tp.Type[T],
+        value: tp.Any = NotSpecified,
+        meta: tp.Any = NotSpecified,
+        creator: tp.Optional[ConvertFunction[T]] = None,
+    ):
         if meta is NotSpecified:
             meta = Meta()
 
@@ -124,14 +163,33 @@ class CreateRegister:
         cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
         def convert(value: tp.Any, want: tp.Type[T]) -> T:
+            ann: tp.Optional[Annotation | Ann | ConvertFunction] = None
             if hasattr(want, "__origin__") and want.__origin__ is not list:
                 ann = want.__metadata__[0]
+
+                if isinstance(ann, Annotation):
+                    ann = Ann(ann)
+                elif callable(ann):
+                    ann = Ann(creator=ann)
+
+            m = meta
+            c = creator
+
+            if want in cache and c is None:
+                c = cache[want]
+
+            if ann:
                 m = ann.adjusted_meta(meta)
                 want = want.__origin__
-                return self.create(want, value, meta=m)
+                if want in cache:
+                    c = cache[want]
 
-            if want in cache:
-                return cache[want](value, want, meta, converter)
+                c = ann.adjusted_creator(c, self.register, want)
+                if m is not meta:
+                    return self.create(want, value, meta=m, creator=c)
+
+            if c:
+                return c(value, want, meta, converter)
             elif isinstance(value, want):
                 return value
             else:
@@ -209,9 +267,16 @@ class _ArgsExtractor:
 class CreatorDecorator(tp.Generic[T]):
     func: ConvertDefinition[T]
 
-    def __init__(self, register: CreateRegister, typ: tp.Type[T], assume_unchanged_converted=True):
+    def __init__(
+        self,
+        register: CreateRegister,
+        typ: tp.Type[T],
+        assume_unchanged_converted=True,
+        return_wrapped=False,
+    ):
         self.typ = typ
         self.register = register
+        self.return_wrapped = return_wrapped
         self.assume_unchanged_converted = assume_unchanged_converted
 
     def __call__(self, func: tp.Optional[ConvertDefinition[T]] = None) -> ConvertDefinition[T]:
@@ -226,8 +291,11 @@ class CreatorDecorator(tp.Generic[T]):
         else:
             self.signature = inspect.signature(self.func)
 
-        self.register[self.typ] = self.wrapped
-        return self.func
+        if self.return_wrapped:
+            return self.wrapped
+        else:
+            self.register[self.typ] = self.wrapped
+            return self.func
 
     def wrapped(self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter) -> T:
         if self.assume_unchanged_converted and isinstance(value, want):
