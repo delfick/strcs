@@ -424,6 +424,37 @@ describe "Creators":
             assert creg.create(Thing, meta=meta) is thing
             assert called == [(strcs.NotSpecified, Thing, 30, child)]
 
+        it "can use a default value for things asked for from meta", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define
+            class Thing:
+                val: str
+
+            @creator(Thing)
+            def create_thing(
+                val: str,
+                /,
+                prefix: str,
+                suffix: str = "there",
+                super_prefix: str = "blah",
+                non_typed="meh",
+            ):
+                return {"val": f"{prefix}:{val}:{suffix}:{super_prefix}:{non_typed}"}
+
+            meta = strcs.Meta()
+            meta["prefix"] = "pref"
+            assert creg.create(Thing, "hello", meta=meta).val == "pref:hello:there:blah:meh"
+            assert (
+                creg.create(
+                    Thing, "hello", meta=meta.clone(data_extra={"non_typed": "laksjdfl"})
+                ).val
+                == "pref:hello:there:blah:laksjdfl"
+            )
+            assert (
+                creg.create(Thing, "hello", meta=meta.clone(data_extra={"suffix": "hi"})).val
+                == "pref:hello:hi:blah:meh"
+            )
+
         it "can get annotated data from class definition into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
 
             @define(frozen=True)

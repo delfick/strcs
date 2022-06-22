@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from attrs import define
 import typing as tp
 import fnmatch
+import inspect
 import cattrs
 
 T = tp.TypeVar("T")
@@ -236,7 +237,7 @@ class Meta:
 
         return optional, available
 
-    def retrieve_one(self, typ: tp.Type[T], *patterns: str) -> T:
+    def retrieve_one(self, typ: tp.Type[T], *patterns: str, default: tp.Any = inspect._empty) -> T:
         """
         Retrieve a single value for this type and patterns restrictions
 
@@ -250,10 +251,16 @@ class Meta:
         data = self.data
         if patterns:
             with_patterns = Narrower(data).narrow(*patterns)
-            if with_patterns:
+            if with_patterns or typ is object:
                 data = with_patterns
+            elif default is not inspect._empty:
+                return default
 
         optional, found = self.find_by_type(typ, data=data)
+
+        if patterns and data and not found and not optional:
+            raise errors.FoundWithWrongType(patterns=list(patterns), want=typ)
+
         if optional and not found:
             return tp.cast(T, None)
 
@@ -263,6 +270,9 @@ class Meta:
 
         if found:
             raise errors.MultipleNamesForType(want=typ, found=sorted(found))
+
+        if default is not inspect._empty:
+            return default
 
         raise errors.NoDataByTypeName(
             want=typ,

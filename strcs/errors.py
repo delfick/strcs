@@ -43,3 +43,9 @@ class MultipleNamesForType(StructuresError):
 @define
 class CanOnlyRegisterTypes(StructuresError):
     got: tp.Any
+
+
+@define
+class FoundWithWrongType(StructuresError):
+    want: tp.Type
+    patterns: list[str]

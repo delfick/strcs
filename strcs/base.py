@@ -288,9 +288,11 @@ class _ArgsExtractor:
             ) or (param.annotation is inspect._empty and param.name == "converter"):
                 use.append(self.converter)
             elif param.annotation in (inspect._empty, tp.Any):
-                use.append(self.meta.retrieve_one(object, param.name))
+                use.append(self.meta.retrieve_one(object, param.name, default=param.default))
             else:
-                use.append(self.meta.retrieve_one(param.annotation, param.name))
+                use.append(
+                    self.meta.retrieve_one(param.annotation, param.name, default=param.default)
+                )
 
         return use
 

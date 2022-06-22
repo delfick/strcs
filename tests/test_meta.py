@@ -395,3 +395,24 @@ describe "Meta":
 
             assert meta.retrieve_one(int, "c") == 1
             assert meta.retrieve_one(int, "d") == 1
+
+        it "uses default if provided and found type but not name":
+            meta = Meta()
+            meta.update({"a": 1, "b": 2})
+
+            assert meta.retrieve_one(int, "a", default=30) == 1
+            assert meta.retrieve_one(int, "d", default=40) == 40
+
+        it "uses default if provided and found nothing":
+            meta = Meta()
+            meta.update({"a": 1, "b": 2})
+
+            assert meta.retrieve_one(float, "c", default=30) == 30
+            assert meta.retrieve_one(float, "d", default=40) == 40
+
+        it "complains if found name but type is wrong":
+            meta = Meta()
+            meta.update({"a": 1, "b": 2})
+
+            with pytest.raises(strcs.errors.FoundWithWrongType):
+                meta.retrieve_one(float, "a", default=30)
