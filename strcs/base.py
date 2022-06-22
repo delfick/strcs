@@ -193,28 +193,38 @@ class _CreateStructureHook:
         self.converter = converter
         self.cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
-    def convert(self, value: tp.Any, want: tp.Type[T]) -> T:
+    def _interpret_annotation(
+        self, want: tp.Type, dive_into_lists=False
+    ) -> tp.Tuple[Ann, tp.Type[T]]:
         ann: tp.Optional[Annotation | Ann | ConvertFunction] = None
-        if hasattr(want, "__origin__") and want.__origin__ is not list:
-            ann = want.__metadata__[0]
+        if hasattr(want, "__origin__"):
+            if want.__origin__ is not list:
+                ann = want.__metadata__[0]
 
-            if isinstance(ann, Annotation):
-                ann = Ann(ann)
-            elif callable(ann):
-                ann = Ann(creator=ann)
+                if isinstance(ann, Annotation):
+                    ann = Ann(ann)
+                elif callable(ann):
+                    ann = Ann(creator=ann)
 
+                want = want.__origin__
+
+                if dive_into_lists and hasattr(want, "__origin__"):
+                    if want.__origin__ is list and len(want.__args__) == 1:
+                        want = want.__args__[0]
+
+        return ann, want
+
+    def convert(self, value: tp.Any, want: tp.Type[T]) -> T:
         meta = self.meta
         creator = self.creator
+
+        ann, want = self._interpret_annotation(want)
 
         if want in self.cache and creator is None:
             creator = self.cache[want]
 
         if ann:
             meta = ann.adjusted_meta(meta)
-            want = want.__origin__
-            if want in self.cache:
-                creator = self.cache[want]
-
             creator = ann.adjusted_creator(creator, self.register, want)
             if meta is not self.meta:
                 return self.register.create(want, value, meta=meta, creator=creator)
@@ -227,16 +237,13 @@ class _CreateStructureHook:
             return fromdict(self.converter, self.register, value, want)
 
     def check_func(self, want: tp.Type[T]) -> bool:
-        if hasattr(want, "__origin__") and want.__origin__ is not list:
-            want = want.__origin__
-
-            if hasattr(want, "__origin__") and want.__origin__ is list and len(want.__args__) == 1:
-                want = want.__args__[0]
-
+        ann, want = self._interpret_annotation(want, dive_into_lists=True)
         creator = self.register.creator_for(want)
+
         if creator is not None:
             self.cache[want] = creator
             return True
+
         return hasattr(want, "__attrs_attrs__")
 
 
