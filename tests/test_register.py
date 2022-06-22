@@ -555,7 +555,7 @@ describe "Creators":
             class LottoAnnotation(strcs.Annotation):
                 numbers: tp.Tuple[int, int, int, int, int]
 
-                def adjusted_meta(self, meta: strcs.Meta) -> strcs.Meta:
+                def adjusted_meta(self, meta: strcs.Meta, typ: tp.Type) -> strcs.Meta:
                     return meta.clone(
                         data_extra={"powerball": self.numbers[-1], "numbers": self.numbers[:-1]}
                     )
@@ -648,6 +648,23 @@ describe "Creators":
             assert things.thing1.val == 2
             assert things.thing2.val == 25
             assert things.thing3.val == 20
+
+        it "can use an annotation to get something from meta", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            class Other:
+                pass
+
+            other = Other()
+
+            @define
+            class Thing:
+                want: tp.Annotated[Other, strcs.FromMeta("other")]
+
+            assert creg.create(Thing, meta=strcs.Meta(data={"o": other})).want is other
+            assert creg.create(Thing, meta=strcs.Meta(data={"other": other})).want is other
+
+            with pytest.raises(strcs.errors.NoDataByTypeName):
+                assert creg.create(Thing).want is other
 
     describe "interpreting the response":
         it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:

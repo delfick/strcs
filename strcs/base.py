@@ -67,8 +67,9 @@ def fromdict(converter: cattrs.Converter, register: "CreateRegister", res: tp.An
         res = {}
     if isinstance(res, dict):
         for field in attrs.fields(want):
-            if field.type is not None and field.type in register and field.name not in res:
-                res[field.name] = NotSpecified
+            if field.type is not None and field.name not in res:
+                if _CreateStructureHook(register, converter, field.type).check_func(field.type):
+                    res[field.name] = NotSpecified
     return converter.structure_attrs_fromdict(tp.cast(dict, res), want)
 
 
@@ -86,7 +87,34 @@ class MergedAnnotation(Annotation):
         return True
 
 
-class Ann:
+class _Ann(tp.Protocol):
+    def adjusted_meta(self, meta: Meta, typ: tp.Type) -> Meta:
+        ...
+
+    def adjusted_creator(
+        self, creator: ConvertFunction, register: "CreateRegister", typ: tp.Type[T]
+    ) -> ConvertFunction[T]:
+        ...
+
+
+@define(frozen=True)
+class FromMeta(_Ann):
+    pattern: str
+
+    def adjusted_meta(self, meta: Meta, typ: tp.Type) -> Meta:
+        val = meta.retrieve_one(typ, self.pattern)
+        return meta.clone(data_override={"retrieved": val})
+
+    def adjusted_creator(
+        self, creator: ConvertFunction, register: "CreateRegister", typ: tp.Type[T]
+    ) -> ConvertFunction[T]:
+        def retrieve(val: tp.Any, /, retrieved: typ) -> typ:
+            return retrieved
+
+        return Ann(creator=retrieve).adjusted_creator(creator, register, typ)
+
+
+class Ann(_Ann):
     _func: tp.Optional[ConvertFunction] = None
 
     def __init__(
@@ -95,12 +123,12 @@ class Ann:
         self.meta = meta
         self.creator = creator
 
-    def adjusted_meta(self, meta: Meta) -> Meta:
+    def adjusted_meta(self, meta: Meta, typ: tp.Type) -> Meta:
         if self.meta is None:
             return meta
 
         if hasattr(self.meta, "adjusted_meta"):
-            return self.meta.adjusted_meta(meta)
+            return self.meta.adjusted_meta(meta, typ)
 
         if self.meta.merge_meta:
             clone = meta.clone()
@@ -203,8 +231,8 @@ class _CreateStructureHook:
 
     def _interpret_annotation(
         self, want: tp.Type, dive_into_lists=False
-    ) -> tp.Tuple[Ann, tp.Type[T]]:
-        ann: tp.Optional[Annotation | Ann | ConvertFunction] = None
+    ) -> tp.Tuple["_Ann", tp.Type[T]]:
+        ann: tp.Optional[Annotation | _Ann | ConvertFunction] = None
         if hasattr(want, "__origin__"):
             if want.__origin__ is not list:
                 ann = want.__metadata__[0]
@@ -232,7 +260,7 @@ class _CreateStructureHook:
             creator = self.cache[want]
 
         if ann:
-            meta = ann.adjusted_meta(meta)
+            meta = ann.adjusted_meta(meta, want)
             creator = ann.adjusted_creator(creator, self.register, want)
             if meta is not self.meta:
                 return self.register.create(want, value, meta=meta, creator=creator)
