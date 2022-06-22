@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+
+from pathlib import Path
+import runpy
+
+runpy.run_path(str(Path(__file__).parent.parent / "tools" / "bootstrap_venvstarter.py"))
+
+manager = __import__("venvstarter").manager("sphinx-build")
+manager.add_requirements_file("{here}", "requirements.txt")
+manager.min_python(3.6)
+manager.run()

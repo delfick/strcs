@@ -35,7 +35,7 @@ jobs:
         with:
           tag_name: "release-${{ steps.version.outputs.version }}"
           release_name: strcs ${{ steps.version.outputs.version }}
-          body: "https://github.com/delfick/strcs#release-${{ steps.version.outputs.versiondash }}"
+          body: "https://strcs.readthedocs.io/en/latest/strcs/changelog.html#release-${{ steps.version.outputs.versiondash }}"
           draft: false
           prerelease: false
 
