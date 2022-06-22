@@ -155,65 +155,89 @@ class CreateRegister:
         meta: tp.Any = NotSpecified,
         creator: tp.Optional[ConvertFunction[T]] = None,
     ):
+        return _CreateStructureHook.structure(self, typ, value, meta, creator)
+
+
+class _CreateStructureHook:
+    @classmethod
+    def structure(
+        kls,
+        register: CreateRegister,
+        typ: tp.Type[T],
+        value: tp.Any = NotSpecified,
+        meta: tp.Any = NotSpecified,
+        creator: tp.Optional[ConvertFunction[T]] = None,
+    ) -> T:
         if meta is NotSpecified:
             meta = Meta()
 
         converter = cattrs.Converter()
-
-        cache: dict[tp.Type[T], ConvertFunction[T]] = {}
-
-        def convert(value: tp.Any, want: tp.Type[T]) -> T:
-            ann: tp.Optional[Annotation | Ann | ConvertFunction] = None
-            if hasattr(want, "__origin__") and want.__origin__ is not list:
-                ann = want.__metadata__[0]
-
-                if isinstance(ann, Annotation):
-                    ann = Ann(ann)
-                elif callable(ann):
-                    ann = Ann(creator=ann)
-
-            m = meta
-            c = creator
-
-            if want in cache and c is None:
-                c = cache[want]
-
-            if ann:
-                m = ann.adjusted_meta(meta)
-                want = want.__origin__
-                if want in cache:
-                    c = cache[want]
-
-                c = ann.adjusted_creator(c, self.register, want)
-                if m is not meta:
-                    return self.create(want, value, meta=m, creator=c)
-
-            if c:
-                return c(value, want, meta, converter)
-            elif isinstance(value, want):
-                return value
-            else:
-                return fromdict(converter, self, value, want)
-
-        def check_func(want: tp.Type[T]) -> bool:
-            if hasattr(want, "__origin__") and want.__origin__ is not list:
-                want = want.__origin__
-
-                if (
-                    hasattr(want, "__origin__")
-                    and want.__origin__ is list
-                    and len(want.__args__) == 1
-                ):
-                    want = want.__args__[0]
-
-            creator = self.creator_for(want)
-            if creator is not None:
-                cache[want] = creator
-                return True
-            return hasattr(want, "__attrs_attrs__")
-
-        converter.register_structure_hook_func(check_func, convert)
+        hooks = kls(register, converter, typ, value, meta, creator)
+        converter.register_structure_hook_func(hooks.check_func, hooks.convert)
         return converter.structure(value, typ)
+
+    def __init__(
+        self,
+        register: CreateRegister,
+        converter: cattrs.Converter,
+        typ: tp.Type[T],
+        value: tp.Any = NotSpecified,
+        meta: tp.Any = NotSpecified,
+        creator: tp.Optional[ConvertFunction[T]] = None,
+    ):
+        self.typ = typ
+        self.meta = meta
+        self.value = value
+        self.creator = creator
+        self.register = register
+        self.converter = converter
+        self.cache: dict[tp.Type[T], ConvertFunction[T]] = {}
+
+    def convert(self, value: tp.Any, want: tp.Type[T]) -> T:
+        ann: tp.Optional[Annotation | Ann | ConvertFunction] = None
+        if hasattr(want, "__origin__") and want.__origin__ is not list:
+            ann = want.__metadata__[0]
+
+            if isinstance(ann, Annotation):
+                ann = Ann(ann)
+            elif callable(ann):
+                ann = Ann(creator=ann)
+
+        m = self.meta
+        c = self.creator
+
+        if want in self.cache and c is None:
+            c = self.cache[want]
+
+        if ann:
+            m = ann.adjusted_meta(m)
+            want = want.__origin__
+            if want in self.cache:
+                c = self.cache[want]
+
+            c = ann.adjusted_creator(c, self.register, want)
+            if m is not self.meta:
+                return self.register.create(want, value, meta=m, creator=c)
+
+        if c:
+            return c(value, want, m, self.converter)
+        elif isinstance(value, want):
+            return value
+        else:
+            return fromdict(self.converter, self.register, value, want)
+
+    def check_func(self, want: tp.Type[T]) -> bool:
+        if hasattr(want, "__origin__") and want.__origin__ is not list:
+            want = want.__origin__
+
+            if hasattr(want, "__origin__") and want.__origin__ is list and len(want.__args__) == 1:
+                want = want.__args__[0]
+
+        creator = self.register.creator_for(want)
+        if creator is not None:
+            self.cache[want] = creator
+            return True
+        return hasattr(want, "__attrs_attrs__")
 
 
 class _ArgsExtractor:
