@@ -21,12 +21,9 @@ class NotSpecified(metaclass=NotSpecifiedMeta):
 
 
 ConvertResponseValues: tp.TypeAlias = tp.Optional[bool | dict[str, tp.Any]]
-ConvertResponseDirect: tp.TypeAlias = tp.Union[
-    ConvertResponseValues, tp.Tuple[ConvertResponseValues, Meta]
-]
 ConvertResponseGenerator: tp.TypeAlias = tp.Generator[ConvertResponseValues | T, T, None]
 
-ConvertResponse: tp.TypeAlias = ConvertResponseDirect | ConvertResponseGenerator[T] | T
+ConvertResponse: tp.TypeAlias = ConvertResponseValues | ConvertResponseGenerator[T] | T
 
 ConvertDefinitionValue: tp.TypeAlias = tp.Callable[[tp.Any], ConvertResponse[T]]
 ConvertDefinitionNoValue: tp.TypeAlias = tp.Callable[[], ConvertResponse[T]]
@@ -266,7 +263,7 @@ class _CreateStructureHook:
                 return self.register.create(want, value, meta=meta, creator=creator)
 
         if creator:
-            return creator(value, want, meta, self.converter)
+            return creator(CreateArgs(value, want, meta, self.converter, self.register))
         elif isinstance(value, want):
             return value
         else:
@@ -291,10 +288,12 @@ class _ArgsExtractor:
         want: tp.Type,
         meta: Meta,
         converter: cattrs.Converter,
+        register: CreateRegister,
     ):
         self.meta = meta
         self.want = want
         self.value = value
+        self.register = register
         self.converter = converter
         self.signature = signature
 
@@ -310,19 +309,25 @@ class _ArgsExtractor:
             values.pop(0)
             use.append(self.want)
 
+        def provided(param: inspect.Parameter, name: str, typ: tp.Type[T]) -> T:
+            if param.name != name:
+                return False
+
+            if param.annotation is inspect._empty:
+                return True
+
+            if isinstance(param.annotation, type) and issubclass(param.annotation, typ):
+                return True
+
+            return False
+
         for param in values:
-            if (
-                param.annotation is Meta
-                or param.annotation is inspect._empty
-                and param.name == "meta"
-            ):
+            if provided(param, "_meta", Meta):
                 use.append(self.meta)
-            elif (
-                param.annotation is not tp.Any
-                and isinstance(param.annotation, type)
-                and issubclass(param.annotation, cattrs.Converter)
-            ) or (param.annotation is inspect._empty and param.name == "converter"):
+            elif provided(param, "_converter", cattrs.Converter):
                 use.append(self.converter)
+            elif provided(param, "_register", CreateRegister):
+                use.append(self.register)
             elif param.annotation in (inspect._empty, tp.Any):
                 use.append(self.meta.retrieve_one(object, param.name, default=param.default))
             else:
@@ -331,6 +336,15 @@ class _ArgsExtractor:
                 )
 
         return use
+
+
+@define
+class CreateArgs:
+    value: tp.Any
+    want: tp.Type
+    meta: Meta
+    converter: cattrs.Converter
+    register: CreateRegister
 
 
 class CreatorDecorator(tp.Generic[T]):
@@ -366,11 +380,17 @@ class CreatorDecorator(tp.Generic[T]):
             self.register[self.typ] = self.wrapped
             return self.func
 
-    def wrapped(self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter) -> T:
+    def wrapped(self, create_args: CreateArgs) -> T:
+        value = create_args.value
+        want = create_args.want
+        meta = create_args.meta
+        converter = create_args.converter
+        register = create_args.register
+
         if self.assume_unchanged_converted and isinstance(value, want):
             return value
 
-        res = self._invoke_func(value, want, meta, converter)
+        res = self._invoke_func(value, want, meta, converter, register)
 
         def deal(res: ConvertResponse[T], value: tp.Any) -> T:
             if inspect.isgenerator(res):
@@ -423,7 +443,12 @@ class CreatorDecorator(tp.Generic[T]):
             res.close()
 
     def _invoke_func(
-        self, value: tp.Any, want: tp.Type, meta: Meta, converter: cattrs.Converter
+        self,
+        value: tp.Any,
+        want: tp.Type,
+        meta: Meta,
+        converter: cattrs.Converter,
+        register: CreateRegister,
     ) -> ConvertResponse[T]:
         if len(self.signature.parameters) == 0:
             return tp.cast(ConvertDefinitionNoValue, self.func)()
@@ -437,7 +462,7 @@ class CreatorDecorator(tp.Generic[T]):
             return tp.cast(ConvertDefinitionValueAndType, self.func)(value, want)
 
         else:
-            args = _ArgsExtractor(self.signature, value, want, meta, converter).extract()
+            args = _ArgsExtractor(self.signature, value, want, meta, converter, register).extract()
             return self.func(*args)
 
 

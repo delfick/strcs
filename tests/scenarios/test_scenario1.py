@@ -4,7 +4,6 @@ from attrs import define, field
 from functools import partial
 import typing as tp
 import pytest
-import cattrs
 import strcs
 
 reg = strcs.CreateRegister()
@@ -37,7 +36,12 @@ def create_projects(projects: Projects | tp.List | tp.Dict, /) -> strcs.ConvertR
 
 
 @creator(Project)
-def create_project(project: Project | tp.Dict, /, meta: strcs.Meta, converter: cattrs.Converter):
+def create_project(
+    project: Project | tp.Dict,
+    /,
+    _meta: strcs.Meta,
+    _register: strcs.CreateRegister,
+):
     if isinstance(project, dict):
         details = []
         if "details" in project:
@@ -47,7 +51,7 @@ def create_project(project: Project | tp.Dict, /, meta: strcs.Meta, converter: c
 
         for detail in details:
             project.details.append(
-                reg.create(Detail, detail, meta=meta.clone(data_extra={"project": project}))
+                _register.create(Detail, detail, meta=_meta.clone(data_extra={"project": project}))
             )
 
 

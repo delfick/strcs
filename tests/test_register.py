@@ -1,6 +1,6 @@
 # coding: spec
 
-from strcs.base import NotSpecifiedMeta
+from strcs.base import NotSpecifiedMeta, CreateArgs
 import strcs
 
 from functools import partial
@@ -61,8 +61,8 @@ describe "Register":
         class Stuff:
             info: str
 
-        thing_maker = tp.cast(strcs.ConvertFunction, lambda v, w, m, c: {"data": 2})
-        stuff_maker = tp.cast(strcs.ConvertFunction, lambda v, w, m, c: {"info": "hi"})
+        thing_maker = tp.cast(strcs.ConvertFunction, lambda args: {"data": 2})
+        stuff_maker = tp.cast(strcs.ConvertFunction, lambda args: {"info": "hi"})
 
         assert creg.register == {}
 
@@ -101,7 +101,9 @@ describe "Register":
             thing_maker = mock.Mock(name="thing_maker", return_value=thing)
             creg[Thing] = thing_maker
             assert creg.create(Thing) is thing
-            thing_maker.assert_called_once_with(strcs.NotSpecified, Thing, IsMeta(), IsConverter())
+            thing_maker.assert_called_once_with(
+                CreateArgs(strcs.NotSpecified, Thing, IsMeta(), IsConverter(), creg)
+            )
 
             class Stuff:
                 pass
@@ -110,7 +112,9 @@ describe "Register":
             stuff_maker = mock.Mock(name="stuff_maker", return_value=stuff)
             creg[Stuff] = stuff_maker
             assert creg.create(Stuff) is stuff
-            stuff_maker.assert_called_once_with(strcs.NotSpecified, Stuff, IsMeta(), IsConverter())
+            stuff_maker.assert_called_once_with(
+                CreateArgs(strcs.NotSpecified, Stuff, IsMeta(), IsConverter(), creg)
+            )
 
         it "lets converter work on other types", creg: strcs.CreateRegister:
 
@@ -130,12 +134,16 @@ describe "Register":
                 obj: Stuff
 
             thing_maker = mock.Mock(name="thing_maker")
-            thing_maker.side_effect = lambda v, w, m, c: c.structure_attrs_fromdict(v, w)
+            thing_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
+                args.value, args.want
+            )
             creg[Thing] = thing_maker
 
             value = {"number": 20, "obj": {"one": 20, "two": 50, "other": {"name": "there"}}}
             made = creg.create(Thing, value)
-            thing_maker.assert_called_once_with(value, Thing, IsMeta(), IsConverter())
+            thing_maker.assert_called_once_with(
+                CreateArgs(value, Thing, IsMeta(), IsConverter(), creg)
+            )
             assert isinstance(made, Thing)
             assert made.number == 20
             assert isinstance(made.obj, Stuff)
@@ -157,13 +165,15 @@ describe "Register":
                 stuff: Stuff
 
             stuff_maker = mock.Mock(name="stuff_maker")
-            stuff_maker.side_effect = lambda v, w, m, c: c.structure_attrs_fromdict(v, w)
+            stuff_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
+                args.value, args.want
+            )
             creg[Stuff] = stuff_maker
 
             value = {"name": "hi", "stuff": {"one": 45, "two": 76}}
             made = creg.create(Other, value)
             stuff_maker.assert_called_once_with(
-                {"one": 45, "two": 76}, Stuff, IsMeta(), IsConverter()
+                CreateArgs({"one": 45, "two": 76}, Stuff, IsMeta(), IsConverter(), creg)
             )
             assert isinstance(made, Other)
             assert made.name == "hi"
@@ -181,7 +191,9 @@ describe "Register":
             class Thing:
                 stuff: Stuff
 
-            creg[Thing] = lambda v, w, m, c: c.structure_attrs_fromdict(v, w)
+            creg[Thing] = lambda args: args.converter.structure_attrs_fromdict(
+                args.value, args.want
+            )
 
             stuff = Stuff(one=4)
             made = creg.create(Thing, {"stuff": stuff})
@@ -198,7 +210,9 @@ describe "Register":
             class Thing:
                 stuff: Stuff
 
-            creg[Thing] = lambda v, w, m, c: c.structure_attrs_fromdict(v, w)
+            creg[Thing] = lambda args: args.converter.structure_attrs_fromdict(
+                args.value, args.want
+            )
 
             stuff = Stuff(one=4)
             with pytest.raises(cattrs.errors.StructureHandlerNotFoundError):
@@ -228,8 +242,8 @@ describe "Register":
             meta["three"] = 100
 
             shape_maker = mock.Mock(name="shape_maker")
-            shape_maker.side_effect = lambda v, w, m, c: c.structure_attrs_fromdict(
-                {"three": meta.retrieve_one(int, "three")}, w
+            shape_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
+                {"three": meta.retrieve_one(int, "three")}, args.want
             )
             creg[Shape] = shape_maker
 
@@ -243,7 +257,9 @@ describe "Register":
             assert made.one == 33
             assert made.two == 22
             assert made.three == 100
-            shape_maker.assert_called_once_with(strcs.NotSpecified, Square, meta, IsConverter())
+            shape_maker.assert_called_once_with(
+                CreateArgs(strcs.NotSpecified, Square, meta, IsConverter(), creg)
+            )
             shape_maker.reset_mock()
 
             made = creg.create(Triangle, meta=meta)
@@ -251,7 +267,9 @@ describe "Register":
             assert made.one == 20
             assert made.two == 45
             assert made.three == 100
-            shape_maker.assert_called_once_with(strcs.NotSpecified, Triangle, meta, IsConverter())
+            shape_maker.assert_called_once_with(
+                CreateArgs(strcs.NotSpecified, Triangle, meta, IsConverter(), creg)
+            )
             shape_maker.reset_mock()
 
             made = creg.create(Shape, meta=meta)
@@ -259,7 +277,9 @@ describe "Register":
             assert made.one == 1
             assert made.two == 2
             assert made.three == 100
-            shape_maker.assert_called_once_with(strcs.NotSpecified, Shape, meta, IsConverter())
+            shape_maker.assert_called_once_with(
+                CreateArgs(strcs.NotSpecified, Shape, meta, IsConverter(), creg)
+            )
             shape_maker.reset_mock()
 
         it "doesn't fail on checking against a not type in the register", creg: strcs.CreateRegister:
