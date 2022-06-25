@@ -12,4 +12,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
         --ignore-directory build \
         --ignore-directory strcs.egg-info \
         --ignore-directory tools \
+        --ignore-directory docs/.sphinx-build \
+        --ignore-directory docs/_build \
 )
