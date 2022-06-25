@@ -151,6 +151,9 @@ def extract_type(typ: T) -> tp.Tuple[bool, U]:
                 typ = typ.copy_with(args[:-1])  # type: ignore
             optional = True
 
+    if isinstance(typ, tp.GenericAlias):
+        typ = typ.__origin__
+
     return optional, tp.cast(U, typ)
 
 

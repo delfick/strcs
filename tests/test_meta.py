@@ -11,7 +11,8 @@ import cattrs
 
 describe "extract_type":
     it "can return the type and that it isn't optional when not optional":
-        assert extract_type(list[str]) == (False, list[str])
+        assert extract_type(list[str]) == (False, list)
+        assert extract_type(dict[str, bool]) == (False, dict)
         assert extract_type(str | bool) == (False, str | bool)
         assert extract_type(tp.Annotated[int, "stuff"]) == (False, tp.Annotated[int, "stuff"])
 
@@ -26,7 +27,8 @@ describe "extract_type":
         extract_type("asdf") == (False, "asdf")
 
     it "can return the embedded type and that it is optional when is optional":
-        assert extract_type(tp.Optional[list[str]]) == (True, list[str])
+        assert extract_type(tp.Optional[list[str]]) == (True, list)
+        assert extract_type(tp.Optional[dict[str, bool]]) == (True, dict)
         assert extract_type(tp.Optional[str | bool]) == (True, str | bool)
         assert extract_type(tp.Optional[tp.Annotated[int, "stuff"]]) == (
             True,
