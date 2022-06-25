@@ -482,13 +482,11 @@ describe "Creators":
             meta["prefix"] = "pref"
             assert creg.create(Thing, "hello", meta=meta).val == "pref:hello:there:blah:meh"
             assert (
-                creg.create(
-                    Thing, "hello", meta=meta.clone(data_extra={"non_typed": "laksjdfl"})
-                ).val
+                creg.create(Thing, "hello", meta=meta.clone({"non_typed": "laksjdfl"})).val
                 == "pref:hello:there:blah:laksjdfl"
             )
             assert (
-                creg.create(Thing, "hello", meta=meta.clone(data_extra={"suffix": "hi"})).val
+                creg.create(Thing, "hello", meta=meta.clone({"suffix": "hi"})).val
                 == "pref:hello:hi:blah:meh"
             )
 
@@ -576,9 +574,7 @@ describe "Creators":
                 numbers: tp.Tuple[int, int, int, int, int]
 
                 def adjusted_meta(self, meta: strcs.Meta, typ: tp.Type) -> strcs.Meta:
-                    return meta.clone(
-                        data_extra={"powerball": self.numbers[-1], "numbers": self.numbers[:-1]}
-                    )
+                    return meta.clone({"powerball": self.numbers[-1], "numbers": self.numbers[:-1]})
 
             @define
             class Result:

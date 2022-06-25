@@ -134,7 +134,7 @@ class Ann(_Ann):
                     clone[field.name] = getattr(self.meta, field.name)
             return clone
         else:
-            return meta.clone(data_extra={"__call_defined_annotation__": self.meta})
+            return meta.clone({"__call_defined_annotation__": self.meta})
 
     def adjusted_creator(
         self, creator: ConvertFunction, register: "CreateRegister", typ: tp.Type[T]

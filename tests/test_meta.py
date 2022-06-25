@@ -197,7 +197,7 @@ describe "Meta":
         it "can be cloned with extended data":
             old = Meta()
             old["b"] = 5
-            new = old.clone(data_extra={"a": 3})
+            new = old.clone({"a": 3})
 
             assert old.data == {"b": 5}
             assert new.data == {"b": 5, "a": 3}
@@ -210,7 +210,7 @@ describe "Meta":
             old["b"] = 5
 
             override = {"c": 6}
-            new = old.clone(data_override=override, data_extra={"a": 3})
+            new = old.clone({"a": 3}, data_override=override)
 
             assert old.data == {"b": 5}
             assert new.data == {"c": 6, "a": 3}

@@ -59,9 +59,7 @@ describe "example in the readme":
         assert set([i.author for i in images.images]) == set(["stephen", "joe", "bill"])
         assert all(i.renderer is renderer for i in images.images)
 
-        images = reg.create(
-            Images, configuration, meta=meta.clone(data_extra={"excluded": ["stephen"]})
-        )
+        images = reg.create(Images, configuration, meta=meta.clone({"excluded": ["stephen"]}))
         assert isinstance(images, Images)
         assert set([i.author for i in images.images]) == set(["joe", "bill"])
         assert all(i.renderer is renderer for i in images.images)

@@ -182,9 +182,9 @@ class Meta:
 
     def clone(
         self,
-        converter: tp.Optional[cattrs.Converter] = None,
-        data_override: tp.Optional[dict[str, tp.Any]] = None,
         data_extra: tp.Optional[dict[str, tp.Any]] = None,
+        data_override: tp.Optional[dict[str, tp.Any]] = None,
+        converter: tp.Optional[cattrs.Converter] = None,
     ) -> "Meta":
         if converter is None:
             converter = self._converter

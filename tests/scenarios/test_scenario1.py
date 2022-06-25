@@ -51,7 +51,7 @@ def create_project(
 
         for detail in details:
             project.details.append(
-                _register.create(Detail, detail, meta=_meta.clone(data_extra={"project": project}))
+                _register.create(Detail, detail, meta=_meta.clone({"project": project}))
             )
 
 
