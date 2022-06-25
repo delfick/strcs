@@ -110,7 +110,7 @@ Here is a contrived example that shows a couple features. Read the
     # whereas this result doesn't have the stephen author
     # in both cases we turn a dictionary keyed by author into a flat list
     # And each item in that list is already loaded with our ``renderer`` object.
-    images = reg.create(Images, configuration, meta=meta.clone(data_extra={"excluded": ["stephen"]}))
+    images = reg.create(Images, configuration, meta=meta.clone({"excluded": ["stephen"]}))
     assert isinstance(images, Images)
     assert set([i.author for i in images.images]) == set(["joe", "bill"])
     assert all(i.renderer is renderer for i in images.images)
