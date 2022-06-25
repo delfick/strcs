@@ -169,6 +169,8 @@ class Meta:
 
     .. automethod:: retrieve_one
 
+    .. automethod:: retrieve_patterns
+
     Because getting data depends on the type of the data as well as the name of the data in the store
     """
 
@@ -241,6 +243,17 @@ class Meta:
             available = {n: v for n, v in available.items() if not isinstance(v, bool)}
 
         return optional, available
+
+    def retrieve_patterns(self, typ: tp.Type[T], *patterns: str) -> dict[str, T]:
+        """
+        Retrieve a dictionary of key to value for this patterns restrictions.
+        """
+        data = self.data
+        if patterns:
+            data = Narrower(data).narrow(*patterns)
+
+        _, found = self.find_by_type(typ, data=data)
+        return found
 
     def retrieve_one(self, typ: tp.Type[T], *patterns: str, default: tp.Any = inspect._empty) -> T:
         """

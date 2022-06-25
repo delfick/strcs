@@ -341,6 +341,18 @@ describe "Meta":
             assert meta.find_by_type(tp.Union[int, bool, float]) == (False, {})
             assert meta.find_by_type(tp.Optional[tp.Union[str, float]]) == (True, {})
 
+    describe "retrieve pattern":
+        it "can retrieve based off patterns":
+            meta = strcs.Meta({"a": {"b": {"d": 4, "e": 5}}, "a.b": {"f": 6}, "a.bc": True})
+
+            assert meta.retrieve_patterns(object, "a.b") == {"a.b": {"f": 6}}
+            assert meta.retrieve_patterns(int, "a.b.d", "a.b.e") == {"a.b.d": 4, "a.b.e": 5}
+            assert meta.retrieve_patterns(object, "a.b.*") == {"a.b.d": 4, "a.b.e": 5, "a.b.f": 6}
+            assert meta.retrieve_patterns(object, "a.b*") == {"a.b": {"f": 6}, "a.bc": True}
+            assert meta.retrieve_patterns(bool, "a.b*") == {"a.bc": True}
+            assert meta.retrieve_patterns(object) == meta.data
+            assert meta.retrieve_patterns(object, "d") == {}
+
     describe "retrieve one":
         it "can retrieve the one matching value":
             meta = Meta()
