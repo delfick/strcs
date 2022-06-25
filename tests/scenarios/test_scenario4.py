@@ -52,7 +52,7 @@ describe "example in the readme":
             "joe": ["three.png", "four.png"],
             "bill": ["five.png", "six.png"],
         }
-        meta = strcs.Meta(data={"renderer": renderer})
+        meta = strcs.Meta({"renderer": renderer})
 
         images = reg.create(Images, configuration, meta=meta)
         assert isinstance(images, Images)

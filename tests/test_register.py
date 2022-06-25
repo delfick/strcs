@@ -680,8 +680,8 @@ describe "Creators":
             class Thing:
                 want: tp.Annotated[Other, strcs.FromMeta("other")]
 
-            assert creg.create(Thing, meta=strcs.Meta(data={"o": other})).want is other
-            assert creg.create(Thing, meta=strcs.Meta(data={"other": other})).want is other
+            assert creg.create(Thing, meta=strcs.Meta({"o": other})).want is other
+            assert creg.create(Thing, meta=strcs.Meta({"other": other})).want is other
 
             with pytest.raises(strcs.errors.NoDataByTypeName):
                 assert creg.create(Thing).want is other

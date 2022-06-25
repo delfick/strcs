@@ -173,7 +173,9 @@ class Meta:
     """
 
     def __init__(
-        self, converter: cattrs.Converter = converter, data: tp.Optional[dict[str, tp.Any]] = None
+        self,
+        data: tp.Optional[dict[str, tp.Any]] = None,
+        converter: cattrs.Converter = converter,
     ):
         self._converter = converter
         self.data = data if data is not None else {}
@@ -195,7 +197,7 @@ class Meta:
         if data_extra:
             data.update(data_extra)
 
-        return Meta(converter, data=data)
+        return Meta(data, converter)
 
     def __setitem__(self, name: str, value: tp.Any) -> None:
         self.data[name] = value
