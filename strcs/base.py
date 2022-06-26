@@ -195,9 +195,9 @@ class CreateRegister:
         typ: tp.Type[T],
         value: tp.Any = NotSpecified,
         meta: tp.Any = NotSpecified,
-        creator: tp.Optional[ConvertFunction[T]] = None,
+        once_only_creator: tp.Optional[ConvertFunction[T]] = None,
     ):
-        return _CreateStructureHook.structure(self, typ, value, meta, creator)
+        return _CreateStructureHook.structure(self, typ, value, meta, once_only_creator)
 
 
 class _CreateStructureHook:
@@ -213,29 +213,31 @@ class _CreateStructureHook:
         if meta is NotSpecified:
             meta = Meta()
 
-        converter = cattrs.Converter()
-        hooks = kls(register, converter, typ, value, meta, creator)
-        converter.register_structure_hook_func(hooks.check_func, hooks.convert)
-        if hooks.check_func(typ):
-            return hooks.convert(value, typ)
-        else:
-            return converter.structure(value, typ)
+        converter = meta.converter
+        hooks = kls(register, converter, meta, creator)
+        converter.register_structure_hook_func(hooks.switch_check, hooks.convert)
+
+        try:
+            ret = hooks.convert(value, typ)
+        finally:
+            converter._structure_func._function_dispatch._handler_pairs.remove(
+                (hooks.switch_check, hooks.convert, False)
+            )
+
+        return ret
 
     def __init__(
         self,
         register: CreateRegister,
         converter: cattrs.Converter,
-        typ: tp.Type[T],
-        value: tp.Any = NotSpecified,
         meta: tp.Any = NotSpecified,
-        creator: tp.Optional[ConvertFunction[T]] = None,
+        once_only_creator: tp.Optional[ConvertFunction[T]] = None,
     ):
-        self.typ = typ
         self.meta = meta
-        self.value = value
-        self.creator = creator
+        self.do_check = True
         self.register = register
         self.converter = converter
+        self.once_only_creator = once_only_creator
         self.cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
     def _interpret_annotation(
@@ -260,8 +262,14 @@ class _CreateStructureHook:
         return ann, want
 
     def convert(self, value: tp.Any, want: tp.Type[T]) -> T:
+        if not self.check_func(want):
+            self.do_check = False
+            self.converter._structure_func.dispatch.cache_clear()
+            return self.converter.structure(value, want)
+
         meta = self.meta
-        creator = self.creator
+        creator = self.once_only_creator
+        self.once_only_creator = None
 
         ann, want = self._interpret_annotation(want)
 
@@ -272,7 +280,7 @@ class _CreateStructureHook:
             meta = ann.adjusted_meta(meta, want)
             creator = ann.adjusted_creator(creator, self.register, want)
             if meta is not self.meta:
-                return self.register.create(want, value, meta=meta, creator=creator)
+                return self.register.create(want, value, meta=meta, once_only_creator=creator)
 
         if creator:
             return creator(CreateArgs(value, want, meta, self.converter, self.register))
@@ -280,6 +288,11 @@ class _CreateStructureHook:
             return value
         else:
             return fromdict(self.converter, self.register, value, want)
+
+    def switch_check(self, want: tp.Type[T]) -> bool:
+        ret = self.do_check
+        self.do_check = True
+        return ret
 
     def check_func(self, want: tp.Type[T]) -> bool:
         ann, want = self._interpret_annotation(want, dive_into_lists=True)
@@ -289,7 +302,7 @@ class _CreateStructureHook:
             self.cache[want] = creator
             return True
 
-        return ann or self.creator or hasattr(want, "__attrs_attrs__")
+        return ann or self.once_only_creator or hasattr(want, "__attrs_attrs__")
 
 
 class _ArgsExtractor:
