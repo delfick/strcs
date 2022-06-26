@@ -22,6 +22,7 @@ It and the decorator we use to add to it, are created with the following:
 
 .. code-block:: python
 
+    from functools import partial
     import strcs
 
     reg = strcs.CreateRegister()
@@ -39,7 +40,7 @@ use to create (or have) the final object.
 The Meta
 --------
 
-The Meta object lets you store values that can then be retrieved by deeply
+The Meta object you store values that can then be retrieved by deeply
 nested objects. It has dictionary like set methods and special methods for
 retrieving data based off type and name:
 
@@ -117,6 +118,7 @@ For example:
 
 .. code-block:: python
 
+    from functools import partial
     from attrs import define
     import strcs
 
@@ -237,6 +239,124 @@ converter being used, and the register being used:
    ``_converter: cattrs.Converter`` Gives you the current converter
 
    ``_register: strcs.CreateRegister`` Gives you the current register
+
+Returning from a creator
+++++++++++++++++++++++++
+
+A creator must return a ``strcs.ConvertResponse`` which is either ``None``,
+``True``, a dictionary, or an instance of the class we are creating.
+
+Returning None
+    This means the value could not be transformed and will result in ``strcs``
+    raising an error for you
+
+Returning True
+    Will make ``strcs`` use the val as is
+
+Returning a dictionary
+    Will make ``strcs`` use ``converter.structure_attrs_fromdict`` on that
+    dictionary to make the object we are creating.
+
+Returning an instance
+    ``strcs`` will assume if your result is already an instance of the object
+    that it you want that to be used as is.
+
+Generator creators
+++++++++++++++++++
+
+Creators may also be generator functions that yield zero, once, or twice. If the
+generator doesn't yield at all, then ``strcs`` will raise an exception for you
+to say the input data couldn't be transformed.
+
+If you yield once it will use the value you yield like as in a normal creator
+and give you access to the resulting object. You may do what you want with this
+object. If you do not yield a second time then that will be the result that is
+used. If you do yield a second time then the second result you yield is what is
+used.
+
+For example:
+
+.. code-block:: python
+
+    from functools import partial
+    from attrs import define
+    import strcs
+
+    reg = strcs.CreateRegister()
+    creator = partial(strcs.CreatorDecorator, reg)
+
+
+    @define
+    class Thing:
+        one: int
+
+        def do_something(self):
+            print(f"DOING SOMETHING WITH {self.one}")
+
+
+    @creator(Thing)
+    def create_thing(val: int):
+        res = yield {"one": val}
+        assert isinstance(res, Thing)
+        assert res.one == val
+
+        res.do_something()
+        # We don't yield again, so res is the value that will be used
+
+
+    thing = reg.create(Thing, 23)
+    # prints "DOING SOMETHING WITH 23" to the console
+    assert isinstance(thing, Thing)
+    assert thing.one == 23
+
+Generator creators may also yield other generators:
+
+.. code-block:: python
+
+    from functools import partial
+    from attrs import define
+    import typing as tp
+    import strcs
+
+    reg = strcs.CreateRegister()
+    creator = partial(strcs.CreatorDecorator, reg)
+
+
+    called = []
+
+
+    @define(slots=False)
+    class Thing:
+        one: int = 1
+
+        def __post_attrs_init__(self):
+            self.two = None
+            self.three = None
+
+
+    def recursion_is_fun(value: tp.Any):
+        assert isinstance(value, dict)
+        assert value == {"one": 20}
+        called.append(2)
+        made = yield {"one": 60}
+        made.two = 500
+        called.append(3)
+
+
+    @creator(Thing)
+    def make(value: tp.Any):
+        called.append(1)
+        made = yield recursion_is_fun(value)
+        made.three = 222
+        called.append(4)
+
+
+    made = reg.create(Thing, {"one": 20})
+    assert isinstance(made, Thing)
+    assert made.one == 60
+    assert made.two == 500
+    assert made.three == 222
+    assert called == [1, 2, 3, 4]
 
 .. _features_annotations:
 
