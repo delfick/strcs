@@ -10,6 +10,9 @@ There are four important parts that make up how ``strcs`` works:
 * :ref:`Creators <features_creators>`
 * :ref:`Annotations <features_annotations>`
 
+.. note:: It's a good idea to read about cattrs before reading about strcs,
+   https://cattrs.readthedocs.io/en/latest/readme.html
+
 .. _features_register:
 
 The Register
