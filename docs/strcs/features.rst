@@ -40,7 +40,7 @@ use to create (or have) the final object.
 The Meta
 --------
 
-The Meta object you store values that can then be retrieved by deeply
+The Meta object stores values that can then be retrieved by deeply
 nested objects. It has dictionary like set methods and special methods for
 retrieving data based off type and name:
 
@@ -60,12 +60,12 @@ retrieving data based off type and name:
     assert meta.retrieve_one(int, "one") == 1
 
 The meta contains a cattrs converter that will be used for much of the heavy
-lifting. https://cattrs.readthedocs.io/en/latest/converters.html. You may use
-this to provide a custom converter with extra structure and unstructure hooks
-you may require.
+lifting. https://cattrs.readthedocs.io/en/latest/converters.html. This may be
+used to provide a custom converter with extra structure and unstructure hooks
+that may be required.
 
-You may also clone a meta and provide a different converter, extra information,
-or completely different information:
+A Meta object may also be cloned to provide a different converter, extra
+information, or completely different information:
 
 .. code-block:: python
 
@@ -100,7 +100,7 @@ For example:
     meta = strcs.Meta({"a": {"b": {"d": 4, "e": 5}}, "a.b": {"f": 6}, "a.bc": True})
 
     # Note that using object as a type is considered a wildcard
-    # You may provide more specific types to match against
+    # More specific types to match against may also be provided
     assert meta.retrieve_patterns(object, "a.b") == {"a.b": {"f": 6}}
     assert meta.retrieve_patterns(int, "a.b.d", "a.b.e") == {"a.b.d": 4, "a.b.e": 5}
     assert meta.retrieve_patterns(object , "a.b.*") == {"a.b.d": 4, "a.b.e": 5, "a.b.f": 6}
@@ -206,8 +206,8 @@ converter being used, and the register being used:
     reg = strcs.CreateRegister()
     creator = partial(strcs.CreatorDecorator, reg)
 
-    # You don't have to create them yourselves if you're not adding anything
-    # to them, but I'm doing so here for demonstration
+    # These don't need to be created if nothing is done with them
+    # This example does so for demonstration below
     converter = cattrs.Converter()
     meta = strcs.Meta(converter=converter)
 
@@ -234,11 +234,11 @@ converter being used, and the register being used:
 .. note:: for those special arguments to work they must have the correct name
    and type annotation!
 
-   ``_meta: strcs.Meta`` Gives you the meta object
+   ``_meta: strcs.Meta`` Provides the meta object
 
-   ``_converter: cattrs.Converter`` Gives you the current converter
+   ``_converter: cattrs.Converter`` Provides the current converter
 
-   ``_register: strcs.CreateRegister`` Gives you the current register
+   ``_register: strcs.CreateRegister`` Provides the current register
 
 Returning from a creator
 ++++++++++++++++++++++++
@@ -248,7 +248,7 @@ A creator must return a ``strcs.ConvertResponse`` which is either ``None``,
 
 Returning None
     This means the value could not be transformed and will result in ``strcs``
-    raising an error for you
+    raising an error
 
 Returning True
     Will make ``strcs`` use the val as is
@@ -258,21 +258,21 @@ Returning a dictionary
     dictionary to make the object we are creating.
 
 Returning an instance
-    ``strcs`` will assume if your result is already an instance of the object
-    that it you want that to be used as is.
+    ``strcs`` will assume if the result is already an instance of the object
+    that it should use it as is.
 
 Generator creators
 ++++++++++++++++++
 
 Creators may also be generator functions that yield zero, once, or twice. If the
-generator doesn't yield at all, then ``strcs`` will raise an exception for you
-to say the input data couldn't be transformed.
+generator doesn't yield at all, then ``strcs`` will raise an exception to say
+the input data couldn't be transformed.
 
-If you yield once it will use the value you yield like as in a normal creator
-and give you access to the resulting object. You may do what you want with this
-object. If you do not yield a second time then that will be the result that is
-used. If you do yield a second time then the second result you yield is what is
-used.
+On the first yield, ``strcs`` will use the yield value as it would in a normal
+creator and provide access to the resulting object. The generator may then
+do what it wants with that object. A second yield will instruct ``strcs`` to use
+this second yielded object as the result, otherwise it will use the object it
+created from the first yield.
 
 For example:
 
