@@ -40,7 +40,7 @@ use to create (or have) the final object.
 The Meta
 --------
 
-The Meta object stores values that can then be retrieved by deeply
+The Meta object stores values that may then be retrieved by deeply
 nested objects. It has dictionary like set methods and special methods for
 retrieving data based off type and name:
 
@@ -59,7 +59,7 @@ retrieving data based off type and name:
     assert meta.retrieve_one(int, "three") == 3
     assert meta.retrieve_one(int, "one") == 1
 
-The meta contains a cattrs converter that will be used for much of the heavy
+The meta contains a cattrs converter that is used for much of the heavy
 lifting. https://cattrs.readthedocs.io/en/latest/converters.html. This may be
 used to provide a custom converter with extra structure and unstructure hooks
 that may be required.
@@ -86,8 +86,8 @@ information, or completely different information:
     assert meta4.converter is not meta3.converter
     assert meta3.converter is meta2.converter
 
-Finally, the ability to retrieve information from a meta can be based on deeply
-nested patterns.
+Finally, the ability to retrieve information from a meta may also be based on
+deeply nested patterns.
 
 .. note: The retrieve_one method also takes zero or more patterns
 
@@ -145,7 +145,7 @@ this by returning a dictionary that cattrs will then use to create the instance.
    should only be considered as documentation. It is up to the creator to
    understand the shape of that variable.
 
-Creators can take one of the following forms:
+``strcs`` allows creators to be one of the following forms:
 
 .. code-block:: python
 
@@ -193,7 +193,7 @@ A creator gets the ``val`` that needs to be transformed, the type that we ``want
 to create (note this may be a subclass of the type used in the decorator) and
 any arguments from meta.
 
-There are also three special names that can get us the meta object, the cattrs
+There are also three special names that allow getting the meta object, the cattrs
 converter being used, and the register being used:
 
 .. code-block:: python
@@ -301,7 +301,7 @@ For example:
         assert res.one == val
 
         res.do_something()
-        # We don't yield again, so res is the value that will be used
+        # We don't yield again, so res is the value that is used
 
 
     thing = reg.create(Thing, 23)
