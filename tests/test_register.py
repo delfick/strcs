@@ -543,6 +543,32 @@ describe "Creators":
             assert creg.create(Overall, {"thing": {"child": 3}}).thing.child.data == 73
             assert creg.create(Overall, {"thing": {"child": 10}}).thing.child.data == 80
 
+        it "can not add optional fields to the meta when they are none", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define(frozen=True)
+            class Annotation(strcs.MergedAnnotation):
+                one: int = 3
+                two: tp.Optional[str] = None
+
+            @define
+            class Thing:
+                val: str
+
+            @creator(Thing)
+            def create_thing(val: str, /, one: int = 0, two: str = "asdf"):
+                return {"val": f"{val}|{one}|{two}"}
+
+            assert creg.create(tp.Annotated[Thing, Annotation(one=1)], "hi").val == "hi|1|asdf"
+            assert (
+                creg.create(tp.Annotated[Thing, Annotation(one=1, two="stuff")], "hi").val
+                == "hi|1|stuff"
+            )
+            assert (
+                creg.create(tp.Annotated[Thing, Annotation(two="stuff")], "hi").val == "hi|3|stuff"
+            )
+            assert creg.create(tp.Annotated[Thing, Annotation()], "hi").val == "hi|3|asdf"
+            assert creg.create(Thing, "hi").val == "hi|0|asdf"
+
         it "can convert lists one thing at a time", creator: strcs.Creator, creg: strcs.CreateRegister:
 
             counts = {"upto": 0}

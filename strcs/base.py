@@ -1,4 +1,4 @@
-from .meta import Meta
+from .meta import Meta, extract_type
 from . import errors
 
 from attrs import define
@@ -143,7 +143,10 @@ class Ann(_Ann):
             clone = meta.clone()
             for field in attrs.fields(self.meta.__class__):
                 if not field.name.startswith("_"):
-                    clone[field.name] = getattr(self.meta, field.name)
+                    optional, _ = extract_type(field.type)
+                    val = getattr(self.meta, field.name)
+                    if not optional or val is not None:
+                        clone[field.name] = val
             return clone
         else:
             return meta.clone({"__call_defined_annotation__": self.meta})
