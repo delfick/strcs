@@ -50,6 +50,18 @@ ConvertDefinition: tp.TypeAlias = tp.Union[
 ConvertFunction: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type, Meta, cattrs.Converter], T]
 
 
+class WrappedCreator(tp.Generic[T]):
+    def __init__(self, wrapped: tp.Callable[["CreateArgs"], T], func: ConvertFunction[T]):
+        self.func = func
+        self.wrapped = wrapped
+
+    def __call__(self, create_args: "CreateArgs") -> T:
+        return self.wrapped(create_args)
+
+    def __repr__(self):
+        return f"<Wrapped {self.func}>"
+
+
 def take_or_make(value: tp.Any, typ: tp.Type[T], /) -> ConvertResponse:
     if isinstance(value, typ):
         return value
@@ -375,17 +387,17 @@ class CreatorDecorator(tp.Generic[T]):
             self.signature = inspect.signature(self.func)
 
         if self.return_wrapped:
-            return self.wrapped
+            return WrappedCreator(self.wrapped, self.func)
         else:
-            self.register[self.typ] = self.wrapped
+            self.register[self.typ] = WrappedCreator(self.wrapped, self.func)
             return self.func
 
     def wrapped(self, create_args: CreateArgs) -> T:
-        value = create_args.value
         want = create_args.want
         meta = create_args.meta
-        converter = create_args.converter
+        value = create_args.value
         register = create_args.register
+        converter = create_args.converter
 
         if self.assume_unchanged_converted and isinstance(value, want):
             return value
