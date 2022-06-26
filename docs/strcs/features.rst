@@ -10,7 +10,7 @@ There are four important parts that make up how ``strcs`` works:
 * :ref:`Creators <features_creators>`
 * :ref:`Annotations <features_annotations>`
 
-.. _features_register
+.. _features_register:
 
 The Register
 ------------
@@ -34,7 +34,7 @@ It and the decorator we use to add to it, are created with the following:
 generators that take in some value and return something that ``strcs`` will then
 use to create (or have) the final object.
 
-.. _features_meta
+.. _features_meta:
 
 The Meta
 --------
@@ -105,12 +105,140 @@ For example:
     assert meta.retrieve_patterns(object , "a.b.*") == {"a.b.d": 4, "a.b.e": 5, "a.b.f": 6}
     assert meta.retrieve_patterns(object, "a.b*") == {"a.b": {"f": 6}, "a.bc": True}
 
-.. _features_creators
+.. _features_creators:
 
 Creators
 --------
 
-.. _features_annotations
+These are functions that take in one value and perform some action or transformation
+before returning an instruction for how to make the desired object.
+
+For example:
+
+.. code-block:: python
+
+    from attrs import define
+    import strcs
+
+    reg = strcs.CreateRegister()
+    creator = partial(strcs.CreatorDecorator, reg)
+
+    @define
+    class Thing:
+        one: int
+
+    @creator(Thing)
+    def create_thing(val: int, /) -> strcs.ConvertResponse:
+        return {"one": val}
+
+    thing = reg.create(Thing, 23)
+    assert isinstance(thing, Thing)
+    assert thing.one == 23
+
+Here the ``create_thing`` creator that has been registered for the ``Thing``
+class will convert an integer into an instance of the ``Thing`` class. It does
+this by returning a dictionary that cattrs will then use to create the instance.
+
+.. note:: the type annotation on ``val`` in the creator is not enforced and
+   should only be considered as documentation. It is up to the creator to
+   understand the shape of that variable.
+
+Creators can take one of the following forms:
+
+.. code-block:: python
+
+   import typing as tp
+   import strcs
+
+
+   @creator(T)
+   def creator() -> strcs.ConvertResponse:
+       ...
+
+
+   @creator(T)
+   def creator(val: tp.Any) -> strcs.ConvertResponse:
+       ...
+
+
+   @creator(T)
+   def creator(val: tp.Any, want: tp.Type[T], /) -> strcs.ConvertResponse:
+       ...
+
+
+   # if there are more than one argument and the slash doesn't say they are
+   # positional, then they are interpreted as found from the meta object
+   @creator(T)
+   def creator(meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
+       ...
+
+
+   @creator(T)
+   def creator(val: tp.Any, /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
+       ...
+
+
+   @creator(T)
+   def creator(val: tp.Any, want: tp.Type[T], /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
+       ...
+
+.. note:: The slash is a feature new to python since python3.8 and let us say
+   any arguments before the slash are positional only, which means those names
+   do not conflict with any names used in keyword arguments. For more
+   information see https://realpython.com/lessons/positional-only-arguments/
+
+A creator gets the ``val`` that needs to be transformed, the type that we ``want``
+to create (note this may be a subclass of the type used in the decorator) and
+any arguments from meta.
+
+There are also three special names that can get us the meta object, the cattrs
+converter being used, and the register being used:
+
+.. code-block:: python
+
+    from functools import partial
+    from attrs import define
+    import cattrs
+    import strcs
+
+    reg = strcs.CreateRegister()
+    creator = partial(strcs.CreatorDecorator, reg)
+
+    # You don't have to create them yourselves if you're not adding anything
+    # to them, but I'm doing so here for demonstration
+    converter = cattrs.Converter()
+    meta = strcs.Meta(converter=converter)
+
+
+    @define
+    class Thing:
+        one: int
+
+
+    @creator(Thing)
+    def create_thing(
+        val: dict, /, _meta: strcs.Meta, _converter: cattrs.Converter, _register: strcs.CreateRegister
+    ) -> strcs.ConvertResponse:
+        assert _meta is meta
+        assert _converter is converter
+        assert _register is reg
+        return val
+
+
+    thing = reg.create(Thing, {"one": 32}, meta=meta)
+    assert isinstance(thing, Thing)
+    assert thing.one == 32
+
+.. note:: for those special arguments to work they must have the correct name
+   and type annotation!
+
+   ``_meta: strcs.Meta`` Gives you the meta object
+
+   ``_converter: cattrs.Converter`` Gives you the current converter
+
+   ``_register: strcs.CreateRegister`` Gives you the current register
+
+.. _features_annotations:
 
 Annotations
 -----------
