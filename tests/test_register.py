@@ -982,6 +982,7 @@ describe "Creators":
                 assert made.one == 60
                 assert made.two == 500
                 assert made.three == 222
+                assert called == [1, 2, 3, 4]
 
             it "uses what is yielded the second time", creator: strcs.Creator, creg: strcs.CreateRegister:
 
