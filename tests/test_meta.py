@@ -9,6 +9,20 @@ import pytest
 import cattrs
 
 
+class IsConverter:
+    def __eq__(self, other):
+        self.given = other
+        return isinstance(other, cattrs.Converter)
+
+    def __repr__(self):
+        if hasattr(self, "given"):
+            if self == self.given:
+                return repr(self.given)
+            else:
+                return f"<Given {type(self.given)}, expected a Converter>"
+        return "<IsConverter?>"
+
+
 describe "extract_type":
     it "can return the type and that it isn't optional when not optional":
         assert extract_type(list[str]) == (False, list)
@@ -132,13 +146,14 @@ describe "Narrower":
 describe "Meta":
     it "can be created":
         meta = Meta()
-        assert meta._converter is strcs.converter
+        assert meta.converter == IsConverter()
         assert meta.data == {}
 
         convs = cattrs.Converter()
-        meta = Meta(converter=convs)
-        assert meta._converter is convs
-        assert meta.data == {}
+        meta2 = Meta(converter=convs)
+        assert meta2.converter is convs
+        assert meta2.data == {}
+        assert meta2.converter is not meta.converter
 
     describe "cloning":
 
@@ -167,7 +182,7 @@ describe "Meta":
             old = Meta()
             new = old.clone()
 
-            assert old._converter is new._converter
+            assert old.converter is new.converter
             assert old.data == new.data
 
             self.assertCloned(old, new)
@@ -178,8 +193,9 @@ describe "Meta":
             old = Meta()
             new = old.clone(converter=convs2)
 
-            assert old._converter is strcs.converter
-            assert new._converter is convs2
+            assert old.converter == IsConverter()
+            assert new.converter is convs2
+            assert old.converter is not new.converter
             assert old.data == new.data
             self.assertCloned(old, new)
 
@@ -191,7 +207,7 @@ describe "Meta":
             assert old.data == {"b": 5}
             assert new.data == {"a": 3}
 
-            assert old._converter is new._converter
+            assert old.converter is new.converter
             self.assertCloned(old, new)
 
         it "can be cloned with extended data":
@@ -202,7 +218,7 @@ describe "Meta":
             assert old.data == {"b": 5}
             assert new.data == {"b": 5, "a": 3}
 
-            assert old._converter is new._converter
+            assert old.converter is new.converter
             self.assertCloned(old, new)
 
         it "can be cloned with new and extended data":
@@ -216,7 +232,7 @@ describe "Meta":
             assert new.data == {"c": 6, "a": 3}
             assert override == {"c": 6}
 
-            assert old._converter is new._converter
+            assert old.converter is new.converter
             self.assertCloned(old, new)
 
     describe "Changing data":

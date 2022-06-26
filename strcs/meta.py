@@ -1,4 +1,3 @@
-from .converter import converter
 from . import errors
 
 from collections.abc import Mapping
@@ -177,9 +176,9 @@ class Meta:
     def __init__(
         self,
         data: tp.Optional[dict[str, tp.Any]] = None,
-        converter: cattrs.Converter = converter,
+        converter: tp.Optional[cattrs.Converter] = None,
     ):
-        self._converter = converter
+        self.converter = converter or cattrs.Converter()
         self.data = data if data is not None else {}
 
     def clone(
@@ -189,7 +188,7 @@ class Meta:
         converter: tp.Optional[cattrs.Converter] = None,
     ) -> "Meta":
         if converter is None:
-            converter = self._converter
+            converter = self.converter
 
         if data_override is None:
             data = dict(self.data)
