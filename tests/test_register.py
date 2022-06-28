@@ -7,6 +7,7 @@ from functools import partial
 from unittest import mock
 from attrs import define
 import typing as tp
+import secrets
 import cattrs
 import pytest
 
@@ -900,6 +901,72 @@ describe "Creators":
             for nope in (0, 1, False, True, [], [1], lambda: 1, Other, Other(), Thing):
                 with pytest.raises(strcs.errors.UnableToConvert):
                     creg.create(Thing, nope)
+
+        it "can use register.create in the creator using the type currently being created", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define
+            class Thing:
+                one: int
+                identity: tp.Annotated[str, strcs.FromMeta("identity")]
+
+            @define
+            class Things:
+                thing1: Thing
+
+            @creator(Things)
+            def create_thing(
+                val: int, want: tp.Type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
+            ) -> strcs.ConvertResponse:
+                return _register.create(
+                    want,
+                    {"thing1": {"one": val}},
+                    meta=_meta.clone({"identity": secrets.token_hex(10)}),
+                    recursed=True,
+                )
+
+            things = creg.create(Things, 2)
+            assert isinstance(things, Things)
+            assert isinstance(things.thing1, Thing)
+            assert things.thing1.one == 2
+            assert len(things.thing1.identity) == 20
+
+            things2 = creg.create(Things, 5)
+            assert isinstance(things2, Things)
+            assert isinstance(things2.thing1, Thing)
+            assert things2.thing1.one == 5
+            assert len(things2.thing1.identity) == 20
+
+            assert things.thing1.identity != things2.thing1.identity
+
+        it "can use register.create in the creator using the type currently being created without a layer of indirection", creator: strcs.Creator, creg: strcs.CreateRegister:
+
+            @define
+            class Thing:
+                one: int
+                identity: tp.Annotated[str, strcs.FromMeta("identity")]
+
+            @creator(Thing)
+            def create_thing(
+                val: int, want: tp.Type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
+            ) -> strcs.ConvertResponse:
+                return _register.create(
+                    want,
+                    {"one": val},
+                    meta=_meta.clone({"identity": secrets.token_hex(10)}),
+                    recursed=True,
+                )
+
+            thing = creg.create(Thing, 2)
+            assert isinstance(thing, Thing)
+            assert thing.one == 2
+            assert len(thing.identity) == 20
+
+            thing2 = creg.create(Thing, 5)
+            assert isinstance(thing2, Thing)
+            assert thing2.one == 5
+            assert len(thing2.identity) == 20
+
+            assert thing.identity != thing2.identity
 
         describe "generator creator":
             it "can modify the created object inside the creator", creator: strcs.Creator, creg: strcs.CreateRegister:

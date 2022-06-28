@@ -1,6 +1,7 @@
 from .meta import Meta, extract_type
 from . import errors
 
+from cattrs.errors import IterableValidationError
 from attrs import define
 import typing as tp
 import inspect
@@ -71,14 +72,21 @@ def take_or_make(value: tp.Any, typ: tp.Type[T], /) -> ConvertResponse:
         return None
 
 
-def fromdict(converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: T) -> T:
-    if res is NotSpecified:
-        res = {}
-    if isinstance(res, dict):
+def filldict(
+    converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: T
+) -> tp.Any:
+    if isinstance(res, dict) and hasattr(want, "__attrs_attrs__"):
         for field in attrs.fields(want):
             if field.type is not None and field.name not in res:
                 if _CreateStructureHook(register, converter, field.type).check_func(field.type):
                     res[field.name] = NotSpecified
+    return res
+
+
+def fromdict(converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: T) -> T:
+    if res is NotSpecified:
+        res = {}
+    res = filldict(converter, register, res, want)
     return converter.structure_attrs_fromdict(tp.cast(dict, res), want)
 
 
@@ -96,6 +104,7 @@ class MergedAnnotation(Annotation):
         return True
 
 
+@tp.runtime_checkable
 class _Ann(tp.Protocol):
     def adjusted_meta(self, meta: Meta, typ: tp.Type) -> Meta:
         ...
@@ -104,6 +113,17 @@ class _Ann(tp.Protocol):
         self, creator: ConvertFunction, register: "CreateRegister", typ: tp.Type[T]
     ) -> ConvertFunction[T]:
         ...
+
+    def bypass(self) -> int:
+        return 0
+
+
+@define(frozen=True)
+class Bypass(_Ann):
+    amount: int = 1
+
+    def bypass(self) -> int:
+        return self.amount
 
 
 @define(frozen=True)
@@ -199,8 +219,11 @@ class CreateRegister:
         value: tp.Any = NotSpecified,
         meta: tp.Any = NotSpecified,
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
+        recursed=False,
     ):
-        return _CreateStructureHook.structure(self, typ, value, meta, once_only_creator)
+        return _CreateStructureHook.structure(
+            self, typ, value, meta, once_only_creator, recursed=recursed
+        )
 
 
 class _CreateStructureHook:
@@ -212,6 +235,7 @@ class _CreateStructureHook:
         value: tp.Any = NotSpecified,
         meta: tp.Any = NotSpecified,
         creator: tp.Optional[ConvertFunction[T]] = None,
+        recursed=False,
     ) -> T:
         if meta is NotSpecified:
             meta = Meta()
@@ -221,7 +245,11 @@ class _CreateStructureHook:
         converter.register_structure_hook_func(hooks.switch_check, hooks.convert)
 
         try:
-            ret = hooks.convert(value, typ)
+            if recursed:
+                # Skip this hook and the hook we recursed from
+                ret = hooks.bypass(value, tp.Annotated[typ, Bypass(2)])
+            else:
+                ret = hooks.convert(value, typ)
         finally:
             converter._structure_func._function_dispatch._handler_pairs.remove(
                 (hooks.switch_check, hooks.convert, False)
@@ -237,8 +265,8 @@ class _CreateStructureHook:
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
     ):
         self.meta = meta
-        self.do_check = True
         self.register = register
+        self.do_check = True
         self.converter = converter
         self.once_only_creator = once_only_creator
         self.cache: dict[tp.Type[T], ConvertFunction[T]] = {}
@@ -247,35 +275,46 @@ class _CreateStructureHook:
         self, want: tp.Type, dive_into_lists=False
     ) -> tp.Tuple["_Ann", tp.Type[T]]:
         ann: tp.Optional[Annotation | _Ann | ConvertFunction] = None
-        if hasattr(want, "__origin__"):
-            if want.__origin__ is not list:
-                ann = want.__metadata__[0]
+        if (
+            hasattr(want, "__metadata__")
+            and want.__metadata__
+            and (
+                isinstance(want.__metadata__[0], (_Ann, Annotation))
+                or callable(want.__metadata__[0])
+            )
+        ):
+            ann = want.__metadata__[0]
 
-                if isinstance(ann, Annotation):
-                    ann = Ann(ann)
-                elif callable(ann):
-                    ann = Ann(creator=ann)
+            if isinstance(ann, Annotation):
+                ann = Ann(ann)
+            elif callable(ann):
+                ann = Ann(creator=ann)
 
-                want = want.__origin__
+            want = want.__origin__
 
-                if dive_into_lists and hasattr(want, "__origin__"):
-                    if want.__origin__ is list and len(want.__args__) == 1:
-                        want = want.__args__[0]
+            if dive_into_lists and hasattr(want, "__origin__"):
+                if want.__origin__ is list and len(want.__args__) == 1:
+                    want = want.__args__[0]
 
         return ann, want
 
     def convert(self, value: tp.Any, want: tp.Type[T]) -> T:
+        ann, wrapped = self._interpret_annotation(want)
+        if ann:
+            match bypass := ann.bypass():
+                case bypass if bypass > 1:
+                    return self.bypass(value, tp.Annotated[wrapped, Bypass(bypass - 1)])
+                case 1:
+                    return self.bypass(value, wrapped)
+
         if not self.check_func(want):
-            self.do_check = False
-            self.converter._structure_func.dispatch.cache_clear()
-            return self.converter.structure(value, want)
+            return self.bypass(value, want)
 
         meta = self.meta
         creator = self.once_only_creator
         self.once_only_creator = None
 
-        ann, want = self._interpret_annotation(want)
-
+        want = wrapped
         if want in self.cache and creator is None:
             creator = self.cache[want]
 
@@ -306,6 +345,15 @@ class _CreateStructureHook:
             return True
 
         return ann or self.once_only_creator or hasattr(want, "__attrs_attrs__")
+
+    def bypass(self, value: tp.Any, want: tp.Type[T]) -> T:
+        self.do_check = False
+        self.converter._structure_func.dispatch.cache_clear()
+        try:
+            value = filldict(self.converter, self.register, value, want)
+            return self.converter.structure(value, want)
+        except IterableValidationError as e:
+            raise errors.FailedToConvertIterable(message=e.message, exceptions=e.exceptions)
 
 
 class _ArgsExtractor:

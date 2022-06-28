@@ -49,3 +49,9 @@ class CanOnlyRegisterTypes(StructuresError):
 class FoundWithWrongType(StructuresError):
     want: tp.Type
     patterns: list[str]
+
+
+@define
+class FailedToConvertIterable(StructuresError):
+    message: str
+    exceptions: list[Exception]
