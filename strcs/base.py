@@ -271,9 +271,7 @@ class _CreateStructureHook:
         self.once_only_creator = once_only_creator
         self.cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
-    def _interpret_annotation(
-        self, want: tp.Type, dive_into_lists=False
-    ) -> tp.Tuple["_Ann", tp.Type[T]]:
+    def _interpret_annotation(self, want: tp.Type) -> tp.Tuple["_Ann", tp.Type[T]]:
         ann: tp.Optional[Annotation | _Ann | ConvertFunction] = None
         if (
             hasattr(want, "__metadata__")
@@ -291,10 +289,6 @@ class _CreateStructureHook:
                 ann = Ann(creator=ann)
 
             want = want.__origin__
-
-            if dive_into_lists and hasattr(want, "__origin__"):
-                if want.__origin__ is list and len(want.__args__) == 1:
-                    want = want.__args__[0]
 
         return ann, want
 
@@ -337,7 +331,7 @@ class _CreateStructureHook:
         return ret
 
     def check_func(self, want: tp.Type[T]) -> bool:
-        ann, want = self._interpret_annotation(want, dive_into_lists=True)
+        ann, want = self._interpret_annotation(want)
         creator = self.register.creator_for(want)
 
         if creator is not None:
