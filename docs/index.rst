@@ -6,8 +6,8 @@
 
 .. _strcs:
 
-Structures
-==========
+Structures (strcs)
+==================
 
 Some code that wraps cattrs/attrs for a modular approach to constructing objects
 with the ability to string data through the process.
@@ -16,31 +16,58 @@ Install from pypi::
 
     > python -m pip install strcs
 
+
+Why and What
+------------
+
+It's useful to be able to take one form of data and transform it into another.
+For example taking some JSON data and using that as input for a class constructor.
+
+The simplest way to do this is to create the constructor of the class such that
+it takes in that data, however this couples that class to the specific shape of
+that JSON. This is annoying when that same data may exist in different forms and
+suddenly a transformation needs to take place before the class can be created.
+
+Java solves this problem with multiple constructors, but in Python there can only
+be one constructor. So another way to solve the problem is with class methods
+that take in the different shapes of data and then plug that into the class
+constructor.
+
+This is great but then we have an inconsistent way of constructing the class for
+any data shapes the class doesn't already know about.
+
+A different approach is to say the class should only care about it's properties
+and not be responsible for transforming different shapes of data into those
+properties. This is the approach
+`cattrs <https://cattrs.readthedocs.io/en/latest/readme.html>`_ takes
+where it can do a reasonable amount of the heavy lifting involved in taking a
+dictionary of data and transforming that into an instance of an
+`attrs <https://www.attrs.org/en/stable/>`_ class.
+
+This library is essentially a hook for a ``cattrs`` converter that provides a
+slightly different take on how conversion logic may be expressed, whilst also
+making it possible to provide a separate block of information that may be
+accessed at any point in the conversion without being explicitly passed along.
+
 Example
 -------
 
-This library works by registering ``creators`` that know how to create
-particular objects. You then use that register to convert from one type of data
-into another. It is very similar to how ``cattrs`` works and being built on top
-of it is a superset of cattrs features.
-
 Here is a contrived example that shows a couple features. Read the
-:ref:`features` page for the full list of what is provided by strcs:
+:ref:`features` page for the full list of what is provided by ``strcs``:
 
 .. code-block:: python
 
     from my_library import Renderer 
 
-    from functools import partial
     from attrs import define
     import typing as tp
     import strcs
 
 
-    # The register holds all of our creators
-    # and the ``creator`` decorator we make is used to register those creators
+    # The register holds all of the creators
+    # and the ``creator`` decorator used to add those creators
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
 
     @define
