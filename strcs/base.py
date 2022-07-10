@@ -2,6 +2,7 @@ from .meta import Meta, extract_type
 from . import errors
 
 from cattrs.errors import IterableValidationError
+from functools import partial
 from attrs import define
 import typing as tp
 import inspect
@@ -185,6 +186,18 @@ class Ann(_Ann):
         )(self.creator)
 
 
+class Registerer(tp.Protocol[T]):
+    def __init__(
+        self,
+        typ: tp.Type[T],
+        assume_unchanged_converted=True,
+    ):
+        ...
+
+    def __call__(self, func: tp.Optional[ConvertDefinition[T]] = None) -> ConvertDefinition[T]:
+        ...
+
+
 class CreateRegister:
     def __init__(self):
         self.register: dict[tp.Type[T], ConvertFunction[T]] = {}
@@ -196,6 +209,9 @@ class CreateRegister:
 
     def __contains__(self, typ: tp.Type[T]) -> bool:
         return self.creator_for(typ) is not None
+
+    def make_decorator(self) -> Registerer:
+        return partial(CreatorDecorator, self)
 
     def creator_for(self, typ: tp.Type[T]) -> tp.Optional[ConvertFunction[T]]:
         if hasattr(typ, "__origin__"):
@@ -534,6 +550,3 @@ class CreatorDecorator(tp.Generic[T]):
         else:
             args = _ArgsExtractor(self.signature, value, want, meta, converter, register).extract()
             return self.func(*args)
-
-
-Creator: tp.TypeAlias = tp.Callable[[tp.Type[T]], CreatorDecorator[T]]

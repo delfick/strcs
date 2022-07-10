@@ -1,12 +1,11 @@
 # coding: spec
 
 from attrs import define, asdict
-from functools import partial
 import typing as tp
 import strcs
 
 reg = strcs.CreateRegister()
-creator = partial(strcs.CreatorDecorator, reg)
+creator = reg.make_decorator()
 
 
 @define(frozen=True)

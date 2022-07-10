@@ -1,6 +1,5 @@
 # coding: spec
 
-from functools import partial
 from attrs import define
 import typing as tp
 import strcs
@@ -11,7 +10,7 @@ class Renderer:
 
 
 reg = strcs.CreateRegister()
-creator = partial(strcs.CreatorDecorator, reg)
+creator = reg.make_decorator()
 
 
 @define

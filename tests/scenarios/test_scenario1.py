@@ -1,13 +1,12 @@
 # coding: spec
 
 from attrs import define, field
-from functools import partial
 import typing as tp
 import pytest
 import strcs
 
 reg = strcs.CreateRegister()
-creator = partial(strcs.CreatorDecorator, reg)
+creator = reg.make_decorator()
 
 
 @define

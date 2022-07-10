@@ -3,7 +3,7 @@ from .base import (
     CreateRegister,
     CreatorDecorator,
     ConvertFunction,
-    Creator,
+    Registerer,
     Ann,
     Annotation,
     MergedAnnotation,
@@ -27,6 +27,6 @@ __all__ = [
     "CreateRegister",
     "CreatorDecorator",
     "NotSpecified",
-    "Creator",
+    "Registerer",
     "errors",
 ]

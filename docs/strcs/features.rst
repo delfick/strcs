@@ -25,11 +25,10 @@ It and the decorator we use to add to it, are created with the following:
 
 .. code-block:: python
 
-    from functools import partial
     import strcs
 
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
 .. note:: it is possible to have multiple registers and it is possible to
    ask for the current register when inside a creator function.
@@ -121,12 +120,11 @@ For example:
 
 .. code-block:: python
 
-    from functools import partial
     from attrs import define
     import strcs
 
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
     @define
     class Thing:
@@ -201,13 +199,12 @@ converter being used, and the register being used:
 
 .. code-block:: python
 
-    from functools import partial
     from attrs import define
     import cattrs
     import strcs
 
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
     # These don't need to be created if nothing is done with them
     # This example does so for demonstration below
@@ -274,7 +271,6 @@ infinite loop:
 
 .. code-block:: python
 
-    from functools import partial
     from attrs import define
     import typing as tp
     import secrets
@@ -282,7 +278,7 @@ infinite loop:
 
 
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
 
     @define
@@ -345,12 +341,11 @@ For example:
 
 .. code-block:: python
 
-    from functools import partial
     from attrs import define
     import strcs
 
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
 
     @define
@@ -380,13 +375,12 @@ Generator creators may also yield other generators:
 
 .. code-block:: python
 
-    from functools import partial
     from attrs import define
     import typing as tp
     import strcs
 
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
 
     called = []
@@ -440,12 +434,11 @@ an object it uses to modify the meta and/or creator:
 .. code-block:: python
 
     from attrs import define, asdict
-    from functools import partial
     import typing as tp
     import strcs
 
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
 
     @define(frozen=True)
@@ -564,13 +557,12 @@ object and this may be achieved via ``strcs.FromMeta``:
 
 .. code-block:: python
 
-    from functools import partial
     from attrs import define
     import typing as tp
     import strcs
 
     reg = strcs.CreateRegister()
-    creator = partial(strcs.CreatorDecorator, reg)
+    creator = reg.make_decorator()
 
 
     class Magic:
