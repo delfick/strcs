@@ -3,6 +3,7 @@
 
    strcs/features
    strcs/changelog
+   strcs/features/index
 
 .. _strcs:
 
