@@ -1,7 +1,7 @@
 .. _features_creators:
 
 Creators
---------
+========
 
 These are functions and generators that take in one value and perform some
 action or transformation before returning an instruction for how to make the
@@ -55,8 +55,12 @@ this by returning a dictionary that cattrs will then use to create the instance.
 
 
    @creator(T)
-   def creator(val: tp.Any) -> strcs.ConvertResponse:
-       """Sometimes all we need is the value to be transformed"""
+   def creator(val: tp.Any, /) -> strcs.ConvertResponse:
+       """
+       Sometimes all we need is the value to be transformed
+
+       Note the slash is important!
+       """
        ...
 
 
@@ -148,7 +152,7 @@ converter being used, and the register being used:
    ``_register: strcs.CreateRegister`` Provides the current register
 
 Returning from a creator
-++++++++++++++++++++++++
+------------------------
 
 A creator must return a ``strcs.ConvertResponse`` which is either ``None``,
 ``True``, a dictionary, or an instance of the class we are creating.
@@ -169,7 +173,7 @@ Returning an instance
     that it should use it as is.
 
 Using register inside a creator
-+++++++++++++++++++++++++++++++
+-------------------------------
 
 It is possible to use the register to create the type your creator is using but
 with different meta information. The trick is to make sure ``recursed=True`` is
@@ -232,7 +236,7 @@ infinite loop:
     assert thing1.part1.identity != thing2.part1.identity
 
 Generator creators
-++++++++++++++++++
+------------------
 
 Creators may also be generator functions that yield zero, once, or twice. If the
 generator doesn't yield at all, then ``strcs`` will raise an exception to say
@@ -325,3 +329,9 @@ Generator creators may also yield other generators:
     assert made.two == 500
     assert made.three == 222
     assert called == [1, 2, 3, 4]
+
+Async creators
+--------------
+
+It's not possible to have async creators because as of 2022, ``cattrs`` itself
+does not support async enabled hooks.

@@ -1,7 +1,7 @@
 .. _features_register:
 
 The Register
-------------
+============
 
 The register is a central object that holds knowledge of how to transform data
 into different types. It is used to get a decorator that is used to add those
@@ -24,7 +24,7 @@ Multiple registers
 ------------------
 
 It is easy to have multiple registers as the creator functions can ask for the
-current register with the special `_register: strcs.CreateRegister` in the
+current register with the special ``_register: strcs.CreateRegister`` in the
 signature:
 
 .. code-block:: python

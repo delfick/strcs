@@ -1,4 +1,5 @@
-h2 {
+h2,
+p.rubric {
   background: rgba(26, 255, 0, 0.12);
   padding: 3px;
 }

@@ -1,7 +1,7 @@
 .. _features_annotations:
 
 Annotations
------------
+===========
 
 Python has a ``typing.Annotated`` since Python 3.9 that lets the developer attach
 information to a type and ``strcs`` will understand these annotations to get
@@ -126,7 +126,7 @@ strategy may be provided by implementing ``adjusted_meta`` on the ``Annotation``
             return {"key": f"{val}-{one}-{two}"}
 
 Injecting data from meta
-++++++++++++++++++++++++
+------------------------
 
 Sometimes it is desirable to set a value straight from what is found in the Meta
 object and this may be achieved via ``strcs.FromMeta``:

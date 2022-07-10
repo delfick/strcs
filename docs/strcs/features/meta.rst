@@ -1,7 +1,7 @@
 .. _features_meta:
 
 Meta
-----
+====
 
 The Meta object stores values that may then be retrieved by deeply
 nested objects. It has dictionary like set methods and special methods for
@@ -52,7 +52,7 @@ information, or completely different information:
 Finally, the ability to retrieve information from a meta may also be based on
 deeply nested patterns.
 
-.. note: The retrieve_one method also takes zero or more patterns
+.. note:: The retrieve_one method also takes zero or more patterns
 
 For example:
 

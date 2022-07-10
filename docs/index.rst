@@ -1,9 +1,12 @@
 .. toctree::
    :hidden:
 
-   strcs/features
    strcs/changelog
    strcs/features/index
+   strcs/features/register
+   strcs/features/meta
+   strcs/features/creators
+   strcs/features/annotations
 
 .. _strcs:
 
