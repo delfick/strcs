@@ -13,8 +13,8 @@
 Structures (strcs)
 ==================
 
-Some code that wraps cattrs/attrs for a modular approach to constructing objects
-with the ability to string data through the process.
+A Python3.10+ library that wraps `cattrs`_ for a modular
+approach to constructing objects with the ability to string data through the process.
 
 Install from pypi::
 
