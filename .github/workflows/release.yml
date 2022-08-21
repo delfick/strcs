@@ -20,8 +20,8 @@ jobs:
 
       - id: version
         run: |
-          printf "::set-output name=version::%s\n" $(python -c "import runpy; print(runpy.run_path('strcs/__init__.py')['VERSION'])")
-          printf "::set-output name=versiondash::%s\n" $(python -c "import runpy; print(runpy.run_path('strcs/__init__.py')['VERSION'].replace('.', '-'))")
+          printf "::set-output name=version::%s\n" $(python -c "import runpy; print(runpy.run_path('strcs/version.py')['VERSION'])")
+          printf "::set-output name=versiondash::%s\n" $(python -c "import runpy; print(runpy.run_path('strcs/version.py')['VERSION'].replace('.', '-'))")
 
       - id: package
         run: >
