@@ -52,7 +52,7 @@ ConvertFunction: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type, Meta, cattrs.Conve
 
 
 class WrappedCreator(tp.Generic[T]):
-    def __init__(self, wrapped: tp.Callable[["CreateArgs"], T], func: ConvertFunction[T]):
+    def __init__(self, wrapped: tp.Callable[["CreateArgs"], T], func: ConvertDefinition[T]):
         self.func = func
         self.wrapped = wrapped
 
@@ -455,8 +455,6 @@ class CreateArgs:
 
 
 class CreatorDecorator(tp.Generic[T]):
-    func: ConvertDefinition[T]
-
     def __init__(
         self,
         register: CreateRegister,
@@ -469,22 +467,27 @@ class CreatorDecorator(tp.Generic[T]):
         self.return_wrapped = return_wrapped
         self.assume_unchanged_converted = assume_unchanged_converted
 
-    def __call__(self, func: tp.Optional[ConvertDefinition[T]] = None) -> ConvertDefinition[T]:
+    def __call__(
+        self, func: tp.Optional[ConvertDefinition[T]] = None
+    ) -> ConvertFunction[T] | ConvertDefinition[T]:
         if func is None:
-            self.func = take_or_make
+            self.func = tp.cast(ConvertDefinition[T], take_or_make)
         else:
-            self.func = func
+            self.func = tp.cast(ConvertDefinition[T], func)
 
         if hasattr(self.func, "side_effect"):
             # Hack to deal with mock objects
             self.signature = inspect.signature(self.func.side_effect)  # type: ignore
         else:
-            self.signature = inspect.signature(self.func)
+
+            self.signature = inspect.signature(tp.cast(tp.Callable, self.func))
 
         if self.return_wrapped:
             return WrappedCreator(self.wrapped, self.func)
         else:
-            self.register[self.typ] = WrappedCreator(self.wrapped, self.func)
+            self.register[self.typ] = tp.cast(
+                ConvertFunction[T], WrappedCreator(self.wrapped, self.func)
+            )
             return self.func
 
     def wrapped(self, create_args: CreateArgs) -> T:
