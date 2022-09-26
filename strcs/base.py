@@ -21,34 +21,28 @@ class NotSpecified(metaclass=NotSpecifiedMeta):
         raise Exception("Do not instantiate NotSpecified")
 
 
-ConvertResponseValues: tp.TypeAlias = tp.Optional[bool | dict[str, tp.Any]]
-ConvertResponseGenerator: tp.TypeAlias = tp.Generator[ConvertResponseValues | T, T, None]
-
-ConvertResponse: tp.TypeAlias = ConvertResponseValues | ConvertResponseGenerator[T] | T
-
-ConvertDefinitionValue: tp.TypeAlias = tp.Callable[[tp.Any], ConvertResponse[T]]
-ConvertDefinitionNoValue: tp.TypeAlias = tp.Callable[[], ConvertResponse[T]]
-ConvertDefinitionValueAndType: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type], ConvertResponse[T]]
-
-
-class ConvertDefinitionValueAndData(tp.Protocol):
-    def __call__(self, value: tp.Any, /, *values: tp.Any) -> ConvertResponse[T]:
-        ...
-
-
-class ConvertDefinitionValueAndTypeAndData(tp.Protocol):
-    def __call__(self, value: tp.Any, want: tp.Type, /, *values: tp.Any) -> ConvertResponse[T]:
-        ...
-
-
-ConvertDefinition: tp.TypeAlias = tp.Union[
-    ConvertDefinitionValue[T],
-    ConvertDefinitionNoValue[T],
-    ConvertDefinitionValueAndType[T],
-    ConvertDefinitionValueAndData,
-    ConvertDefinitionValueAndTypeAndData,
+ConvertResponseValues: tp.TypeAlias = bool | dict[str, tp.Any] | T
+ConvertResponseGenerator: tp.TypeAlias = tp.Generator[
+    tp.Optional[ConvertResponseValues[T]], T, None
 ]
-ConvertFunction: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type, Meta, cattrs.Converter], T]
+
+ConvertResponse: tp.TypeAlias = tp.Optional[ConvertResponseValues[T] | ConvertResponseGenerator[T]]
+
+
+# I would love to make ConvertDefinition of a Union of these
+# However the ... in these don't mean "any number of other arguments"
+# And there doesn't seem to be any of way of specifying that as of python 3.10
+ConvertDefinitionNoValue: tp.TypeAlias = tp.Callable[[], ConvertResponse[T]]
+ConvertDefinitionValue: tp.TypeAlias = tp.Callable[[tp.Any], ConvertResponse[T]]
+ConvertDefinitionValueAndType: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type], ConvertResponse[T]]
+ConvertDefinitionValueAndData: tp.TypeAlias = tp.Callable[[tp.Any, ...], ConvertResponse[T]]
+ConvertDefinitionValueAndTypeAndData: tp.TypeAlias = tp.Callable[
+    [tp.Any, tp.Type, ...], ConvertResponse[T]
+]
+
+
+ConvertDefinition: tp.TypeAlias = tp.Callable[..., ConvertResponse[T]]
+ConvertFunction: tp.TypeAlias = tp.Callable[["CreateArgs"], T]
 
 
 class WrappedCreator(tp.Generic[T]):
