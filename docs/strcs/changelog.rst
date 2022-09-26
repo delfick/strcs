@@ -3,6 +3,11 @@
 Changelog
 ---------
 
+.. _release-0.1.1:
+
+0.1.1 - 26 September 2022
+   * Fix a bunch of typing problems
+
 .. _release-0.1.0:
 
 0.1.0 - 21 August 2022
