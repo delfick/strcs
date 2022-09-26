@@ -341,7 +341,7 @@ describe "Creators":
         def multiply(value: int, /, multiple: int) -> strcs.ConvertResponse[int]:
             return value * multiple
 
-        assert creg.create(tp.Annotated[int, strcs.Ann(Info(multiple=2), multiply)], 3) == 6
+        assert creg.create_annotated(int, strcs.Ann(Info(multiple=2), multiply), 3) == 6
 
         @define
         class Thing:
@@ -570,15 +570,13 @@ describe "Creators":
             ) -> strcs.ConvertResponse[Thing]:
                 return {"val": f"{val}|{one}|{two}"}
 
-            assert creg.create(tp.Annotated[Thing, Annotation(one=1)], "hi").val == "hi|1|asdf"
+            assert creg.create_annotated(Thing, Annotation(one=1), "hi").val == "hi|1|asdf"
             assert (
-                creg.create(tp.Annotated[Thing, Annotation(one=1, two="stuff")], "hi").val
+                creg.create_annotated(Thing, Annotation(one=1, two="stuff"), "hi").val
                 == "hi|1|stuff"
             )
-            assert (
-                creg.create(tp.Annotated[Thing, Annotation(two="stuff")], "hi").val == "hi|3|stuff"
-            )
-            assert creg.create(tp.Annotated[Thing, Annotation()], "hi").val == "hi|3|asdf"
+            assert creg.create_annotated(Thing, Annotation(two="stuff"), "hi").val == "hi|3|stuff"
+            assert creg.create_annotated(Thing, Annotation(), "hi").val == "hi|3|asdf"
             assert creg.create(Thing, "hi").val == "hi|0|asdf"
 
         it "can convert lists one thing at a time", creator: strcs.Creator, creg: strcs.CreateRegister:

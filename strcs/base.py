@@ -239,9 +239,27 @@ class CreateRegister:
         meta: tp.Any = NotSpecified,
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
         recursed=False,
-    ):
+    ) -> T:
         return _CreateStructureHook.structure(
             self, typ, value, meta, once_only_creator, recursed=recursed
+        )
+
+    def create_annotated(
+        self,
+        typ: tp.Type[T],
+        ann: tp.Union[Annotation | _Ann | ConvertFunction[T]],
+        value: tp.Any = NotSpecified,
+        meta: tp.Any = NotSpecified,
+        once_only_creator: tp.Optional[ConvertFunction[T]] = None,
+        recursed=False,
+    ) -> T:
+        return _CreateStructureHook.structure(
+            self,
+            tp.cast(tp.Type[T], tp.Annotated[typ, ann]),
+            value,
+            meta,
+            once_only_creator,
+            recursed=recursed,
         )
 
 
