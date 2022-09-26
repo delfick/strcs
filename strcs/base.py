@@ -389,7 +389,7 @@ class _CreateStructureHook:
             value = filldict(self.converter, self.register, value, want)
             return self.converter.structure(value, want)
         except IterableValidationError as e:
-            raise errors.FailedToConvertIterable(message=e.message, exceptions=e.exceptions)
+            raise errors.FailedToConvertIterable(message=e.message, exceptions=list(e.exceptions))
 
 
 class _ArgsExtractor:
