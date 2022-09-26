@@ -57,7 +57,7 @@ class WrappedCreator(tp.Generic[T]):
         return f"<Wrapped {self.func}>"
 
 
-def take_or_make(value: tp.Any, typ: tp.Type[T], /) -> ConvertResponse:
+def take_or_make(value: tp.Any, typ: tp.Type[T], /) -> ConvertResponse[T]:
     if isinstance(value, typ):
         return value
     elif value is NotSpecified or isinstance(value, dict):
@@ -67,7 +67,7 @@ def take_or_make(value: tp.Any, typ: tp.Type[T], /) -> ConvertResponse:
 
 
 def filldict(
-    converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: T
+    converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: tp.Type
 ) -> tp.Any:
     if isinstance(res, dict) and hasattr(want, "__attrs_attrs__"):
         for field in attrs.fields(want):
@@ -77,7 +77,9 @@ def filldict(
     return res
 
 
-def fromdict(converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: T) -> T:
+def fromdict(
+    converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: tp.Type
+) -> T:
     if res is NotSpecified:
         res = {}
     res = filldict(converter, register, res, want)
@@ -99,13 +101,13 @@ class MergedAnnotation(Annotation):
 
 
 @tp.runtime_checkable
-class _Ann(tp.Protocol):
-    def adjusted_meta(self, meta: Meta, typ: tp.Type) -> Meta:
+class _Ann(tp.Protocol[T]):
+    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
         ...
 
     def adjusted_creator(
-        self, creator: ConvertFunction, register: "CreateRegister", typ: tp.Type[T]
-    ) -> ConvertFunction[T]:
+        self, creator: tp.Optional[ConvertFunction[T]], register: "CreateRegister", typ: tp.Type[T]
+    ) -> tp.Optional[ConvertFunction[T]]:
         ...
 
     def bypass(self) -> int:
@@ -124,29 +126,32 @@ class Bypass(_Ann):
 class FromMeta(_Ann):
     pattern: str
 
-    def adjusted_meta(self, meta: Meta, typ: tp.Type) -> Meta:
+    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
         val = meta.retrieve_one(typ, self.pattern)
         return meta.clone(data_override={"retrieved": val})
 
     def adjusted_creator(
-        self, creator: ConvertFunction, register: "CreateRegister", typ: tp.Type[T]
-    ) -> ConvertFunction[T]:
-        def retrieve(val: tp.Any, /, retrieved: typ) -> typ:
-            return retrieved
+        self, creator: tp.Optional[ConvertFunction], register: "CreateRegister", typ: tp.Type[T]
+    ) -> tp.Optional[ConvertFunction[T]]:
+        def retrieve(val: tp.Any, /, _meta: Meta) -> ConvertResponse[T]:
+            return tp.cast(T, _meta.retrieve_one(object, "retrieved"))
 
-        return Ann(creator=retrieve).adjusted_creator(creator, register, typ)
+        a = Ann[T](creator=retrieve)
+        return a.adjusted_creator(creator, register, typ)
 
 
-class Ann(_Ann):
-    _func: tp.Optional[ConvertFunction] = None
+class Ann(_Ann[T]):
+    _func: tp.Optional[ConvertFunction[T]] = None
 
     def __init__(
-        self, meta: tp.Optional[Annotation] = None, creator: tp.Optional[ConvertFunction] = None
+        self,
+        meta: tp.Optional[Annotation] = None,
+        creator: tp.Optional[ConvertDefinition[T]] = None,
     ):
         self.meta = meta
         self.creator = creator
 
-    def adjusted_meta(self, meta: Meta, typ: tp.Type) -> Meta:
+    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
         if self.meta is None:
             return meta
 
@@ -166,8 +171,8 @@ class Ann(_Ann):
             return meta.clone({"__call_defined_annotation__": self.meta})
 
     def adjusted_creator(
-        self, creator: ConvertFunction, register: "CreateRegister", typ: tp.Type[T]
-    ) -> ConvertFunction[T]:
+        self, creator: tp.Optional[ConvertFunction], register: "CreateRegister", typ: tp.Type[T]
+    ) -> tp.Optional[ConvertFunction[T]]:
         if self.creator is None:
             return creator
 
@@ -198,7 +203,7 @@ class CreateRegister:
             raise errors.CanOnlyRegisterTypes(got=typ)
         self.register[typ] = creator
 
-    def __contains__(self, typ: tp.Type[T]) -> bool:
+    def __contains__(self, typ: tp.Type) -> bool:
         return self.creator_for(typ) is not None
 
     def make_decorator(self) -> Creator:
@@ -278,7 +283,7 @@ class _CreateStructureHook:
         try:
             if recursed:
                 # Skip this hook and the hook we recursed from
-                ret = hooks.bypass(value, tp.Annotated[typ, Bypass(2)])
+                ret: T = hooks.bypass(value, tp.cast(tp.Type[T], tp.Annotated[typ, Bypass(2)]))
             else:
                 ret = hooks.convert(value, typ)
         finally:
@@ -302,8 +307,8 @@ class _CreateStructureHook:
         self.once_only_creator = once_only_creator
         self.cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
-    def _interpret_annotation(self, want: tp.Type) -> tp.Tuple["_Ann", tp.Type[T]]:
-        ann: tp.Optional[Annotation | _Ann | ConvertFunction] = None
+    def _interpret_annotation(self, want: tp.Type[T]) -> tp.Tuple[tp.Optional[_Ann], tp.Type[T]]:
+        ann: tp.Optional[Annotation | _Ann | ConvertDefinition[T]] = None
         if (
             hasattr(want, "__metadata__")
             and want.__metadata__
@@ -321,14 +326,17 @@ class _CreateStructureHook:
 
             want = want.__origin__
 
-        return ann, want
+        return tp.cast(_Ann, ann), want
 
     def convert(self, value: tp.Any, want: tp.Type[T]) -> T:
+        wrapped: tp.Type[T]
         ann, wrapped = self._interpret_annotation(want)
-        if ann:
-            match bypass := ann.bypass():
+        if isinstance(ann, _Ann):
+            match bypass := tp.cast(_Ann, ann).bypass():
                 case bypass if bypass > 1:
-                    return self.bypass(value, tp.Annotated[wrapped, Bypass(bypass - 1)])
+                    return self.bypass(
+                        value, tp.cast(tp.Type[T], tp.Annotated[wrapped, Bypass(bypass - 1)])
+                    )
                 case 1:
                     return self.bypass(value, wrapped)
 
@@ -356,12 +364,12 @@ class _CreateStructureHook:
         else:
             return fromdict(self.converter, self.register, value, want)
 
-    def switch_check(self, want: tp.Type[T]) -> bool:
+    def switch_check(self, want: tp.Type) -> bool:
         ret = self.do_check
         self.do_check = True
         return ret
 
-    def check_func(self, want: tp.Type[T]) -> bool:
+    def check_func(self, want: tp.Type) -> bool:
         ann, want = self._interpret_annotation(want)
         creator = self.register.creator_for(want)
 
@@ -369,7 +377,7 @@ class _CreateStructureHook:
             self.cache[want] = creator
             return True
 
-        return ann or self.once_only_creator or hasattr(want, "__attrs_attrs__")
+        return bool(ann or self.once_only_creator or hasattr(want, "__attrs_attrs__"))
 
     def bypass(self, value: tp.Any, want: tp.Type[T]) -> T:
         self.do_check = False
@@ -410,7 +418,7 @@ class _ArgsExtractor:
             values.pop(0)
             use.append(self.want)
 
-        def provided(param: inspect.Parameter, name: str, typ: tp.Type[T]) -> T:
+        def provided(param: inspect.Parameter, name: str, typ: tp.Type) -> bool:
             if param.name != name:
                 return False
 
