@@ -24,11 +24,18 @@ class IsConverter:
 
 
 describe "extract_type":
+
+    it "can return annotated types":
+        assert extract_type(tp.Annotated[int, "stuff"]) == (False, tp.Annotated[int, "stuff"])
+        assert extract_type(tp.Annotated[tp.Optional[int], "things"]) == (
+            True,
+            tp.Annotated[int, "things"],
+        )
+
     it "can return the type and that it isn't optional when not optional":
         assert extract_type(list[str]) == (False, list)
         assert extract_type(dict[str, bool]) == (False, dict)
         assert extract_type(str | bool) == (False, str | bool)
-        assert extract_type(tp.Annotated[int, "stuff"]) == (False, tp.Annotated[int, "stuff"])
 
         T = tp.TypeVar("T")
         assert extract_type(T) == (False, T)
@@ -44,10 +51,6 @@ describe "extract_type":
         assert extract_type(tp.Optional[list[str]]) == (True, list)
         assert extract_type(tp.Optional[dict[str, bool]]) == (True, dict)
         assert extract_type(tp.Optional[str | bool]) == (True, str | bool)
-        assert extract_type(tp.Optional[tp.Annotated[int, "stuff"]]) == (
-            True,
-            tp.Annotated[int, "stuff"],
-        )
 
         T = tp.TypeVar("T")
         assert extract_type(tp.Optional[T]) == (True, T)

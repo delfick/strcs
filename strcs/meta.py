@@ -6,6 +6,7 @@ import typing as tp
 import fnmatch
 import inspect
 import cattrs
+import types
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
@@ -125,7 +126,7 @@ class Narrower:
         return progress.collect(self.narrow)
 
 
-def extract_type(typ: T) -> tp.Tuple[bool, U]:
+def extract_type(typ: tp.Type[T]) -> tp.Tuple[bool, tp.Type[U]]:
     """
     Given some type, return a tuple of (optional, type)
 
@@ -137,6 +138,12 @@ def extract_type(typ: T) -> tp.Tuple[bool, U]:
 
     but tp.Optional[str | bool] would return (True, str | bool)
     """
+    metadata: tp.Optional[tp.Iterable] = getattr(typ, "__metadata__", None)
+    if metadata is not None:
+        origin: tp.Optional[tp.Type[T]] = getattr(typ, "__origin__", None)
+        if origin is not None:
+            typ = origin
+
     optional = False
     if tp.get_origin(typ) is tp.Union:
         args = tp.get_args(typ)
@@ -150,10 +157,15 @@ def extract_type(typ: T) -> tp.Tuple[bool, U]:
                 typ = typ.copy_with(args[:-1])  # type: ignore
             optional = True
 
-    if isinstance(typ, tp.GenericAlias):
-        typ = typ.__origin__
+    origin = tp.get_origin(typ)
 
-    return optional, tp.cast(U, typ)
+    if origin is not None and origin not in (types.UnionType, tp.Union):
+        typ = origin
+
+    if metadata is not None:
+        typ = tp.cast(tp.Type[T], tp._AnnotatedAlias(typ, metadata))  # type: ignore
+
+    return optional, tp.cast(tp.Type[U], typ)
 
 
 class Meta:
