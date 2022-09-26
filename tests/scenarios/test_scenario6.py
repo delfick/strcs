@@ -25,7 +25,7 @@ class Thing:
 @creator(Thing)
 def create_thing(
     val: list[int], want: tp.Type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
-) -> strcs.ConvertResponse:
+) -> Thing:
     """Production quality would ensure val is indeed a list with two integers!!"""
     return _register.create(
         want,

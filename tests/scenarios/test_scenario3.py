@@ -37,7 +37,7 @@ class Things:
 
 
 @creator(Thing)
-def create_thing(val: float) -> strcs.ConvertResponse:
+def create_thing(val: float) -> strcs.ConvertResponse[Thing]:
     return {"base": val, "raised": val + 0.1, "elevated": val + 0.2}
 
 

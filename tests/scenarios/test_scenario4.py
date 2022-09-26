@@ -28,7 +28,7 @@ class Images:
 @creator(Images)
 def create_images(
     val: dict[str, list[str]], /, excluded: tp.Optional[list[str]]
-) -> strcs.ConvertResponse:
+) -> strcs.ConvertResponse[Images]:
     if isinstance(val, dict):
         if excluded is None:
             excluded = []

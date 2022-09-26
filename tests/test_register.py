@@ -330,8 +330,8 @@ describe "Creators":
         class Info(strcs.MergedAnnotation):
             multiple: int
 
-        def multiply(val: int, /, multiple: int):
-            return val * multiple
+        def multiply(value: int, /, multiple: int) -> strcs.ConvertResponse[int]:
+            return value * multiple
 
         assert creg.create(tp.Annotated[int, strcs.Ann(Info(multiple=2), multiply)], 3) == 6
 
@@ -505,7 +505,9 @@ describe "Creators":
                 one: tp.Annotated[Sentence, SentenceAnnotation(prefix="hello")]
 
             @creator(Sentence)
-            def create_sentence(val: str | tp.Dict, /, ann: SentenceAnnotation, suffix: str):
+            def create_sentence(
+                val: str, /, ann: SentenceAnnotation, suffix: str
+            ) -> strcs.ConvertResponse[Sentence]:
                 return {"sentence": ann.prefix + val + suffix}
 
             meta = strcs.Meta()
@@ -555,7 +557,9 @@ describe "Creators":
                 val: str
 
             @creator(Thing)
-            def create_thing(val: str, /, one: int = 0, two: str = "asdf"):
+            def create_thing(
+                val: str, /, one: int = 0, two: str = "asdf"
+            ) -> strcs.ConvertResponse[Thing]:
                 return {"val": f"{val}|{one}|{two}"}
 
             assert creg.create(tp.Annotated[Thing, Annotation(one=1)], "hi").val == "hi|1|asdf"
@@ -583,7 +587,7 @@ describe "Creators":
                 things: list[Thing]
 
             @creator(Thing)
-            def create_thing(one: int):
+            def create_thing(one: int) -> strcs.ConvertResponse[Thing]:
                 counts["upto"] += 1
                 return {"one": one, "upto": counts["upto"]}
 
@@ -618,7 +622,7 @@ describe "Creators":
             @creator(Result)
             def create_result(
                 val: Ticket, /, numbers: tp.Tuple, powerball: int
-            ) -> strcs.ConvertResponse:
+            ) -> strcs.ConvertResponse[Result]:
                 return {"winner": val.numbers == list(numbers) and val.powerball == powerball}
 
             lotto = creg.create(
@@ -647,7 +651,7 @@ describe "Creators":
                 val: int
 
             @creator(Thing)
-            def create_thing(val: int) -> strcs.ConvertResponse:
+            def create_thing(val: int) -> strcs.ConvertResponse[Thing]:
                 return {"val": val * 2}
 
             @define
@@ -673,7 +677,7 @@ describe "Creators":
                 val: int
 
             @creator(Thing)
-            def create_thing(val: int) -> strcs.ConvertResponse:
+            def create_thing(val: int) -> strcs.ConvertResponse[Thing]:
                 return {"val": val * 2}
 
             def other_creator(val: int, /, add: int) -> strcs.ConvertResponse:
@@ -818,7 +822,7 @@ describe "Creators":
                 two: str
 
             @creator(Thing)
-            def make() -> strcs.ConvertResponse[NotSpecifiedMeta]:
+            def make() -> strcs.ConvertResponse[Thing]:
                 called.append(1)
                 return {"one": 3, "two": "twenty"}
 
@@ -855,7 +859,7 @@ describe "Creators":
                 stuff: Stuff
 
             @creator(Thing)
-            def make2() -> strcs.ConvertResponse[NotSpecifiedMeta]:
+            def make2() -> strcs.ConvertResponse[Thing]:
                 called.append(1)
                 return {"one": 3, "two": "twenty", "stuff": {}, "other1": {}}
 

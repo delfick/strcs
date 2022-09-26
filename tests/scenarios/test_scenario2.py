@@ -40,8 +40,8 @@ class Overall:
 @creator(Number)
 def create_number(
     val: int | tp.Type[strcs.NotSpecified], /, ann: NumberAnnotation
-) -> strcs.ConvertResponse:
-    if val is strcs.NotSpecified:
+) -> strcs.ConvertResponse[Number]:
+    if not isinstance(val, int):
         val = 0
     return {"val": val + ann.add}
 
@@ -49,8 +49,8 @@ def create_number(
 @creator(Sentence)
 def create_sentence(
     val: str | tp.Type[strcs.NotSpecified], /, prefix: tp.Optional[str]
-) -> strcs.ConvertResponse:
-    if val is strcs.NotSpecified:
+) -> strcs.ConvertResponse[Sentence]:
+    if not isinstance(val, str):
         val = ""
     return {"val": (prefix or "") + val}
 

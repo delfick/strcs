@@ -18,7 +18,7 @@ class Sentences:
 
 
 @creator(Sentences)
-def create_sentences(val: str) -> strcs.ConvertResponse:
+def create_sentences(val: str) -> strcs.ConvertResponse[Sentences]:
     parts = val.split(",")
     return {"one": parts[0], "two": parts[1], "three": parts[2]}
 

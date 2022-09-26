@@ -27,11 +27,13 @@ class Projects:
 
 
 @creator(Projects)
-def create_projects(projects: Projects | tp.List | tp.Dict, /) -> strcs.ConvertResponse:
+def create_projects(projects: Projects | tp.List | tp.Dict, /) -> strcs.ConvertResponse[Projects]:
     if isinstance(projects, list):
         return {"projects": projects}
     elif isinstance(projects, dict) and "projects" in projects:
         return {"projects": projects["projects"]}
+
+    return None
 
 
 @creator(Project)
@@ -40,25 +42,29 @@ def create_project(
     /,
     _meta: strcs.Meta,
     _register: strcs.CreateRegister,
-):
+) -> strcs.ConvertResponse[Project]:
     if isinstance(project, dict):
         details = []
         if "details" in project:
             details = project.pop("details")
 
         project = yield project
+        project = tp.cast(Project, project)
 
         for detail in details:
             project.details.append(
                 _register.create(Detail, detail, meta=_meta.clone({"project": project}))
             )
 
+    return None
+
 
 @creator(Detail)
-def create_detail(detail: Detail | tp.Dict, /, project: Project) -> strcs.ConvertResponse:
+def create_detail(detail: Detail | tp.Dict, /, project: Project) -> strcs.ConvertResponse[Detail]:
     if isinstance(detail, dict):
         detail["project"] = project
         return detail
+    return None
 
 
 describe "Making the projects":
