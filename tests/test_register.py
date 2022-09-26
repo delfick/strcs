@@ -34,6 +34,10 @@ class IsMeta:
                 return f"<Given {type(self.given)}, expected a Meta>"
         return "<IsMeta?>"
 
+    @classmethod
+    def test(kls) -> Meta:
+        return tp.cast(Meta, kls())
+
 
 class IsConverter:
     def __eq__(self, other):
@@ -47,6 +51,10 @@ class IsConverter:
             else:
                 return f"<Given {type(self.given)}, expected a Converter>"
         return "<IsConverter?>"
+
+    @classmethod
+    def test(kls) -> cattrs.Converter:
+        return tp.cast(cattrs.Converter, kls())
 
 
 describe "Register":
@@ -102,7 +110,7 @@ describe "Register":
             creg[Thing] = thing_maker
             assert creg.create(Thing) is thing
             thing_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Thing, IsMeta(), IsConverter(), creg)
+                CreateArgs(strcs.NotSpecified, Thing, IsMeta.test(), IsConverter.test(), creg)
             )
 
             class Stuff:
@@ -113,7 +121,7 @@ describe "Register":
             creg[Stuff] = stuff_maker
             assert creg.create(Stuff) is stuff
             stuff_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Stuff, IsMeta(), IsConverter(), creg)
+                CreateArgs(strcs.NotSpecified, Stuff, IsMeta.test(), IsConverter.test(), creg)
             )
 
         it "lets converter work on other types", creg: strcs.CreateRegister:
@@ -142,7 +150,7 @@ describe "Register":
             value = {"number": 20, "obj": {"one": 20, "two": 50, "other": {"name": "there"}}}
             made = creg.create(Thing, value)
             thing_maker.assert_called_once_with(
-                CreateArgs(value, Thing, IsMeta(), IsConverter(), creg)
+                CreateArgs(value, Thing, IsMeta.test(), IsConverter.test(), creg)
             )
             assert isinstance(made, Thing)
             assert made.number == 20
@@ -173,7 +181,7 @@ describe "Register":
             value = {"name": "hi", "stuff": {"one": 45, "two": 76}}
             made = creg.create(Other, value)
             stuff_maker.assert_called_once_with(
-                CreateArgs({"one": 45, "two": 76}, Stuff, IsMeta(), IsConverter(), creg)
+                CreateArgs({"one": 45, "two": 76}, Stuff, IsMeta.test(), IsConverter.test(), creg)
             )
             assert isinstance(made, Other)
             assert made.name == "hi"
@@ -258,7 +266,7 @@ describe "Register":
             assert made.two == 22
             assert made.three == 100
             shape_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Square, meta, IsConverter(), creg)
+                CreateArgs(strcs.NotSpecified, Square, meta, IsConverter.test(), creg)
             )
             shape_maker.reset_mock()
 
@@ -268,7 +276,7 @@ describe "Register":
             assert made.two == 45
             assert made.three == 100
             shape_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Triangle, meta, IsConverter(), creg)
+                CreateArgs(strcs.NotSpecified, Triangle, meta, IsConverter.test(), creg)
             )
             shape_maker.reset_mock()
 
@@ -278,7 +286,7 @@ describe "Register":
             assert made.two == 2
             assert made.three == 100
             shape_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Shape, meta, IsConverter(), creg)
+                CreateArgs(strcs.NotSpecified, Shape, meta, IsConverter.test(), creg)
             )
             shape_maker.reset_mock()
 
