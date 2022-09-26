@@ -221,8 +221,9 @@ class CreateRegister:
         return creator
 
     def creator_for(self, typ: tp.Type[T]) -> tp.Optional[ConvertFunction[T]]:
-        if hasattr(typ, "__origin__"):
-            typ = typ.__origin__
+        origin: tp.Optional[tp.Type[T]] = getattr(typ, "__origin__", None)
+        if origin is not None:
+            typ = origin
 
         if not isinstance(typ, type):
             return None
@@ -314,22 +315,19 @@ class _CreateStructureHook:
 
     def _interpret_annotation(self, want: tp.Type[T]) -> tp.Tuple[tp.Optional[_Ann], tp.Type[T]]:
         ann: tp.Optional[Annotation | _Ann | ConvertDefinition[T]] = None
-        if (
-            hasattr(want, "__metadata__")
-            and want.__metadata__
-            and (
-                isinstance(want.__metadata__[0], (_Ann, Annotation))
-                or callable(want.__metadata__[0])
-            )
-        ):
-            ann = want.__metadata__[0]
+        if hasattr(want, "__metadata__"):
+            metadata: tp.Tuple[tp.Any] = getattr(want, "__metadata__")
+            if metadata and (isinstance(metadata[0], (_Ann, Annotation)) or callable(metadata[0])):
+                ann = metadata[0]
 
-            if isinstance(ann, Annotation):
-                ann = Ann(ann)
-            elif callable(ann):
-                ann = Ann(creator=ann)
+                if isinstance(ann, Annotation):
+                    ann = Ann(ann)
+                elif callable(ann):
+                    ann = Ann[T](creator=ann)
 
-            want = want.__origin__
+                origin = getattr(want, "__origin__", None)
+                if origin is not None:
+                    want = origin
 
         return tp.cast(_Ann, ann), want
 
