@@ -1,6 +1,6 @@
 # coding: spec
 
-from strcs.base import NotSpecifiedMeta, CreateArgs
+from strcs.base import NotSpecifiedMeta, CreateArgs, Meta, ConvertDefinition
 import strcs
 
 from unittest import mock
@@ -270,21 +270,21 @@ describe "Register":
             )
             shape_maker.reset_mock()
 
-            made = creg.create(Triangle, meta=meta)
-            assert isinstance(made, Triangle)
-            assert made.one == 20
-            assert made.two == 45
-            assert made.three == 100
+            tri = creg.create(Triangle, meta=meta)
+            assert isinstance(tri, Triangle)
+            assert tri.one == 20
+            assert tri.two == 45
+            assert tri.three == 100
             shape_maker.assert_called_once_with(
                 CreateArgs(strcs.NotSpecified, Triangle, meta, IsConverter.test(), creg)
             )
             shape_maker.reset_mock()
 
-            made = creg.create(Shape, meta=meta)
-            assert isinstance(made, Shape)
-            assert made.one == 1
-            assert made.two == 2
-            assert made.three == 100
+            shape = creg.create(Shape, meta=meta)
+            assert isinstance(shape, Shape)
+            assert shape.one == 1
+            assert shape.two == 2
+            assert shape.three == 100
             shape_maker.assert_called_once_with(
                 CreateArgs(strcs.NotSpecified, Shape, meta, IsConverter.test(), creg)
             )
@@ -324,12 +324,12 @@ describe "Creators":
         assert not hasattr(dec, "func")
 
         make = mock.Mock(name="make", side_effect=lambda: thing)
-        decorated = dec(make)
+        decorated = dec(tp.cast(ConvertDefinition[Thing], make))
 
         assert decorated is make
-        assert dec.func is make
+        assert tp.cast(strcs.CreatorDecorator, dec).func is make
 
-        assert dec.register.create(Thing) is thing
+        assert tp.cast(strcs.CreatorDecorator, dec).register.create(Thing) is thing
         make.assert_called_once_with()
 
     it "can work on things that aren't attrs classes", creator: strcs.Creator, creg: strcs.CreateRegister:
