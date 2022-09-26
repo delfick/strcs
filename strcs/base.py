@@ -176,12 +176,11 @@ class Ann(_Ann[T]):
         if self.creator is None:
             return creator
 
-        return CreatorDecorator(
-            register,
-            typ,
-            assume_unchanged_converted=hasattr(typ, "__attrs_attrs__"),
-            return_wrapped=True,
-        )(self.creator)
+        wrapped, _ = CreatorDecorator(
+            register, typ, assume_unchanged_converted=hasattr(typ, "__attrs_attrs__")
+        ).wrap(self.creator)
+
+        return wrapped
 
 
 class Registerer(tp.Protocol[T]):
@@ -462,16 +461,19 @@ class CreatorDecorator(tp.Generic[T]):
         register: CreateRegister,
         typ: tp.Type[T],
         assume_unchanged_converted=True,
-        return_wrapped=False,
     ):
         self.typ = typ
         self.register = register
-        self.return_wrapped = return_wrapped
         self.assume_unchanged_converted = assume_unchanged_converted
 
-    def __call__(
+    def __call__(self, func: tp.Optional[ConvertDefinition[T]] = None) -> ConvertDefinition[T]:
+        wrapped, func = self.wrap(func)
+        self.register[self.typ] = wrapped
+        return func
+
+    def wrap(
         self, func: tp.Optional[ConvertDefinition[T]] = None
-    ) -> ConvertFunction[T] | ConvertDefinition[T]:
+    ) -> tp.Tuple[ConvertFunction[T], ConvertDefinition[T]]:
         if func is None:
             self.func = tp.cast(ConvertDefinition[T], take_or_make)
         else:
@@ -484,13 +486,8 @@ class CreatorDecorator(tp.Generic[T]):
 
             self.signature = inspect.signature(tp.cast(tp.Callable, self.func))
 
-        if self.return_wrapped:
-            return WrappedCreator(self.wrapped, self.func)
-        else:
-            self.register[self.typ] = tp.cast(
-                ConvertFunction[T], WrappedCreator(self.wrapped, self.func)
-            )
-            return self.func
+        wrapped = WrappedCreator(self.wrapped, self.func)
+        return wrapped, self.func
 
     def wrapped(self, create_args: CreateArgs) -> T:
         want = create_args.want
