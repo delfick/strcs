@@ -140,12 +140,18 @@ class FromMeta(_Ann):
         return a.adjusted_creator(creator, register, typ)
 
 
+@tp.runtime_checkable
+class AdjustableMeta(tp.Protocol):
+    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
+        ...
+
+
 class Ann(_Ann[T]):
     _func: tp.Optional[ConvertFunction[T]] = None
 
     def __init__(
         self,
-        meta: tp.Optional[Annotation] = None,
+        meta: tp.Optional[Annotation | AdjustableMeta] = None,
         creator: tp.Optional[ConvertDefinition[T]] = None,
     ):
         self.meta = meta
@@ -155,7 +161,7 @@ class Ann(_Ann[T]):
         if self.meta is None:
             return meta
 
-        if hasattr(self.meta, "adjusted_meta"):
+        if isinstance(self.meta, AdjustableMeta):
             return self.meta.adjusted_meta(meta, typ)
 
         if self.meta.merge_meta:
@@ -350,7 +356,7 @@ class _CreateStructureHook:
         if want in self.cache and creator is None:
             creator = self.cache[want]
 
-        if ann:
+        if isinstance(ann, AdjustableMeta):
             meta = ann.adjusted_meta(meta, want)
             creator = ann.adjusted_creator(creator, self.register, want)
             if meta is not self.meta:
