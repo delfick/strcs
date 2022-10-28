@@ -11,6 +11,9 @@ setup(
       name = "strcs"
     , version = VERSION
     , packages = ['strcs']
+    , package_data =
+      { "strcs": ["py.typed"]
+      }
 
     , python_requires = ">= 3.10"
 
