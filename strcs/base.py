@@ -28,18 +28,13 @@ ConvertResponseGenerator: tp.TypeAlias = tp.Generator[
 
 ConvertResponse: tp.TypeAlias = tp.Optional[ConvertResponseValues[T] | ConvertResponseGenerator[T]]
 
-
-# I would love to make ConvertDefinition of a Union of these
-# However the ... in these don't mean "any number of other arguments"
-# And there doesn't seem to be any of way of specifying that as of python 3.10
 ConvertDefinitionNoValue: tp.TypeAlias = tp.Callable[[], ConvertResponse[T]]
 ConvertDefinitionValue: tp.TypeAlias = tp.Callable[[tp.Any], ConvertResponse[T]]
 ConvertDefinitionValueAndType: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type], ConvertResponse[T]]
-ConvertDefinitionValueAndData: tp.TypeAlias = tp.Callable[[tp.Any, ...], ConvertResponse[T]]
-ConvertDefinitionValueAndTypeAndData: tp.TypeAlias = tp.Callable[
-    [tp.Any, tp.Type, ...], ConvertResponse[T]
-]
-
+# Also allowed is
+# - (Any, Type, /, meta1, meta2, ...)
+# - (Any, /, meta1, meta2, ...)
+# But python typing is restrictive and you can't express that
 
 ConvertDefinition: tp.TypeAlias = tp.Callable[..., ConvertResponse[T]]
 ConvertFunction: tp.TypeAlias = tp.Callable[["CreateArgs"], T]
@@ -78,7 +73,7 @@ def filldict(
 
 
 def fromdict(
-    converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: tp.Type
+    converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: type[T]
 ) -> T:
     if res is NotSpecified:
         res = {}
@@ -120,6 +115,14 @@ class Bypass(_Ann):
 
     def bypass(self) -> int:
         return self.amount
+
+    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
+        return meta
+
+    def adjusted_creator(
+        self, creator: tp.Optional[ConvertFunction[T]], register: "CreateRegister", typ: tp.Type[T]
+    ) -> tp.Optional[ConvertFunction[T]]:
+        return creator
 
 
 @define(frozen=True)

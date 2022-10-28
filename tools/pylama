@@ -6,7 +6,7 @@ import runpy
 runpy.run_path(str(Path(__file__).parent / "bootstrap_venvstarter.py"))
 
 manager = __import__("venvstarter").manager("noy_pylama")
-manager.add_pypi_deps("pylama-dmypy==0.3", "mypy==0.971", "pylama==8.4.1", "noseOfYeti==2.3.1")
+manager.add_pypi_deps("pylama-dmypy==0.3", "mypy==0.982", "pylama==8.4.1", "noseOfYeti==2.3.1")
 manager.add_local_dep(
     "{here}",
     "..",
