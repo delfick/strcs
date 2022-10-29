@@ -930,7 +930,6 @@ describe "Creators":
                     want,
                     {"thing1": {"one": val}},
                     meta=_meta.clone({"identity": secrets.token_hex(10)}),
-                    recursed=True,
                 )
 
             things = creg.create(Things, 2)
@@ -962,7 +961,6 @@ describe "Creators":
                     want,
                     {"one": val},
                     meta=_meta.clone({"identity": secrets.token_hex(10)}),
-                    recursed=True,
                 )
 
             thing = creg.create(Thing, 2)

@@ -176,9 +176,8 @@ Using register inside a creator
 -------------------------------
 
 It is possible to use the register to create the type your creator is using but
-with different meta information. The trick is to make sure ``recursed=True`` is
-set when ``_register.create`` is called so that ``strcs`` doesn't enter an
-infinite loop:
+with different meta information. The trick is to get the special ``_register``
+argument in the creator so that an infinite loop may be avoided.
 
 .. code-block:: python
 
@@ -213,7 +212,6 @@ infinite loop:
             want,
             {"part1": {"one": val[0]}, "part2": {"one": val[1]}},
             meta=_meta.clone({"identity": secrets.token_hex(10)}),
-            recursed=True,
         )
 
 

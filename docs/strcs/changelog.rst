@@ -3,6 +3,12 @@
 Changelog
 ---------
 
+.. _release-0.1.2:
+
+0.1.2 - TBD
+   * Added py.typed file to the distribution
+   * Removed need for the recursed option
+
 .. _release-0.1.1:
 
 0.1.1 - 26 September 2022

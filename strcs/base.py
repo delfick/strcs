@@ -105,25 +105,6 @@ class _Ann(tp.Protocol[T]):
     ) -> tp.Optional[ConvertFunction[T]]:
         ...
 
-    def bypass(self) -> int:
-        return 0
-
-
-@define(frozen=True)
-class Bypass(_Ann):
-    amount: int = 1
-
-    def bypass(self) -> int:
-        return self.amount
-
-    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
-        return meta
-
-    def adjusted_creator(
-        self, creator: tp.Optional[ConvertFunction[T]], register: "CreateRegister", typ: tp.Type[T]
-    ) -> tp.Optional[ConvertFunction[T]]:
-        return creator
-
 
 @define(frozen=True)
 class FromMeta(_Ann):
@@ -203,8 +184,30 @@ class Creator(tp.Protocol):
 
 
 class CreateRegister:
-    def __init__(self):
-        self.register: dict[tp.Type[T], ConvertFunction[T]] = {}
+    def __init__(
+        self,
+        *,
+        register: None | dict[type[T], ConvertFunction[T]] = None,
+        last_meta: None | Meta = None,
+        last_type: None | type[T] = None,
+        skip_creator: None | ConvertDefinition[T] = None,
+    ):
+        if register is None:
+            register = {}
+        self.register = register
+        self.last_meta = last_meta
+        self.last_type = last_type
+        self.skip_creator = skip_creator
+
+    def clone(
+        self, last_meta: Meta, last_type: type[T], skip_creator: ConvertDefinition[T]
+    ) -> "CreateRegister":
+        return type(self)(
+            register=self.register,
+            last_meta=last_meta,
+            last_type=last_type,
+            skip_creator=skip_creator,
+        )
 
     def __setitem__(self, typ: tp.Type[T], creator: ConvertFunction[T]) -> None:
         if not isinstance(typ, type):
@@ -246,10 +249,16 @@ class CreateRegister:
         value: tp.Any = NotSpecified,
         meta: tp.Any = NotSpecified,
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
-        recursed=False,
     ) -> T:
         return _CreateStructureHook.structure(
-            self, typ, value, meta, once_only_creator, recursed=recursed
+            self,
+            typ,
+            value,
+            meta,
+            once_only_creator,
+            last_meta=self.last_meta,
+            last_type=self.last_type,
+            skip_creator=self.skip_creator,
         )
 
     def create_annotated(
@@ -259,7 +268,6 @@ class CreateRegister:
         value: tp.Any = NotSpecified,
         meta: tp.Any = NotSpecified,
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
-        recursed=False,
     ) -> T:
         return _CreateStructureHook.structure(
             self,
@@ -267,7 +275,9 @@ class CreateRegister:
             value,
             meta,
             once_only_creator,
-            recursed=recursed,
+            last_meta=self.last_meta,
+            last_type=self.last_type,
+            skip_creator=self.skip_creator,
         )
 
 
@@ -280,21 +290,33 @@ class _CreateStructureHook:
         value: tp.Any = NotSpecified,
         meta: tp.Any = NotSpecified,
         creator: tp.Optional[ConvertFunction[T]] = None,
-        recursed=False,
+        last_meta: None | Meta = None,
+        last_type: None | type[T] = None,
+        skip_creator: None | ConvertDefinition[T] = None,
     ) -> T:
         if meta is NotSpecified:
-            meta = Meta()
+            if last_meta is not None:
+                meta = last_meta.clone()
+            else:
+                meta = Meta()
 
         converter = meta.converter
-        hooks = kls(register, converter, meta, creator)
+        hooks = kls(
+            register=register,
+            converter=converter,
+            meta=meta,
+            last_meta=last_meta,
+            last_type=last_type,
+            skip_creator=skip_creator,
+            once_only_creator=creator,
+        )
+
+        ann, want = hooks._interpret_annotation(typ)
+
         converter.register_structure_hook_func(hooks.switch_check, hooks.convert)
 
         try:
-            if recursed:
-                # Skip this hook and the hook we recursed from
-                ret: T = hooks.bypass(value, tp.cast(tp.Type[T], tp.Annotated[typ, Bypass(2)]))
-            else:
-                ret = hooks.convert(value, typ)
+            ret = hooks.convert(value, typ)
         finally:
             converter._structure_func._function_dispatch._handler_pairs.remove(
                 (hooks.switch_check, hooks.convert, False)
@@ -308,11 +330,17 @@ class _CreateStructureHook:
         converter: cattrs.Converter,
         meta: tp.Any = NotSpecified,
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
+        last_meta: None | Meta = None,
+        last_type: None | type[T] = None,
+        skip_creator: None | ConvertDefinition[T] = None,
     ):
         self.meta = meta
         self.register = register
         self.do_check = True
+        self.last_meta = last_meta
+        self.last_type = last_type
         self.converter = converter
+        self.skip_creator = skip_creator
         self.once_only_creator = once_only_creator
         self.cache: dict[tp.Type[T], ConvertFunction[T]] = {}
 
@@ -337,14 +365,6 @@ class _CreateStructureHook:
     def convert(self, value: tp.Any, want: tp.Type[T]) -> T:
         wrapped: tp.Type[T]
         ann, wrapped = self._interpret_annotation(want)
-        if isinstance(ann, _Ann):
-            match bypass := tp.cast(_Ann, ann).bypass():
-                case bypass if bypass > 1:
-                    return self.bypass(
-                        value, tp.cast(tp.Type[T], tp.Annotated[wrapped, Bypass(bypass - 1)])
-                    )
-                case 1:
-                    return self.bypass(value, wrapped)
 
         if not self.check_func(want):
             return self.bypass(value, want)
@@ -363,9 +383,19 @@ class _CreateStructureHook:
             if meta is not self.meta:
                 return self.register.create(want, value, meta=meta, once_only_creator=creator)
 
-        if creator:
-            return creator(CreateArgs(value, want, meta, self.converter, self.register))
-        elif isinstance(value, want):
+        if creator and creator is not self.skip_creator and getattr(creator, "func", None):
+            skip = False
+            if self.skip_creator:
+                if (
+                    creator is self.skip_creator
+                    or getattr(creator, "func", None) is self.skip_creator
+                ):
+                    skip = True
+
+            if not skip:
+                return creator(CreateArgs(value, want, meta, self.converter, self.register))
+
+        if isinstance(value, want):
             return value
         else:
             return fromdict(self.converter, self.register, value, want)
@@ -398,16 +428,19 @@ class _CreateStructureHook:
 class _ArgsExtractor:
     def __init__(
         self,
+        *,
         signature: inspect.Signature,
         value: tp.Any,
         want: tp.Type,
         meta: Meta,
+        creator: ConvertDefinition,
         converter: cattrs.Converter,
         register: CreateRegister,
     ):
         self.meta = meta
         self.want = want
         self.value = value
+        self.creator = creator
         self.register = register
         self.converter = converter
         self.signature = signature
@@ -442,7 +475,11 @@ class _ArgsExtractor:
             elif provided(param, "_converter", cattrs.Converter):
                 use.append(self.converter)
             elif provided(param, "_register", CreateRegister):
-                use.append(self.register)
+                use.append(
+                    self.register.clone(
+                        last_type=self.want, last_meta=self.meta, skip_creator=self.creator
+                    )
+                )
             elif param.annotation in (inspect._empty, tp.Any):
                 use.append(self.meta.retrieve_one(object, param.name, default=param.default))
             else:
@@ -578,5 +615,13 @@ class CreatorDecorator(tp.Generic[T]):
             return tp.cast(ConvertDefinitionValueAndType, self.func)(value, want)
 
         else:
-            args = _ArgsExtractor(self.signature, value, want, meta, converter, register).extract()
+            args = _ArgsExtractor(
+                signature=self.signature,
+                value=value,
+                want=want,
+                meta=meta,
+                converter=converter,
+                register=register,
+                creator=self.func,
+            ).extract()
             return self.func(*args)
