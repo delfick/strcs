@@ -5,7 +5,7 @@ Changelog
 
 .. _release-0.1.2:
 
-0.1.2 - TBD
+0.1.2 - 29 October 2022
    * Added py.typed file to the distribution
    * Removed need for the recursed option
    * Added resolution of string type annotations on attrs/dataclass/normal
