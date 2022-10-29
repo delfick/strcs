@@ -3,6 +3,8 @@ from . import errors
 from collections.abc import Mapping
 from attrs import define
 import typing as tp
+import functools
+import operator
 import fnmatch
 import inspect
 import cattrs
@@ -126,7 +128,18 @@ class Narrower:
         return progress.collect(self.narrow)
 
 
-def extract_type(typ: tp.Type[T]) -> tp.Tuple[bool, tp.Type[U]]:
+class IsAnnotated(tp.Protocol):
+    __args__: tuple
+
+    def copy_with(self, args: tuple) -> type:
+        ...
+
+    @classmethod
+    def has(self, typ: type) -> tp.TypeGuard["IsAnnotated"]:
+        return tp.get_origin(typ) is tp.Annotated and hasattr(typ, "__args__")
+
+
+def extract_type(typ: type[T]) -> tuple[bool, type[U | T]]:
     """
     Given some type, return a tuple of (optional, type)
 
@@ -138,34 +151,36 @@ def extract_type(typ: tp.Type[T]) -> tp.Tuple[bool, tp.Type[U]]:
 
     but tp.Optional[str | bool] would return (True, str | bool)
     """
-    metadata: tp.Optional[tp.Iterable] = getattr(typ, "__metadata__", None)
-    if metadata is not None:
-        origin: tp.Optional[tp.Type[T]] = getattr(typ, "__origin__", None)
-        if origin is not None:
-            typ = origin
+    annotated: None | IsAnnotated = None
+
+    if IsAnnotated.has(typ):
+        annotated = typ
+        typ = typ.__args__[0]
+
+    def origin_or_type(typ: type[T]) -> type[T]:
+        orig = tp.get_origin(typ)
+        if not isinstance(orig, type) or orig in (None, types.UnionType, tp.Union, tp.Annotated):
+            return typ
+        else:
+            return orig
 
     optional = False
-    if tp.get_origin(typ) is tp.Union:
-        args = tp.get_args(typ)
-        if len(args) > 1 and isinstance(args[-1], type) and issubclass(args[-1], type(None)):
-            if len(args) == 2:
-                typ = args[0]
-            else:
-                # A tp.Optional[tp.Union[arg1, arg2]] is equivalent to tp.Union[arg1, arg2, None]
-                # So we must create a copy of the union with just arg1 | arg2
-                # We tell mypy to be quiet with the noqa because I can't make it understand typ is a Union
-                typ = typ.copy_with(args[:-1])  # type: ignore
+    if tp.get_origin(typ) in (types.UnionType, tp.Union):
+        if type(None) in tp.get_args(typ):
             optional = True
 
-    origin = tp.get_origin(typ)
+            remaining = tuple(a for a in tp.get_args(typ) if a not in (types.NoneType,))
+            if len(remaining) == 1:
+                typ = origin_or_type(remaining[0])
+            else:
+                typ = functools.reduce(operator.or_, remaining)
+    else:
+        typ = origin_or_type(typ)
 
-    if origin is not None and origin not in (types.UnionType, tp.Union):
-        typ = origin
-
-    if metadata is not None:
-        typ = tp.cast(tp.Type[T], tp._AnnotatedAlias(typ, metadata))  # type: ignore
-
-    return optional, tp.cast(tp.Type[U], typ)
+    if annotated is None:
+        return optional, typ
+    else:
+        return optional, annotated.copy_with((typ,))
 
 
 class Meta:
