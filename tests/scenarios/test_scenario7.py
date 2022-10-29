@@ -6,7 +6,7 @@ import pytest
 import strcs
 
 
-reg = strcs.CreateRegister(auto_resolve_attrs_and_dataclasses_annotations=False)
+reg = strcs.CreateRegister(auto_resolve_string_annotations=False)
 creator = reg.make_decorator()
 
 
