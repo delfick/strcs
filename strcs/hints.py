@@ -10,6 +10,11 @@ T = tp.TypeVar("T")
 C = tp.TypeVar("C", bound=type)
 
 
+class IsField(tp.Protocol):
+    type: type
+    name: str
+
+
 @tp.runtime_checkable
 class WithResolvedTypes(tp.Protocol[C]):
     __strcs_types_resolved__: C
@@ -96,6 +101,36 @@ def resolve_type(
         return typ
 
 
+class AnnotationUpdater(tp.Protocol):
+    def __contains__(self, name: object) -> bool:
+        ...
+
+    def update(self, name: str, typ: object) -> None:
+        ...
+
+
+class FromAnnotations(AnnotationUpdater):
+    def __init__(self, cls: type):
+        self.annotations = cls.__annotations__
+
+    def __contains__(self, name: object) -> bool:
+        return isinstance(name, str) and name in self.annotations
+
+    def update(self, name: str, typ: object) -> None:
+        self.annotations[name] = typ
+
+
+class FromFields(AnnotationUpdater):
+    def __init__(self, fields: dict[str, IsField]):
+        self.fields = fields
+
+    def __contains__(self, name: object) -> bool:
+        return isinstance(name, str) and name in self.fields
+
+    def update(self, name: str, typ: object) -> None:
+        object.__setattr__(self.fields[name], "type", typ)
+
+
 def resolve_types(
     cls: C,
     globalns: None | dict[str, object] = None,
@@ -127,11 +162,16 @@ def resolve_types(
     """
     # Calling get_type_hints can be expensive so cache it like how attrs.resolve_types does
     if getattr(cls, "__strcs_types_resolved__", None) != cls:
+        allfields: AnnotationUpdater
+
         if is_attrs(cls):
-            allfields = {field.name: field for field in attrs_fields(cls)}
+            allfields = FromFields({field.name: field for field in attrs_fields(cls)})
 
         elif is_dataclass(cls):
-            allfields = {field.name: field for field in dataclass_fields(cls)}
+            allfields = FromFields({field.name: field for field in dataclass_fields(cls)})
+
+        elif isinstance(cls, type) and hasattr(cls, "__annotations__"):
+            allfields = FromAnnotations(cls)
 
         else:
             return cls
@@ -163,9 +203,7 @@ def resolve_types(
                     value = tp.ForwardRef(value, is_argument=False, is_class=True)
 
                 if name in allfields:
-                    object.__setattr__(
-                        allfields[name], "type", resolve_type(value, base_globals, base_locals)
-                    )
+                    allfields.update(name, resolve_type(value, base_globals, base_locals))
 
         tp.cast(WithResolvedTypes[C], cls).__strcs_types_resolved__ = cls
 

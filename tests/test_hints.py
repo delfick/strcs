@@ -15,15 +15,23 @@ class IsField(tp.Protocol):
     name: str
 
 
+@define
+class AnnotationField:
+    type: type
+    name: str
+
+
 describe "resolve_types":
-    it "just returns the object if it's not an attrs/dataclass":
-
-        class One:
-            one: "int"
-            stuff: "Stuff"
-
-        for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, One, One(), lambda: 1):
+    it "just returns the object if it's not an attrs/dataclass/class":
+        for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
             assert strcs.resolve_types(thing) is thing
+
+    it "works on normal classes":
+
+        def get_fields(cls: type) -> list[AnnotationField]:
+            return [AnnotationField(type=t, name=name) for name, t in cls.__annotations__.items()]
+
+        self.assertWorks(None, get_fields)
 
     it "works on attrs classes":
         self.assertWorks(define, attrs_fields)
@@ -33,10 +41,9 @@ describe "resolve_types":
 
     def assertWorks(
         self,
-        decorator: tp.Callable[type, type],
+        decorator: None | tp.Callable[type, type],
         get_fields: tp.Callable[object, tp.Iterable[IsField]],
     ) -> None:
-        @decorator
         class One:
             one: "int"
             two: tp.Optional["str"]
@@ -53,7 +60,12 @@ describe "resolve_types":
             thirteen: None | dict["Stuff", list[tuple["Stuff", "Stuff"]]]
             fourteen: tp.Annotated[None | dict["Stuff", list[tuple["Stuff", "Stuff"]]], 56]
 
-        fields = {field.name: field.type for field in get_fields(One)}
+        if decorator:
+            decorated_One = decorator(One)
+        else:
+            decorated_One = One
+
+        fields = {field.name: field.type for field in get_fields(decorated_One)}
         assert fields["one"] == "int"
         assert fields["two"] == tp.Optional["str"]
         assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
@@ -72,9 +84,9 @@ describe "resolve_types":
             == tp.Annotated[dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None, 56]
         )
 
-        strcs.resolve_types(One)
+        strcs.resolve_types(decorated_One)
 
-        fields = {field.name: field.type for field in get_fields(One)}
+        fields = {field.name: field.type for field in get_fields(decorated_One)}
         assert fields["one"] == int
         assert fields["two"] == tp.Optional[str]
         assert fields["three"] == tp.Annotated[tp.Optional[str], 32]
@@ -90,12 +102,17 @@ describe "resolve_types":
         assert fields["thirteen"] == dict[Stuff, list[tuple[Stuff, Stuff]]] | None
         assert fields["fourteen"] == tp.Annotated[dict[Stuff, list[tuple[Stuff, Stuff]]] | None, 56]
 
-        @strcs.resolve_types
-        @decorator
         class Thing:
             one: "int"
             two: "str"
 
-        fields = {field.name: field.type for field in get_fields(Thing)}
+        if decorator:
+            decorated_Thing = decorator(Thing)
+        else:
+            decorated_Thing = Thing
+
+        resolved_Thing = strcs.resolve_types(decorated_Thing)
+
+        fields = {field.name: field.type for field in get_fields(resolved_Thing)}
         assert fields["one"] is int
         assert fields["two"] is str

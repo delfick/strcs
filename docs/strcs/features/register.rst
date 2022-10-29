@@ -56,8 +56,9 @@ Resolving type annotations
 There is a limitation whereby unresolved string type annotations will cause
 errors as it won't know what object the string represents. strcs offers a helper
 function based off ``typing.get_type_hints`` for resolving string type
-annotations. It will automatically use this on ``attrs`` and ``dataclass`` classes
-unless ``strcs.CreateRegister(auto_resolve_attrs_and_dataclasses_annotations=False)``.
+annotations. It will automatically use this on any class (with special logic for
+``attrs`` and ``dataclass`` classes) unless
+``strcs.CreateRegister(auto_resolve_attrs_and_dataclasses_annotations=False)``.
 
 A developer may manually do this resolution using ``strcs.resolve_types``:
 
