@@ -49,3 +49,70 @@ signature:
 
     instance = reg.create(MyKls, {"one": 2})
     assert isinstance(instance, MyKls)
+
+Resolving type annotations
+--------------------------
+
+There is a limitation whereby unresolved string type annotations will cause
+errors as it won't know what object the string represents. strcs offers a helper
+function based off ``typing.get_type_hints`` for resolving string type
+annotations. It will automatically use this on ``attrs`` and ``dataclass`` classes
+unless ``strcs.CreateRegister(auto_resolve_attrs_and_dataclasses_annotations=False)``.
+
+A developer may manually do this resolution using ``strcs.resolve_types``:
+
+.. code-block:: python
+
+    from attrs import define
+    import strcs
+
+
+    class Stuff:
+        one: int
+
+
+    @define
+    class Thing:
+        stuff: "Stuff"
+        other: "Other"
+
+
+    @define
+    class Other:
+        thing: None | Thing
+
+
+    strcs.resolve_types(Thing)
+
+Note that if ``from __future__ import annotations`` is used then all types are
+strings and require resolution. In that case if auto resolution on the register
+is turned off then ``strcs.resolve_types`` may be used as a decorator in any
+situation where types are already available at definition:
+
+.. code-block:: python
+
+    from __future__ import annotations
+    from attrs import define
+    import strcs
+
+
+    @strcs.resolve_types
+    class Stuff:
+        one: int
+
+
+    @define
+    class Thing:
+        stuff: "Stuff"
+        other: "Other"
+
+
+    @strcs.resolve_types
+    @define
+    class Other:
+        thing: None | Thing
+
+
+    strcs.resolve_types(Thing)
+
+.. note:: Calling resolve_types will modify the fields on the class in place.

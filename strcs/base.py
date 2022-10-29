@@ -1,4 +1,5 @@
 from .meta import Meta, extract_type
+from .hints import resolve_types
 from . import errors
 
 from cattrs.errors import IterableValidationError
@@ -191,6 +192,7 @@ class CreateRegister:
         last_meta: None | Meta = None,
         last_type: None | type[T] = None,
         skip_creator: None | ConvertDefinition[T] = None,
+        auto_resolve_attrs_and_dataclasses_annotations: bool = True,
     ):
         if register is None:
             register = {}
@@ -198,6 +200,9 @@ class CreateRegister:
         self.last_meta = last_meta
         self.last_type = last_type
         self.skip_creator = skip_creator
+        self.auto_resolve_attrs_and_dataclasses_annotations = (
+            auto_resolve_attrs_and_dataclasses_annotations
+        )
 
     def clone(
         self, last_meta: Meta, last_type: type[T], skip_creator: ConvertDefinition[T]
@@ -207,6 +212,7 @@ class CreateRegister:
             last_meta=last_meta,
             last_type=last_type,
             skip_creator=skip_creator,
+            auto_resolve_attrs_and_dataclasses_annotations=self.auto_resolve_attrs_and_dataclasses_annotations,
         )
 
     def __setitem__(self, typ: tp.Type[T], creator: ConvertFunction[T]) -> None:
@@ -401,11 +407,17 @@ class _CreateStructureHook:
             return fromdict(self.converter, self.register, value, want)
 
     def switch_check(self, want: tp.Type) -> bool:
+        if self.register.auto_resolve_attrs_and_dataclasses_annotations:
+            resolve_types(want)
+
         ret = self.do_check
         self.do_check = True
         return ret
 
     def check_func(self, want: tp.Type) -> bool:
+        if self.register.auto_resolve_attrs_and_dataclasses_annotations:
+            resolve_types(want)
+
         ann, want = self._interpret_annotation(want)
         creator = self.register.creator_for(want)
 

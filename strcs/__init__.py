@@ -12,6 +12,7 @@ from .base import (
     FromMeta,
     NotSpecified,
 )
+from .hints import resolve_types
 from .version import VERSION
 from .meta import Meta
 from . import errors
@@ -32,5 +33,6 @@ __all__ = [
     "Creator",
     "NotSpecified",
     "Registerer",
+    "resolve_types",
     "errors",
 ]

@@ -8,6 +8,7 @@ Changelog
 0.1.2 - TBD
    * Added py.typed file to the distribution
    * Removed need for the recursed option
+   * Added resolution of string type annotations on attr/dataclass classes
 
 .. _release-0.1.1:
 
