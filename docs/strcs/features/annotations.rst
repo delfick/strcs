@@ -23,8 +23,8 @@ an object it uses to modify the meta and/or creator:
         multiplication: tp.Optional[int] = None
 
 
-    def do_maths(val: int, /, addition: int = 0, multiplication: int = 1) -> int:
-        return (val + addition) * multiplication
+    def do_maths(value: int, /, addition: int = 0, multiplication: int = 1) -> int:
+        return (value + addition) * multiplication
 
 
     @define
@@ -40,13 +40,17 @@ an object it uses to modify the meta and/or creator:
 
 
     @creator(Thing)
-    def create_thing(val: int) -> strcs.ConvertResponse:
-        return {"val": val}
+    def create_thing(value: object) -> None | dict:
+        if not isinstance(value, int):
+            return None
+        return {"val": value}
 
 
     @creator(Holder)
-    def create_holder(val: int) -> strcs.ConvertResponse:
-        return {"once": val, "twice": val, "thrice": val}
+    def create_holder(value: object) -> dict:
+        if not isinstance(value, int):
+            return None
+        return {"once": value, "twice": value, "thrice": value}
 
 
     holder = reg.create(Holder, 33)
@@ -92,8 +96,10 @@ strategy may be provided by implementing ``adjusted_meta`` on the ``Annotation``
             two: int
 
         @creator(MyKls)
-        def create_mykls(val: str, /, annotation: MyAnnotation) -> strcs.ConvertResponse:
-            return {"key": f"{val}-{annotation.one}-{annotation.two}"}
+        def create_mykls(value: object, /, annotation: MyAnnotation) -> None | dict:
+            if not isinstance(value, str):
+                return None
+            return {"key": f"{value}-{annotation.one}-{annotation.two}"}
 
 ``strcs.MergedAnnotation``
     Will add the keys from the annotation into the meta. This would mean
@@ -107,8 +113,10 @@ strategy may be provided by implementing ``adjusted_meta`` on the ``Annotation``
             two: int
 
         @creator(MyKls)
-        def create_mykls(val: str, /, one: int = 0, two: int = 0) -> strcs.ConvertResponse:
-            return {"key": f"{val}-{one}-{two}"}
+        def create_mykls(value: object, /, one: int = 0, two: int = 0) -> None | dict:
+            if not isinstance(value, str):
+                return None
+            return {"key": f"{value}-{one}-{two}"}
 
     Optional keys are not added to meta if they are not set:
 
@@ -120,10 +128,12 @@ strategy may be provided by implementing ``adjusted_meta`` on the ``Annotation``
             two: tp.Optional[int] = None
 
         @creator(MyKls)
-        def create_mykls(val: str, /, one: int = 0, two: int = 0) -> strcs.ConvertResponse:
+        def create_mykls(value: object, /, one: int = 0, two: int = 0) -> None | dict:
+            if not isinstance(value, str):
+                return None
             # one and two will be zero each instead of None when MyKls
             # is annotated with either of those not set respectively
-            return {"key": f"{val}-{one}-{two}"}
+            return {"key": f"{value}-{one}-{two}"}
 
 Injecting data from meta
 ------------------------

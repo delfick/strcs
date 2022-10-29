@@ -27,29 +27,28 @@ class Projects:
 
 
 @creator(Projects)
-def create_projects(projects: Projects | tp.List | tp.Dict, /) -> strcs.ConvertResponse[Projects]:
-    if isinstance(projects, list):
-        return {"projects": projects}
-    elif isinstance(projects, dict) and "projects" in projects:
-        return {"projects": projects["projects"]}
+def create_projects(value: object) -> None | dict:
+    if isinstance(value, list):
+        return {"projects": value}
+    elif isinstance(value, dict) and "projects" in value:
+        return {"projects": value["projects"]}
 
     return None
 
 
 @creator(Project)
 def create_project(
-    project: Project | tp.Dict,
+    value: object,
     /,
     _meta: strcs.Meta,
     _register: strcs.CreateRegister,
-) -> strcs.ConvertResponse[Project]:
-    if isinstance(project, dict):
+) -> tp.Generator[dict, Project, None]:
+    if isinstance(value, dict):
         details = []
-        if "details" in project:
-            details = project.pop("details")
+        if "details" in value:
+            details = value.pop("details")
 
-        project = yield project
-        project = tp.cast(Project, project)
+        project = yield value
 
         for detail in details:
             project.details.append(
@@ -60,11 +59,12 @@ def create_project(
 
 
 @creator(Detail)
-def create_detail(detail: Detail | tp.Dict, /, project: Project) -> strcs.ConvertResponse[Detail]:
-    if isinstance(detail, dict):
-        detail["project"] = project
-        return detail
-    return None
+def create_detail(value: object, /, project: Project) -> None | dict:
+    if not isinstance(value, dict):
+        return None
+
+    value["project"] = project
+    return value
 
 
 describe "Making the projects":

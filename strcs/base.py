@@ -9,6 +9,7 @@ import cattrs
 import attrs
 
 T = tp.TypeVar("T")
+U = tp.TypeVar("U")
 
 
 class NotSpecifiedMeta(type):
@@ -21,16 +22,16 @@ class NotSpecified(metaclass=NotSpecifiedMeta):
         raise Exception("Do not instantiate NotSpecified")
 
 
-ConvertResponseValues: tp.TypeAlias = bool | dict[str, tp.Any] | T
+ConvertResponseValues: tp.TypeAlias = bool | dict[str, object] | T | NotSpecifiedMeta
 ConvertResponseGenerator: tp.TypeAlias = tp.Generator[
-    tp.Optional[ConvertResponseValues[T]], T, None
+    tp.Optional[ConvertResponseValues[T] | tp.Generator], T, None
 ]
 
 ConvertResponse: tp.TypeAlias = tp.Optional[ConvertResponseValues[T] | ConvertResponseGenerator[T]]
 
 ConvertDefinitionNoValue: tp.TypeAlias = tp.Callable[[], ConvertResponse[T]]
-ConvertDefinitionValue: tp.TypeAlias = tp.Callable[[tp.Any], ConvertResponse[T]]
-ConvertDefinitionValueAndType: tp.TypeAlias = tp.Callable[[tp.Any, tp.Type], ConvertResponse[T]]
+ConvertDefinitionValue: tp.TypeAlias = tp.Callable[[object], ConvertResponse[T]]
+ConvertDefinitionValueAndType: tp.TypeAlias = tp.Callable[[object, type], ConvertResponse[T]]
 # Also allowed is
 # - (Any, Type, /, meta1, meta2, ...)
 # - (Any, /, meta1, meta2, ...)
@@ -52,18 +53,18 @@ class WrappedCreator(tp.Generic[T]):
         return f"<Wrapped {self.func}>"
 
 
-def take_or_make(value: tp.Any, typ: tp.Type[T], /) -> ConvertResponse[T]:
+def take_or_make(value: object, typ: type[T], /) -> ConvertResponse[T]:
     if isinstance(value, typ):
         return value
-    elif value is NotSpecified or isinstance(value, dict):
+    elif isinstance(value, (dict, NotSpecifiedMeta)):
         return value
     else:
         return None
 
 
 def filldict(
-    converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: tp.Type
-) -> tp.Any:
+    converter: cattrs.Converter, register: "CreateRegister", res: object, want: type
+) -> object:
     if isinstance(res, dict) and hasattr(want, "__attrs_attrs__"):
         for field in attrs.fields(want):
             if field.type is not None and field.name not in res:
@@ -73,7 +74,7 @@ def filldict(
 
 
 def fromdict(
-    converter: cattrs.Converter, register: "CreateRegister", res: tp.Any, want: type[T]
+    converter: cattrs.Converter, register: "CreateRegister", res: object, want: type[T]
 ) -> T:
     if res is NotSpecified:
         res = {}
@@ -97,11 +98,11 @@ class MergedAnnotation(Annotation):
 
 @tp.runtime_checkable
 class _Ann(tp.Protocol[T]):
-    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
+    def adjusted_meta(self, meta: Meta, typ: type[T]) -> Meta:
         ...
 
     def adjusted_creator(
-        self, creator: tp.Optional[ConvertFunction[T]], register: "CreateRegister", typ: tp.Type[T]
+        self, creator: tp.Optional[ConvertFunction[T]], register: "CreateRegister", typ: type[T]
     ) -> tp.Optional[ConvertFunction[T]]:
         ...
 
@@ -110,14 +111,14 @@ class _Ann(tp.Protocol[T]):
 class FromMeta(_Ann):
     pattern: str
 
-    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
+    def adjusted_meta(self, meta: Meta, typ: type[T]) -> Meta:
         val = meta.retrieve_one(typ, self.pattern)
         return meta.clone(data_override={"retrieved": val})
 
     def adjusted_creator(
-        self, creator: tp.Optional[ConvertFunction], register: "CreateRegister", typ: tp.Type[T]
+        self, creator: tp.Optional[ConvertFunction], register: "CreateRegister", typ: type[T]
     ) -> tp.Optional[ConvertFunction[T]]:
-        def retrieve(val: tp.Any, /, _meta: Meta) -> ConvertResponse[T]:
+        def retrieve(value: object, /, _meta: Meta) -> ConvertResponse[T]:
             return tp.cast(T, _meta.retrieve_one(object, "retrieved"))
 
         a = Ann[T](creator=retrieve)
@@ -126,7 +127,7 @@ class FromMeta(_Ann):
 
 @tp.runtime_checkable
 class AdjustableMeta(tp.Protocol):
-    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
+    def adjusted_meta(self, meta: Meta, typ: type[T]) -> Meta:
         ...
 
 
@@ -141,7 +142,7 @@ class Ann(_Ann[T]):
         self.meta = meta
         self.creator = creator
 
-    def adjusted_meta(self, meta: Meta, typ: tp.Type[T]) -> Meta:
+    def adjusted_meta(self, meta: Meta, typ: type[T]) -> Meta:
         if self.meta is None:
             return meta
 
@@ -161,7 +162,7 @@ class Ann(_Ann[T]):
             return meta.clone({"__call_defined_annotation__": self.meta})
 
     def adjusted_creator(
-        self, creator: tp.Optional[ConvertFunction], register: "CreateRegister", typ: tp.Type[T]
+        self, creator: tp.Optional[ConvertFunction], register: "CreateRegister", typ: type[T]
     ) -> tp.Optional[ConvertFunction[T]]:
         if self.creator is None:
             return creator
@@ -179,7 +180,7 @@ class Registerer(tp.Protocol[T]):
 
 
 class Creator(tp.Protocol):
-    def __call__(self, typ: tp.Type[T], assume_unchanged_converted=True) -> Registerer[T]:
+    def __call__(self, typ: type[T], assume_unchanged_converted=True) -> Registerer[T]:
         ...
 
 
@@ -212,16 +213,16 @@ class CreateRegister:
             auto_resolve_string_annotations=self.auto_resolve_string_annotations,
         )
 
-    def __setitem__(self, typ: tp.Type[T], creator: ConvertFunction[T]) -> None:
+    def __setitem__(self, typ: type[T], creator: ConvertFunction[T]) -> None:
         if not isinstance(typ, type):
             raise errors.CanOnlyRegisterTypes(got=typ)
         self.register[typ] = creator
 
-    def __contains__(self, typ: tp.Type) -> bool:
+    def __contains__(self, typ: type) -> bool:
         return self.creator_for(typ) is not None
 
     def make_decorator(self) -> Creator:
-        def creator(typ: tp.Type[T], assume_unchanged_converted=True) -> Registerer[T]:
+        def creator(typ: type[T], assume_unchanged_converted=True) -> Registerer[T]:
             return tp.cast(
                 Registerer[T],
                 CreatorDecorator(self, typ, assume_unchanged_converted=assume_unchanged_converted),
@@ -229,8 +230,8 @@ class CreateRegister:
 
         return creator
 
-    def creator_for(self, typ: tp.Type[T]) -> tp.Optional[ConvertFunction[T]]:
-        origin: tp.Optional[tp.Type[T]] = getattr(typ, "__origin__", None)
+    def creator_for(self, typ: type[T]) -> tp.Optional[ConvertFunction[T]]:
+        origin: tp.Optional[type[T]] = getattr(typ, "__origin__", None)
         if origin is not None:
             typ = origin
 
@@ -248,17 +249,17 @@ class CreateRegister:
 
     def create(
         self,
-        typ: tp.Type[T],
-        value: tp.Any = NotSpecified,
-        meta: tp.Any = NotSpecified,
+        typ: type[T],
+        value: object = NotSpecified,
+        meta: None | Meta = None,
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
     ) -> T:
         return _CreateStructureHook.structure(
-            self,
-            typ,
-            value,
-            meta,
-            once_only_creator,
+            register=self,
+            typ=typ,
+            meta=meta,
+            value=value,
+            creator=once_only_creator,
             last_meta=self.last_meta,
             last_type=self.last_type,
             skip_creator=self.skip_creator,
@@ -266,18 +267,18 @@ class CreateRegister:
 
     def create_annotated(
         self,
-        typ: tp.Type[T],
-        ann: tp.Union[Annotation | _Ann | ConvertFunction[T]],
-        value: tp.Any = NotSpecified,
-        meta: tp.Any = NotSpecified,
+        typ: type[T],
+        ann: Annotation | _Ann | ConvertFunction[T],
+        value: object = NotSpecified,
+        meta: None | Meta = None,
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
     ) -> T:
         return _CreateStructureHook.structure(
-            self,
-            tp.cast(tp.Type[T], tp.Annotated[typ, ann]),
-            value,
-            meta,
-            once_only_creator,
+            register=self,
+            typ=tp.cast(type[T], tp.Annotated[typ, ann]),
+            meta=meta,
+            value=value,
+            creator=once_only_creator,
             last_meta=self.last_meta,
             last_type=self.last_type,
             skip_creator=self.skip_creator,
@@ -288,16 +289,17 @@ class _CreateStructureHook:
     @classmethod
     def structure(
         kls,
+        *,
         register: CreateRegister,
-        typ: tp.Type[T],
-        value: tp.Any = NotSpecified,
-        meta: tp.Any = NotSpecified,
+        typ: type[T],
+        value: object = NotSpecified,
+        meta: None | Meta = None,
         creator: tp.Optional[ConvertFunction[T]] = None,
         last_meta: None | Meta = None,
         last_type: None | type[T] = None,
         skip_creator: None | ConvertDefinition[T] = None,
     ) -> T:
-        if meta is NotSpecified:
+        if meta is None:
             if last_meta is not None:
                 meta = last_meta.clone()
             else:
@@ -332,7 +334,7 @@ class _CreateStructureHook:
         self,
         register: CreateRegister,
         converter: cattrs.Converter,
-        meta: tp.Any = NotSpecified,
+        meta: Meta,
         once_only_creator: tp.Optional[ConvertFunction[T]] = None,
         last_meta: None | Meta = None,
         last_type: None | type[T] = None,
@@ -346,12 +348,12 @@ class _CreateStructureHook:
         self.converter = converter
         self.skip_creator = skip_creator
         self.once_only_creator = once_only_creator
-        self.cache: dict[tp.Type[T], ConvertFunction[T]] = {}
+        self.cache: dict[type[T], ConvertFunction[T]] = {}
 
-    def _interpret_annotation(self, want: tp.Type[T]) -> tp.Tuple[tp.Optional[_Ann], tp.Type[T]]:
+    def _interpret_annotation(self, want: type[T]) -> tp.Tuple[tp.Optional[_Ann], type[T]]:
         ann: tp.Optional[Annotation | _Ann | ConvertDefinition[T]] = None
         if hasattr(want, "__metadata__"):
-            metadata: tp.Tuple[tp.Any] = getattr(want, "__metadata__")
+            metadata: tp.Tuple[object] = getattr(want, "__metadata__")
             if metadata and (isinstance(metadata[0], (_Ann, Annotation)) or callable(metadata[0])):
                 ann = metadata[0]
 
@@ -366,8 +368,8 @@ class _CreateStructureHook:
 
         return tp.cast(_Ann, ann), want
 
-    def convert(self, value: tp.Any, want: tp.Type[T]) -> T:
-        wrapped: tp.Type[T]
+    def convert(self, value: object, want: type[T]) -> T:
+        wrapped: type[T]
         ann, wrapped = self._interpret_annotation(want)
 
         if not self.check_func(want):
@@ -404,7 +406,7 @@ class _CreateStructureHook:
         else:
             return fromdict(self.converter, self.register, value, want)
 
-    def switch_check(self, want: tp.Type) -> bool:
+    def switch_check(self, want: type) -> bool:
         if self.register.auto_resolve_string_annotations:
             resolve_types(want)
 
@@ -412,7 +414,7 @@ class _CreateStructureHook:
         self.do_check = True
         return ret
 
-    def check_func(self, want: tp.Type) -> bool:
+    def check_func(self, want: type[U]) -> bool:
         if self.register.auto_resolve_string_annotations:
             resolve_types(want)
 
@@ -425,7 +427,7 @@ class _CreateStructureHook:
 
         return bool(ann or self.once_only_creator or hasattr(want, "__attrs_attrs__"))
 
-    def bypass(self, value: tp.Any, want: tp.Type[T]) -> T:
+    def bypass(self, value: object, want: type[T]) -> T:
         self.do_check = False
         self.converter._structure_func.dispatch.cache_clear()
         value = filldict(self.converter, self.register, value, want)
@@ -437,8 +439,8 @@ class _ArgsExtractor:
         self,
         *,
         signature: inspect.Signature,
-        value: tp.Any,
-        want: tp.Type,
+        value: object,
+        want: type,
         meta: Meta,
         creator: ConvertDefinition,
         converter: cattrs.Converter,
@@ -452,7 +454,7 @@ class _ArgsExtractor:
         self.converter = converter
         self.signature = signature
 
-    def extract(self) -> list[tp.Any]:
+    def extract(self) -> list[object]:
         use = []
         values = list(self.signature.parameters.values())
 
@@ -464,7 +466,7 @@ class _ArgsExtractor:
             values.pop(0)
             use.append(self.want)
 
-        def provided(param: inspect.Parameter, name: str, typ: tp.Type) -> bool:
+        def provided(param: inspect.Parameter, name: str, typ: type) -> bool:
             if param.name != name:
                 return False
 
@@ -487,7 +489,7 @@ class _ArgsExtractor:
                         last_type=self.want, last_meta=self.meta, skip_creator=self.creator
                     )
                 )
-            elif param.annotation in (inspect._empty, tp.Any):
+            elif param.annotation in (inspect._empty, object):
                 use.append(self.meta.retrieve_one(object, param.name, default=param.default))
             else:
                 use.append(
@@ -498,9 +500,9 @@ class _ArgsExtractor:
 
 
 @define
-class CreateArgs:
-    value: tp.Any
-    want: tp.Type
+class CreateArgs(tp.Generic[T]):
+    value: T
+    want: type[T]
     meta: Meta
     converter: cattrs.Converter
     register: CreateRegister
@@ -510,7 +512,7 @@ class CreatorDecorator(tp.Generic[T]):
     def __init__(
         self,
         register: CreateRegister,
-        typ: tp.Type[T],
+        typ: type[T],
         assume_unchanged_converted=True,
     ):
         self.typ = typ
@@ -540,7 +542,7 @@ class CreatorDecorator(tp.Generic[T]):
         wrapped = WrappedCreator(self.wrapped, self.func)
         return wrapped, self.func
 
-    def wrapped(self, create_args: CreateArgs) -> T:
+    def wrapped(self, create_args: CreateArgs[T]) -> T:
         want = create_args.want
         meta = create_args.meta
         value = create_args.value
@@ -561,7 +563,7 @@ class CreatorDecorator(tp.Generic[T]):
                 creator=self.func,
             )
 
-        def deal(res: ConvertResponse[T], value: tp.Any) -> T:
+        def deal(res: ConvertResponse[T], value: object) -> T:
             if inspect.isgenerator(res):
                 try:
                     return self._process_generator(res, value, deal)
@@ -610,8 +612,8 @@ class CreatorDecorator(tp.Generic[T]):
     def _process_generator(
         self,
         res: ConvertResponseGenerator[T],
-        value: tp.Any,
-        deal: tp.Callable[[ConvertResponse[T], tp.Any], T],
+        value: object,
+        deal: tp.Callable[[ConvertResponse[T], object], T],
     ) -> T:
         try:
             made: ConvertResponse[T]
@@ -635,8 +637,8 @@ class CreatorDecorator(tp.Generic[T]):
 
     def _invoke_func(
         self,
-        value: tp.Any,
-        want: tp.Type,
+        value: object,
+        want: type,
         meta: Meta,
         converter: cattrs.Converter,
         register: CreateRegister,

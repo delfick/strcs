@@ -28,16 +28,16 @@ class Other:
 
 
 @creator(Other)
-def create_other(val: object, /, multiply: int = 1) -> None | dict:
-    if isinstance(val, dict):
-        return {"val": val["val"] * multiply, "sub": val["sub"]}
+def create_other(value: object, /, multiply: int = 1) -> None | dict:
+    if isinstance(value, dict):
+        return {"val": value["val"] * multiply, "sub": value["sub"]}
 
-    if isinstance(val, int):
+    if isinstance(value, int):
         return {
             "val": 0,
             "sub": {
-                "other": {"val": val, "sub": None},
-                "another": {"val": val, "sub": None},
+                "other": {"val": value, "sub": None},
+                "another": {"val": value, "sub": None},
             },
         }
 

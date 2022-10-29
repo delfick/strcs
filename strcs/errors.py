@@ -1,6 +1,8 @@
+from cattrs.errors import IterableValidationError
 from textwrap import dedent
 from attrs import define
 import typing as tp
+import traceback
 import inspect
 
 
@@ -18,12 +20,26 @@ class NoCreatorFound(StructuresError):
 @define
 class UnableToConvert(StructuresError):
     creator: tp.Callable
-    converting: tp.Type
+    converting: object
     into: tp.Type
     reason: str
     error: None | Exception = None
 
     def __str__(self) -> str:
+        if isinstance(self.error, IterableValidationError):
+            error_string = (
+                "\n"
+                + "\n".join(
+                    f"  || {line}"
+                    for line in "".join(traceback.format_exception(self.error)).split("\n")
+                )
+                + "\n | \n"
+            )
+        elif self.error is None or isinstance(self.error, UnableToConvert):
+            error_string = "\n"
+        else:
+            error_string = f": {self.error}\n | \n"
+
         return (
             "\n\n |>> "
             + (
@@ -31,11 +47,7 @@ class UnableToConvert(StructuresError):
                 if self.error is None or not isinstance(self.error, UnableToConvert)
                 else ""
             )
-            + (
-                "\n"
-                if self.error is None or isinstance(self.error, UnableToConvert)
-                else f": {self.error}\n | \n"
-            )
+            + error_string
             + "\n".join(
                 f" |   {line}"
                 for line in dedent(
@@ -90,7 +102,7 @@ class MultipleNamesForType(StructuresError):
 
 @define
 class CanOnlyRegisterTypes(StructuresError):
-    got: tp.Any
+    got: object
 
 
 @define

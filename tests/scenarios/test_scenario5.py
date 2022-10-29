@@ -1,7 +1,6 @@
 # coding: spec
 
 from attrs import define
-import typing as tp
 import cattrs
 import strcs
 
@@ -18,8 +17,10 @@ class Sentences:
 
 
 @creator(Sentences)
-def create_sentences(val: str) -> strcs.ConvertResponse[Sentences]:
-    parts = val.split(",")
+def create_sentences(value: object) -> None | dict:
+    if not isinstance(value, str):
+        return None
+    parts = value.split(",")
     return {"one": parts[0], "two": parts[1], "three": parts[2]}
 
 
@@ -28,7 +29,7 @@ describe "can use the original converter":
     it "works":
         converter = cattrs.Converter()
 
-        def reverse_strings(o: tp.Any, _: tp.Any) -> str:
+        def reverse_strings(o: object, _: object) -> str:
             if isinstance(o, str):
                 return "".join(reversed(o))
             else:

@@ -34,8 +34,8 @@ class Thing:
 
 
 @creator(Other)
-def create_other(val: object, /, _register: strcs.CreateRegister) -> None | dict:
-    if val is not strcs.NotSpecified:
+def create_other(value: object, /, _register: strcs.CreateRegister) -> None | dict:
+    if value is not strcs.NotSpecified:
         return None
 
     one = _register.create(Itself, 1)
@@ -44,21 +44,21 @@ def create_other(val: object, /, _register: strcs.CreateRegister) -> None | dict
 
 
 @creator(Itself)
-def create_itself(val: object, want: type, /, _register: strcs.CreateRegister) -> None | Itself:
-    if not isinstance(val, int):
+def create_itself(value: object, want: type, /, _register: strcs.CreateRegister) -> None | Itself:
+    if not isinstance(value, int):
         return None
 
-    return _register.create(want, {"one": val * 2})
+    return _register.create(want, {"one": value * 2})
 
 
 @creator(Thing)
 def create_thing(
-    val: list[int], want: tp.Type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
+    value: list[int], want: tp.Type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
 ) -> Thing:
-    """Production quality would ensure val is indeed a list with two integers!!"""
+    """Production quality would ensure value is indeed a list with two integers!!"""
     return _register.create(
         want,
-        {"part1": {"one": val[0]}, "part2": {"one": val[1]}},
+        {"part1": {"one": value[0]}, "part2": {"one": value[1]}},
         meta=_meta.clone({"identity": secrets.token_hex(10)}),
     )
 

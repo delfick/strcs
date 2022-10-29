@@ -38,21 +38,17 @@ class Overall:
 
 
 @creator(Number)
-def create_number(
-    val: int | tp.Type[strcs.NotSpecified], /, ann: NumberAnnotation
-) -> strcs.ConvertResponse[Number]:
-    if not isinstance(val, int):
-        val = 0
-    return {"val": val + ann.add}
+def create_number(value: object, /, ann: NumberAnnotation) -> None | dict:
+    if not isinstance(value, int):
+        value = 0
+    return {"val": value + ann.add}
 
 
 @creator(Sentence)
-def create_sentence(
-    val: str | tp.Type[strcs.NotSpecified], /, prefix: tp.Optional[str]
-) -> strcs.ConvertResponse[Sentence]:
-    if not isinstance(val, str):
-        val = ""
-    return {"val": (prefix or "") + val}
+def create_sentence(value: object, /, prefix: tp.Optional[str]) -> None | dict:
+    if not isinstance(value, str):
+        value = ""
+    return {"val": (prefix or "") + value}
 
 
 describe "Scenario 2":

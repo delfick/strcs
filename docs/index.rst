@@ -91,8 +91,8 @@ Here is a contrived example that shows a couple features. Read the
 
     @creator(Images)
     def create_images(
-        val: dict[str, list[str]], /, excluded: tp.Optional[list[str]]
-    ) -> strcs.ConvertResponse:
+        value: object, list[str]], /, excluded: tp.Optional[list[str]]
+    ) -> None | dict
         """
         Please note that type annotations are not runtime constraints in python
         and there is no guarantee that what is passed in is a dictionary of str
@@ -108,17 +108,19 @@ Here is a contrived example that shows a couple features. Read the
         and name) and use that to exclude some results from what we use to make
         our Images object.
         """
-        if isinstance(val, dict):
+        if isinstance(value, dict):
             if excluded is None:
                 excluded = []
 
             found = []
-            for author, filenames in val.items():
+            for author, filenames in value.items():
                 if author not in excluded and isinstance(filenames, list):
                     for filename in filenames:
                         found.append({"author": author, "filename": filename})
 
             return {"images": found}
+
+        return None 
 
 
     renderer = Renderer()

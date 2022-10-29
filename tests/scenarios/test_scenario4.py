@@ -26,20 +26,20 @@ class Images:
 
 
 @creator(Images)
-def create_images(
-    val: dict[str, list[str]], /, excluded: tp.Optional[list[str]]
-) -> strcs.ConvertResponse[Images]:
-    if isinstance(val, dict):
+def create_images(value: object, /, excluded: tp.Optional[list[str]]) -> None | dict:
+    if isinstance(value, dict):
         if excluded is None:
             excluded = []
 
         found = []
-        for author, filenames in val.items():
+        for author, filenames in value.items():
             if author not in excluded and isinstance(filenames, list):
                 for filename in filenames:
                     found.append({"author": author, "filename": filename})
 
         return {"images": found}
+
+    return None
 
 
 describe "example in the readme":

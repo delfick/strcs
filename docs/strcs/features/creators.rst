@@ -24,8 +24,10 @@ For example:
 
 
     @creator(Thing)
-    def create_thing(val: int, /) -> strcs.ConvertResponse:
-        return {"one": val}
+    def create_thing(value: object, /) -> None | dict:
+        if not isinstance(value, int):
+            return None
+        return {"one": value}
 
 
     thing = reg.create(Thing, 23)
@@ -55,7 +57,7 @@ this by returning a dictionary that cattrs will then use to create the instance.
 
 
    @creator(T)
-   def creator(val: tp.Any, /) -> strcs.ConvertResponse:
+   def creator(value: object, /) -> strcs.ConvertResponse:
        """
        Sometimes all we need is the value to be transformed
 
@@ -65,7 +67,7 @@ this by returning a dictionary that cattrs will then use to create the instance.
 
 
    @creator(T)
-   def creator(val: tp.Any, want: tp.Type[T], /) -> strcs.ConvertResponse:
+   def creator(value: object, want: type[T], /) -> strcs.ConvertResponse:
        """
        The type being created may be a subclass of T and want will be that type
 
@@ -83,13 +85,13 @@ this by returning a dictionary that cattrs will then use to create the instance.
 
 
    @creator(T)
-   def creator(val: tp.Any, /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
+   def creator(value: object, /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
        """Meta arguments are found by name then type"""
        ...
 
 
    @creator(T)
-   def creator(val: tp.Any, want: tp.Type[T], /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
+   def creator(value: object, want: type[T], /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
        """
        The positional only slash means that val and want aren't taken from
        possible names from the meta
@@ -130,8 +132,10 @@ converter being used, and the register being used:
 
     @creator(Thing)
     def create_thing(
-        val: dict, /, _meta: strcs.Meta, _converter: cattrs.Converter, _register: strcs.CreateRegister
-    ) -> strcs.ConvertResponse:
+        value: object, /, _meta: strcs.Meta, _converter: cattrs.Converter, _register: strcs.CreateRegister
+    ) -> None | dict:
+        if not isinstance(value, dict):
+            return None
         assert _meta is meta
         assert _converter is converter
         assert _register is reg
@@ -205,12 +209,14 @@ argument in the creator so that an infinite loop may be avoided.
 
     @creator(Thing)
     def create_thing(
-        val: list[int], want: tp.Type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
-    ) -> strcs.ConvertResponse:
-        """Production quality would ensure val is indeed a list with two integers!!"""
+        value: object, want: type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
+    ) -> None | Thing:
+        if not (isinstance(value, list) and len(value) == 2 and all(isinstance(v, int) for v in value)):
+            return None
+
         return _register.create(
             want,
-            {"part1": {"one": val[0]}, "part2": {"one": val[1]}},
+            {"part1": {"one": value[0]}, "part2": {"one": value[1]}},
             meta=_meta.clone({"identity": secrets.token_hex(10)}),
         )
 
@@ -266,10 +272,10 @@ For example:
 
 
     @creator(Thing)
-    def create_thing(val: int):
-        res = yield {"one": val}
+    def create_thing(value: int):
+        res = yield {"one": value}
         assert isinstance(res, Thing)
-        assert res.one == val
+        assert res.one == value
 
         res.do_something()
         # We don't yield again, so res is the value that is used
@@ -304,7 +310,7 @@ Generator creators may also yield other generators:
             self.three = None
 
 
-    def recursion_is_fun(value: tp.Any):
+    def recursion_is_fun(value: object) -> tp.Generator[dict, Thing, None]:
         assert isinstance(value, dict)
         assert value == {"one": 20}
         called.append(2)
@@ -314,7 +320,7 @@ Generator creators may also yield other generators:
 
 
     @creator(Thing)
-    def make(value: tp.Any):
+    def make(value: object) -> tp.Generator[tp.Generator[dict, Thing, None], Thing, None]:
         called.append(1)
         made = yield recursion_is_fun(value)
         made.three = 222

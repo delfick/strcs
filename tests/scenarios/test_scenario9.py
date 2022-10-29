@@ -31,25 +31,25 @@ class Stuff:
 
 
 @creator(Other)
-def create_other(val: object, /, multiply: int = 1) -> dict:
-    if isinstance(val, str):
+def create_other(value: object, /, multiply: int = 1) -> dict:
+    if isinstance(value, str):
         raise ValueError("asdf")
 
-    elif isinstance(val, dict):
-        return val
+    elif isinstance(value, dict):
+        return value
 
-    return {"one": val, "sub": {"three": 5}}
+    return {"one": value, "sub": {"three": 5}}
 
 
 @creator(Sub)
-def create_sub(val: object) -> tp.Generator[None | dict, Sub, None]:
-    if isinstance(val, dict):
-        res = yield val
+def create_sub(value: object) -> tp.Generator[None | dict, Sub, None]:
+    if isinstance(value, dict):
+        res = yield value
 
-        if res.two != val["two"]:
+        if res.two != value["two"]:
             raise TypeError("two was changed!")
 
-    elif isinstance(val, int):
+    elif isinstance(value, int):
         raise ValueError("blah")
 
     return None

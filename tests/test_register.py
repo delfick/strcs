@@ -338,7 +338,9 @@ describe "Creators":
         class Info(strcs.MergedAnnotation):
             multiple: int
 
-        def multiply(value: int, /, multiple: int) -> strcs.ConvertResponse[int]:
+        def multiply(value: object, /, multiple: int) -> None | int:
+            if not isinstance(value, int):
+                return None
             return value * multiple
 
         assert creg.create_annotated(int, strcs.Ann(Info(multiple=2), multiply), 3) == 6
@@ -359,7 +361,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing)
-            def make() -> strcs.ConvertResponse[Thing]:
+            def make() -> Thing:
                 called.append(1)
                 return thing
 
@@ -375,7 +377,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing, assume_unchanged_converted=False)
-            def make(value: tp.Any) -> strcs.ConvertResponse[Thing]:
+            def make(value: object) -> Thing:
                 called.append(value)
                 return thing
 
@@ -400,7 +402,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing, assume_unchanged_converted=False)
-            def make(value: tp.Any, want: tp.Type, /) -> strcs.ConvertResponse[Thing]:
+            def make(value: object, want: tp.Type, /) -> Thing:
                 called.append((value, want))
                 return thing
 
@@ -443,9 +445,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing)
-            def make(
-                value: tp.Any, want: tp.Type, /, number: int, specific: Thing
-            ) -> strcs.ConvertResponse[Thing]:
+            def make(value: object, want: tp.Type, /, number: int, specific: Thing) -> Thing:
                 called.append((value, want, number, specific))
                 return thing
 
@@ -477,14 +477,14 @@ describe "Creators":
 
             @creator(Thing)
             def create_thing(
-                val: str,
+                value: str,
                 /,
                 prefix: str,
                 suffix: str = "there",
                 super_prefix: str = "blah",
                 non_typed="meh",
             ):
-                return {"val": f"{prefix}:{val}:{suffix}:{super_prefix}:{non_typed}"}
+                return {"val": f"{prefix}:{value}:{suffix}:{super_prefix}:{non_typed}"}
 
             meta = strcs.Meta()
             meta["prefix"] = "pref"
@@ -514,9 +514,11 @@ describe "Creators":
 
             @creator(Sentence)
             def create_sentence(
-                val: str, /, ann: SentenceAnnotation, suffix: str
-            ) -> strcs.ConvertResponse[Sentence]:
-                return {"sentence": ann.prefix + val + suffix}
+                value: object, /, ann: SentenceAnnotation, suffix: str
+            ) -> None | dict:
+                if not isinstance(value, str):
+                    return None
+                return {"sentence": ann.prefix + value + suffix}
 
             meta = strcs.Meta()
             meta["suffix"] = " mate"
@@ -547,8 +549,8 @@ describe "Creators":
                 thing: tp.Annotated[Thing, ThingAnnotation(one=40)]
 
             @creator(Child)
-            def create_thing(val: int, /, one: int, two: int):
-                return {"data": val + one + two}
+            def create_thing(value: int, /, one: int, two: int):
+                return {"data": value + one + two}
 
             assert creg.create(Overall, {"thing": {"child": 3}}).thing.child.data == 73
             assert creg.create(Overall, {"thing": {"child": 10}}).thing.child.data == 80
@@ -565,10 +567,10 @@ describe "Creators":
                 val: str
 
             @creator(Thing)
-            def create_thing(
-                val: str, /, one: int = 0, two: str = "asdf"
-            ) -> strcs.ConvertResponse[Thing]:
-                return {"val": f"{val}|{one}|{two}"}
+            def create_thing(value: object, /, one: int = 0, two: str = "asdf") -> None | dict:
+                if not isinstance(value, str):
+                    return None
+                return {"val": f"{value}|{one}|{two}"}
 
             assert creg.create_annotated(Thing, Annotation(one=1), "hi").val == "hi|1|asdf"
             assert (
@@ -593,9 +595,11 @@ describe "Creators":
                 things: list[Thing]
 
             @creator(Thing)
-            def create_thing(one: int) -> strcs.ConvertResponse[Thing]:
+            def create_thing(value: object) -> None | dict:
+                if not isinstance(value, int):
+                    return None
                 counts["upto"] += 1
-                return {"one": one, "upto": counts["upto"]}
+                return {"one": value, "upto": counts["upto"]}
 
             made = creg.create(Things, {"things": [4, 5, 6]})
             assert isinstance(made, Things)
@@ -626,10 +630,10 @@ describe "Creators":
                 results: tp.Annotated[list[Result], LottoAnnotation(numbers=(2, 6, 8, 10, 69))]
 
             @creator(Result)
-            def create_result(
-                val: Ticket, /, numbers: tp.Tuple, powerball: int
-            ) -> strcs.ConvertResponse[Result]:
-                return {"winner": val.numbers == list(numbers) and val.powerball == powerball}
+            def create_result(value: object, /, numbers: tp.Tuple, powerball: int) -> None | dict:
+                if not isinstance(value, Ticket):
+                    return None
+                return {"winner": value.numbers == list(numbers) and value.powerball == powerball}
 
             lotto = creg.create(
                 Lotto,
@@ -657,13 +661,15 @@ describe "Creators":
                 val: int
 
             @creator(Thing)
-            def create_thing(val: int) -> strcs.ConvertResponse[Thing]:
-                return {"val": val * 2}
+            def create_thing(value: object) -> None | dict:
+                if not isinstance(value, int):
+                    return None
+                return {"val": value * 2}
 
             @define
             class Things:
                 thing1: Thing
-                thing2: tp.Annotated[Thing, lambda val: {"val": val * 3}]
+                thing2: tp.Annotated[Thing, lambda value: {"val": value * 3}]
                 thing3: Thing
 
             things = creg.create(Things, {"thing1": 1, "thing2": 5, "thing3": 10})
@@ -683,11 +689,15 @@ describe "Creators":
                 val: int
 
             @creator(Thing)
-            def create_thing(val: int) -> strcs.ConvertResponse[Thing]:
-                return {"val": val * 2}
+            def create_thing(value: object) -> None | dict:
+                if not isinstance(value, int):
+                    return None
+                return {"val": value * 2}
 
-            def other_creator(val: int, /, add: int) -> strcs.ConvertResponse:
-                return {"val": val + add}
+            def other_creator(value: object, /, add: int) -> None | dict:
+                if not isinstance(value, int):
+                    return None
+                return {"val": value + add}
 
             @define
             class Things:
@@ -726,7 +736,7 @@ describe "Creators":
                 pass
 
             @creator(Thing)
-            def make() -> strcs.ConvertResponse[Thing]:
+            def make() -> None:
                 called.append(1)
                 return None
 
@@ -743,7 +753,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing)
-            def make() -> strcs.ConvertResponse[Thing]:
+            def make() -> Thing:
                 called.append(1)
                 return thing
 
@@ -761,7 +771,7 @@ describe "Creators":
             thing3 = Thing()
 
             @creator(Thing, assume_unchanged_converted=False)
-            def make() -> strcs.ConvertResponse[Thing]:
+            def make() -> bool:
                 called.append(1)
                 return True
 
@@ -788,8 +798,10 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing)
-            def make(thing: Thing | tp.Dict) -> strcs.ConvertResponse:
+            def make(thing: object) -> None | Thing | dict:
                 called.append(1)
+                if not isinstance(thing, (Thing, dict)):
+                    return None
                 return thing
 
             assert creg.create(Thing, thing) is thing
@@ -812,7 +824,7 @@ describe "Creators":
             called = []
 
             @creator(NotSpecifiedMeta, assume_unchanged_converted=False)
-            def make() -> strcs.ConvertResponse[NotSpecifiedMeta]:
+            def make() -> bool:
                 called.append(1)
                 return True
 
@@ -828,7 +840,7 @@ describe "Creators":
                 two: str
 
             @creator(Thing)
-            def make() -> strcs.ConvertResponse[Thing]:
+            def make() -> dict:
                 called.append(1)
                 return {"one": 3, "two": "twenty"}
 
@@ -847,7 +859,7 @@ describe "Creators":
                 four: int
 
             @creator(Other)
-            def make() -> strcs.ConvertResponse[Other]:
+            def make() -> dict:
                 called.append(2)
                 return {"three": 20, "four": 50}
 
@@ -865,7 +877,7 @@ describe "Creators":
                 stuff: Stuff
 
             @creator(Thing)
-            def make2() -> strcs.ConvertResponse[Thing]:
+            def make2() -> dict:
                 called.append(1)
                 return {"one": 3, "two": "twenty", "stuff": {}, "other1": {}}
 
@@ -924,11 +936,13 @@ describe "Creators":
 
             @creator(Things)
             def create_thing(
-                val: int, want: tp.Type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
-            ) -> strcs.ConvertResponse:
+                value: object, want: tp.Type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
+            ) -> None | Things:
+                if not isinstance(value, int):
+                    return None
                 return _register.create(
                     want,
-                    {"thing1": {"one": val}},
+                    {"thing1": {"one": value}},
                     meta=_meta.clone({"identity": secrets.token_hex(10)}),
                 )
 
@@ -955,11 +969,13 @@ describe "Creators":
 
             @creator(Thing)
             def create_thing(
-                val: int, want: tp.Type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
-            ) -> strcs.ConvertResponse:
+                value: object, want: tp.Type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
+            ) -> None | Thing:
+                if not isinstance(value, int):
+                    return None
                 return _register.create(
                     want,
-                    {"one": val},
+                    {"one": value},
                     meta=_meta.clone({"identity": secrets.token_hex(10)}),
                 )
 
@@ -986,7 +1002,9 @@ describe "Creators":
                         self.two = None
 
                 @creator(Thing)
-                def make(value: tp.Any):
+                def make(value: object) -> tp.Generator[dict | bool, Thing, None]:
+                    if not isinstance(value, dict):
+                        return None
                     made = yield value
                     made.two = 2
                     yield True
@@ -1006,7 +1024,9 @@ describe "Creators":
                         self.two = None
 
                 @creator(Thing)
-                def make(value: tp.Any):
+                def make(value: object) -> tp.Generator[dict, Thing, None]:
+                    if not isinstance(value, dict):
+                        return None
                     made = yield value
                     made.two = 2
 
@@ -1022,9 +1042,11 @@ describe "Creators":
                     one: int
 
                 @creator(Thing)
-                def make(value: tp.Any):
+                def make(value: object) -> tp.Generator[dict, Thing, None]:
                     if False:
                         yield value
+
+                    return None
 
                 with pytest.raises(strcs.errors.UnableToConvert):
                     creg.create(Thing, {"one": 20})
@@ -1036,7 +1058,11 @@ describe "Creators":
                     one: int = 1
 
                 @creator(Thing)
-                def make(value: tp.Any):
+                def make(
+                    value: object,
+                ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified], Thing, None]:
+                    if not isinstance(value, (dict, Thing, type(strcs.NotSpecified))):
+                        return None
                     yield value
 
                 made = creg.create(Thing, {"one": 20})
@@ -1062,7 +1088,7 @@ describe "Creators":
                         self.two = None
                         self.three = None
 
-                def recursion_is_fun(value: tp.Any):
+                def recursion_is_fun(value: object) -> tp.Generator[dict, Thing, None]:
                     assert isinstance(value, dict)
                     assert value == {"one": 20}
                     called.append(2)
@@ -1071,7 +1097,9 @@ describe "Creators":
                     called.append(3)
 
                 @creator(Thing)
-                def make(value: tp.Any):
+                def make(
+                    value: object,
+                ) -> tp.Generator[tp.Generator[dict, Thing, None], Thing, None]:
                     called.append(1)
                     made = yield recursion_is_fun(value)
                     made.three = 222
@@ -1091,11 +1119,16 @@ describe "Creators":
                     one: int = 1
 
                 @creator(Thing)
-                def make(value: tp.Any):
+                def make(
+                    value: object,
+                ) -> tp.Generator[None | dict | Thing | type[strcs.NotSpecified], Thing, None]:
                     made = yield {"one": 0}
                     assert isinstance(made, Thing)
                     assert made.one == 0
-                    yield value
+                    if isinstance(value, (dict, Thing, type(strcs.NotSpecified))):
+                        yield value
+                    else:
+                        yield None
 
                 made = creg.create(Thing, {"one": 20})
                 assert isinstance(made, Thing)

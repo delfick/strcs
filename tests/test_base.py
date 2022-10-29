@@ -75,7 +75,7 @@ describe "_ArgsExtractor":
 
     it "can get value from the first positional argument", meta: strcs.Meta:
 
-        def func(value: tp.Any, /):
+        def func(value: object, /):
             ...
 
         val = mock.Mock(name="val")
@@ -93,7 +93,7 @@ describe "_ArgsExtractor":
 
     it "can get want from the second positional argument", meta: strcs.Meta:
 
-        def func(value: tp.Any, want: tp.Type, /):
+        def func(value: object, want: tp.Type, /):
             ...
 
         val = mock.Mock(name="val")
@@ -116,7 +116,7 @@ describe "_ArgsExtractor":
 
         o = Other()
 
-        def func(value: tp.Any, want: tp.Type, /, other: Other, blah: int, stuff: str):
+        def func(value: object, want: tp.Type, /, other: Other, blah: int, stuff: str):
             ...
 
         val = mock.Mock(name="val")
@@ -136,7 +136,7 @@ describe "_ArgsExtractor":
         )
         assert extractor.extract() == [val, Other, o, 12, "one"]
 
-        def func2(value: tp.Any, /, other: Other, blah: int, stuff: str):
+        def func2(value: object, /, other: Other, blah: int, stuff: str):
             ...
 
         extractor = _ArgsExtractor(
@@ -233,7 +233,7 @@ describe "_ArgsExtractor":
 
         o = Other()
 
-        def func(value: tp.Any, want: tp.Type, /, other, blah, stuff):
+        def func(value: object, want: tp.Type, /, other, blah, stuff):
             ...
 
         val = mock.Mock(name="val")

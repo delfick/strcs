@@ -17,7 +17,7 @@ class Empty:
 
 
 class NarrowCB(tp.Protocol):
-    def __call__(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, tp.Any]:
+    def __call__(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]:
         ...
 
 
@@ -54,7 +54,7 @@ class Narrower:
 
     @define
     class Further:
-        value: tp.Any
+        value: object
         patterns: list[str]
 
     class Progress:
@@ -62,10 +62,10 @@ class Narrower:
             self.obj = obj
 
             self.further: dict[str, Narrower.Further] = {}
-            self.collected: dict[str, tp.Any] = {}
+            self.collected: dict[str, object] = {}
             self.obj_is_mapping = isinstance(self.obj, Mapping)
 
-        def collect(self, narrow: NarrowCB) -> dict[str, bool]:
+        def collect(self, narrow: NarrowCB) -> dict[str, object]:
             for n, ft in self.further.items():
                 found = narrow(*ft.patterns, obj=ft.value)
                 for k, v in found.items():
@@ -75,7 +75,7 @@ class Narrower:
 
             return self.collected
 
-        def add(self, pattern: str, n: str, v: tp.Any):
+        def add(self, pattern: str, n: str, v: object):
             if n in self.collected:
                 return
 
@@ -98,13 +98,13 @@ class Narrower:
     def __init__(self, obj: Mapping | object):
         self.obj = obj
 
-    def keys_from(self, options: tp.Any) -> tp.Iterable[str]:
+    def keys_from(self, options: object) -> tp.Iterable[str]:
         if isinstance(options, (Mapping, tp.Iterable)):
             yield from iter(options)
         else:
             yield from [n for n in dir(options) if not n.startswith("_")]
 
-    def narrow(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, tp.Any]:
+    def narrow(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]:
         if not patterns:
             return {}
 
@@ -187,7 +187,7 @@ class Meta:
 
     def __init__(
         self,
-        data: tp.Optional[dict[str, tp.Any]] = None,
+        data: tp.Optional[dict[str, object]] = None,
         converter: tp.Optional[cattrs.Converter] = None,
     ):
         self.converter = converter or cattrs.Converter()
@@ -195,8 +195,8 @@ class Meta:
 
     def clone(
         self,
-        data_extra: tp.Optional[dict[str, tp.Any]] = None,
-        data_override: tp.Optional[dict[str, tp.Any]] = None,
+        data_extra: tp.Optional[dict[str, object]] = None,
+        data_override: tp.Optional[dict[str, object]] = None,
         converter: tp.Optional[cattrs.Converter] = None,
     ) -> "Meta":
         if converter is None:
@@ -212,7 +212,7 @@ class Meta:
 
         return Meta(data, converter)
 
-    def __setitem__(self, name: str, value: tp.Any) -> None:
+    def __setitem__(self, name: str, value: object) -> None:
         self.data[name] = value
 
     def __delitem__(self, name: str) -> None:
@@ -221,11 +221,11 @@ class Meta:
     def __contains__(self, name: str) -> bool:
         return name in self.data
 
-    def update(self, data: dict[str, tp.Any]) -> None:
+    def update(self, data: dict[str, object]) -> None:
         self.data.update(data)
 
     def find_by_type(
-        self, typ: tp.Type[T], data: dict[str, tp.Any] | tp.Type[Empty] = Empty
+        self, typ: tp.Type[T], data: dict[str, object] | tp.Type[Empty] = Empty
     ) -> tp.Tuple[bool, dict[str, T]]:
         """
         Return (optional, found)
@@ -236,10 +236,10 @@ class Meta:
         if data is Empty:
             data = self.data
 
-        data = tp.cast(dict[str, tp.Any], data)
+        data = tp.cast(dict[str, object], data)
 
         if typ is object:
-            return False, data
+            return False, tp.cast(dict[str, T], data)
 
         optional, typ = extract_type(typ)
         available = {n: v for n, v in data.items() if isinstance(v, typ)}
@@ -266,7 +266,7 @@ class Meta:
         _, found = self.find_by_type(typ, data=data)
         return found
 
-    def retrieve_one(self, typ: tp.Type[T], *patterns: str, default: tp.Any = inspect._empty) -> T:
+    def retrieve_one(self, typ: tp.Type[T], *patterns: str, default: object = inspect._empty) -> T:
         """
         Retrieve a single value for this type and patterns restrictions
 
@@ -283,7 +283,7 @@ class Meta:
             if with_patterns or typ is object:
                 data = with_patterns
             elif default is not inspect._empty:
-                return default
+                return tp.cast(T, default)
 
         optional, found = self.find_by_type(typ, data=data)
 
@@ -301,7 +301,7 @@ class Meta:
             raise errors.MultipleNamesForType(want=typ, found=sorted(found))
 
         if default is not inspect._empty:
-            return default
+            return tp.cast(T, default)
 
         raise errors.NoDataByTypeName(
             want=typ,

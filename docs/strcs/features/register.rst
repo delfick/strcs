@@ -42,7 +42,7 @@ signature:
 
 
     @creator(MyKls)
-    def create_mykls(val: tp.Any, /, _register: strcs.CreateRegister):
+    def create_mykls(value: object, /, _register: strcs.CreateRegister) -> bool:
         assert _register is reg
         return True
     

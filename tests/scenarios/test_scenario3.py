@@ -18,8 +18,10 @@ class MultiplicationAnnotation(strcs.MergedAnnotation):
     multiply_by: int
 
 
-def change(val: float, /, addition: int = 0, multiply_by: int = 1) -> strcs.ConvertResponse:
-    return float((val + addition) * multiply_by)
+def change(value: object, /, addition: int = 0, multiply_by: int = 1) -> None | float:
+    if not isinstance(value, (float, int)):
+        return None
+    return float((value + addition) * multiply_by)
 
 
 @define
@@ -37,8 +39,10 @@ class Things:
 
 
 @creator(Thing)
-def create_thing(val: float) -> strcs.ConvertResponse[Thing]:
-    return {"base": val, "raised": val + 0.1, "elevated": val + 0.2}
+def create_thing(value: object) -> None | dict:
+    if not isinstance(value, (int, float)):
+        return None
+    return {"base": value, "raised": value + 0.1, "elevated": value + 0.2}
 
 
 describe "modifying non attrs objects":
