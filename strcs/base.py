@@ -2,7 +2,6 @@ from .meta import Meta, extract_type
 from .hints import resolve_types
 from . import errors
 
-from cattrs.errors import IterableValidationError
 from attrs import define
 import typing as tp
 import inspect
@@ -430,11 +429,8 @@ class _CreateStructureHook:
     def bypass(self, value: tp.Any, want: tp.Type[T]) -> T:
         self.do_check = False
         self.converter._structure_func.dispatch.cache_clear()
-        try:
-            value = filldict(self.converter, self.register, value, want)
-            return self.converter.structure(value, want)
-        except IterableValidationError as e:
-            raise errors.FailedToConvertIterable(message=e.message, exceptions=list(e.exceptions))
+        value = filldict(self.converter, self.register, value, want)
+        return self.converter.structure(value, want)
 
 
 class _ArgsExtractor:
@@ -555,16 +551,37 @@ class CreatorDecorator(tp.Generic[T]):
         if self.assume_unchanged_converted and isinstance(value, want):
             return value
 
-        res = self._invoke_func(value, want, meta, converter, register)
+        try:
+            res = self._invoke_func(value, want, meta, converter, register)
+        except Exception as error:
+            raise errors.UnableToConvert(
+                converting=value,
+                into=want,
+                reason="Failed to invoke creator",
+                error=error,
+                creator=self.func,
+            )
 
         def deal(res: ConvertResponse[T], value: tp.Any) -> T:
             if inspect.isgenerator(res):
-                return self._process_generator(res, value, deal)
+                try:
+                    return self._process_generator(res, value, deal)
+                except errors.UnableToConvert:
+                    raise
+                except Exception as error:
+                    raise errors.UnableToConvert(
+                        converting=value,
+                        into=want,
+                        reason="Something went wrong in the creator generator",
+                        error=error,
+                        creator=self.func,
+                    )
             elif res is None:
                 raise errors.UnableToConvert(
                     converting=type(value),
                     into=want,
                     reason="Converter didn't return a value to use",
+                    creator=self.func,
                 )
             elif isinstance(res, want) or issubclass(type(res), self.typ):
                 return tp.cast(T, res)
@@ -574,10 +591,20 @@ class CreatorDecorator(tp.Generic[T]):
                         converting=value,
                         into=want,
                         reason="Told to use NotSpecified as the final value",
+                        creator=self.func,
                     )
                 return tp.cast(T, value)
             else:
-                return fromdict(converter, self.register, res, want)
+                try:
+                    return fromdict(converter, self.register, res, want)
+                except Exception as error:
+                    raise errors.UnableToConvert(
+                        converting=value,
+                        into=want,
+                        reason="Failed to create",
+                        error=error,
+                        creator=self.func,
+                    )
 
         return deal(res, value)
 

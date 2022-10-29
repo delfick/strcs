@@ -3,6 +3,11 @@
 Changelog
 ---------
 
+.. _release-0.1.3:
+
+0.1.3 - TBD
+   * Improved error messages from creators failing
+
 .. _release-0.1.2:
 
 0.1.2 - 29 October 2022

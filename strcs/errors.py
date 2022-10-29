@@ -1,5 +1,7 @@
+from textwrap import dedent
 from attrs import define
 import typing as tp
+import inspect
 
 
 @define
@@ -15,9 +17,55 @@ class NoCreatorFound(StructuresError):
 
 @define
 class UnableToConvert(StructuresError):
+    creator: tp.Callable
     converting: tp.Type
     into: tp.Type
     reason: str
+    error: None | Exception = None
+
+    def __str__(self) -> str:
+        return (
+            "\n\n |>> "
+            + (
+                self.reason
+                if self.error is None or not isinstance(self.error, UnableToConvert)
+                else ""
+            )
+            + (
+                "\n"
+                if self.error is None or isinstance(self.error, UnableToConvert)
+                else f": {self.error}\n | \n"
+            )
+            + "\n".join(
+                f" |   {line}"
+                for line in dedent(
+                    f"""
+        Trying to convert '{self.converting}' into '{self.into}'
+
+        Using creator '{self.creator}'{self.creator_location}
+        """
+                )
+                .strip()
+                .split("\n")
+            )
+        )
+
+    @property
+    def creator_location(self) -> str:
+        try:
+            source_file = inspect.getsourcefile(self.creator)
+        except:
+            source_file = None
+
+        if source_file is None:
+            return ""
+
+        try:
+            line_numbers = inspect.getsourcelines(self.creator)
+        except:
+            return f" at {source_file}"
+        else:
+            return f" at {source_file}:{line_numbers[1]}"
 
 
 @define
@@ -49,9 +97,3 @@ class CanOnlyRegisterTypes(StructuresError):
 class FoundWithWrongType(StructuresError):
     want: tp.Type
     patterns: list[str]
-
-
-@define
-class FailedToConvertIterable(StructuresError):
-    message: str
-    exceptions: list[Exception]

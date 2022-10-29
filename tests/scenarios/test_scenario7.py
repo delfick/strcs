@@ -1,7 +1,6 @@
 # coding: spec
 
 from attrs import define
-import cattrs.errors
 import typing as tp
 import pytest
 import strcs
@@ -49,8 +48,8 @@ describe "Fails to create if the types are strings":
 
     it "doesn't work until we resolve types":
         with pytest.raises(
-            cattrs.errors.StructureHandlerNotFoundError,
-            match="Unsupported type: 'Other'. Register a structure hook for it.",
+            strcs.errors.UnableToConvert,
+            match="Unsupported type: 'Other'. Register a structure hook for it.+",
         ):
             reg.create(Other, 3)
 
