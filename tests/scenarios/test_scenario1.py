@@ -18,7 +18,7 @@ class Project:
 class Detail:
     project: Project
     key: str
-    value: tp.Any
+    value: object
 
 
 @define

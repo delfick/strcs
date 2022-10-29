@@ -316,6 +316,7 @@ class _CreateStructureHook:
 
         ann, want = hooks._interpret_annotation(typ)
 
+        converter.register_structure_hook_func(lambda t: t is object, lambda o, _: o)
         converter.register_structure_hook_func(hooks.switch_check, hooks.convert)
 
         try:
