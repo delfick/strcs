@@ -5,8 +5,9 @@ Changelog
 
 .. _release-0.2.0:
 
-0.2.0 - TBD
+0.2.0 - 30 October 2022
    * Renamed toggle for auto resolution of string annotations
+   * Fixed structuring object as a type
 
 .. _release-0.1.3:
 
