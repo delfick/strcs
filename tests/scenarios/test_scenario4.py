@@ -26,7 +26,7 @@ class Images:
 
 
 @creator(Images)
-def create_images(value: object, /, excluded: tp.Optional[list[str]]) -> None | dict:
+def create_images(value: object, /, excluded: None | list[str]) -> None | dict:
     if isinstance(value, dict):
         if excluded is None:
             excluded = []

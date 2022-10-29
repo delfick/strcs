@@ -53,7 +53,7 @@ def create_itself(value: object, want: type, /, _register: strcs.CreateRegister)
 
 @creator(Thing)
 def create_thing(
-    value: list[int], want: tp.Type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
+    value: list[int], want: type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
 ) -> Thing:
     """Production quality would ensure value is indeed a list with two integers!!"""
     return _register.create(

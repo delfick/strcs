@@ -91,7 +91,7 @@ Here is a contrived example that shows a couple features. Read the
 
     @creator(Images)
     def create_images(
-        value: object, list[str]], /, excluded: tp.Optional[list[str]]
+        value: object, list[str]], /, excluded: None | list[str]
     ) -> None | dict
         """
         Please note that type annotations are not runtime constraints in python

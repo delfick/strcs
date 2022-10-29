@@ -19,8 +19,8 @@ an object it uses to modify the meta and/or creator:
 
     @define(frozen=True)
     class MathsAnnotation(strcs.MergedAnnotation):
-        addition: tp.Optional[int] = None
-        multiplication: tp.Optional[int] = None
+        addition: None | int = None
+        multiplication: None | int = None
 
 
     def do_maths(value: int, /, addition: int = 0, multiplication: int = 1) -> int:
@@ -124,8 +124,8 @@ strategy may be provided by implementing ``adjusted_meta`` on the ``Annotation``
 
         @define(frozen=True)
         class MyAnnotation(strcs.MergedAnnotation):
-            one: tp.Optional[int] = None
-            two: tp.Optional[int] = None
+            one: None | int = None
+            two: None | int = None
 
         @creator(MyKls)
         def create_mykls(value: object, /, one: int = 0, two: int = 0) -> None | dict:

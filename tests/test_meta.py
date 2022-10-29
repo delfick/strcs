@@ -50,7 +50,7 @@ describe "extract_type":
     it "can return the embedded type and that it is optional when is optional":
         assert extract_type(tp.Optional[list[str]]) == (True, list)
         assert extract_type(tp.Optional[dict[str, bool]]) == (True, dict)
-        assert extract_type(tp.Optional[str | bool]) == (True, str | bool)
+        assert extract_type(None | str | bool) == (True, str | bool)
 
         T = tp.TypeVar("T")
         assert extract_type(tp.Optional[T]) == (True, T)

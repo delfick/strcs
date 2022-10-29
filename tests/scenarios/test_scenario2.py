@@ -45,7 +45,7 @@ def create_number(value: object, /, ann: NumberAnnotation) -> None | dict:
 
 
 @creator(Sentence)
-def create_sentence(value: object, /, prefix: tp.Optional[str]) -> None | dict:
+def create_sentence(value: object, /, prefix: None | str) -> None | dict:
     if not isinstance(value, str):
         value = ""
     return {"val": (prefix or "") + value}

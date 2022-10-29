@@ -4,7 +4,6 @@ from strcs.base import _ArgsExtractor
 import strcs
 
 from unittest import mock
-import typing as tp
 import inspect
 import cattrs
 import pytest
@@ -93,7 +92,7 @@ describe "_ArgsExtractor":
 
     it "can get want from the second positional argument", meta: strcs.Meta:
 
-        def func(value: object, want: tp.Type, /):
+        def func(value: object, want: type, /):
             ...
 
         val = mock.Mock(name="val")
@@ -116,7 +115,7 @@ describe "_ArgsExtractor":
 
         o = Other()
 
-        def func(value: object, want: tp.Type, /, other: Other, blah: int, stuff: str):
+        def func(value: object, want: type, /, other: Other, blah: int, stuff: str):
             ...
 
         val = mock.Mock(name="val")
@@ -233,7 +232,7 @@ describe "_ArgsExtractor":
 
         o = Other()
 
-        def func(value: object, want: tp.Type, /, other, blah, stuff):
+        def func(value: object, want: type, /, other, blah, stuff):
             ...
 
         val = mock.Mock(name="val")

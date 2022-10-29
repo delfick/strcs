@@ -202,17 +202,17 @@ class Meta:
 
     def __init__(
         self,
-        data: tp.Optional[dict[str, object]] = None,
-        converter: tp.Optional[cattrs.Converter] = None,
+        data: None | dict[str, object] = None,
+        converter: None | cattrs.Converter = None,
     ):
         self.converter = converter or cattrs.Converter()
         self.data = data if data is not None else {}
 
     def clone(
         self,
-        data_extra: tp.Optional[dict[str, object]] = None,
-        data_override: tp.Optional[dict[str, object]] = None,
-        converter: tp.Optional[cattrs.Converter] = None,
+        data_extra: None | dict[str, object] = None,
+        data_override: None | dict[str, object] = None,
+        converter: None | cattrs.Converter = None,
     ) -> "Meta":
         if converter is None:
             converter = self.converter
@@ -240,8 +240,8 @@ class Meta:
         self.data.update(data)
 
     def find_by_type(
-        self, typ: tp.Type[T], data: dict[str, object] | tp.Type[Empty] = Empty
-    ) -> tp.Tuple[bool, dict[str, T]]:
+        self, typ: type[T], data: dict[str, object] | type[Empty] = Empty
+    ) -> tuple[bool, dict[str, T]]:
         """
         Return (optional, found)
 
@@ -270,7 +270,7 @@ class Meta:
 
         return optional, available
 
-    def retrieve_patterns(self, typ: tp.Type[T], *patterns: str) -> dict[str, T]:
+    def retrieve_patterns(self, typ: type[T], *patterns: str) -> dict[str, T]:
         """
         Retrieve a dictionary of key to value for this patterns restrictions.
         """
@@ -281,7 +281,7 @@ class Meta:
         _, found = self.find_by_type(typ, data=data)
         return found
 
-    def retrieve_one(self, typ: tp.Type[T], *patterns: str, default: object = inspect._empty) -> T:
+    def retrieve_one(self, typ: type[T], *patterns: str, default: object = inspect._empty) -> T:
         """
         Retrieve a single value for this type and patterns restrictions
 

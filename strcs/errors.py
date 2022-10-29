@@ -13,15 +13,15 @@ class StructuresError(Exception):
 
 @define
 class NoCreatorFound(StructuresError):
-    want: tp.Type
-    available: list[tp.Type]
+    want: type
+    available: list[type]
 
 
 @define
 class UnableToConvert(StructuresError):
     creator: tp.Callable
     converting: object
-    into: tp.Type
+    into: type
     reason: str
     error: None | Exception = None
 
@@ -82,9 +82,9 @@ class UnableToConvert(StructuresError):
 
 @define
 class NoDataByTypeName(StructuresError):
-    want: tp.Type
+    want: type
     patterns: list[str]
-    available: dict[str, tp.Type]
+    available: dict[str, type]
 
 
 @define
@@ -96,7 +96,7 @@ class RequiredParam(StructuresError):
 
 @define
 class MultipleNamesForType(StructuresError):
-    want: tp.Type
+    want: type
     found: list[str]
 
 
@@ -107,5 +107,5 @@ class CanOnlyRegisterTypes(StructuresError):
 
 @define
 class FoundWithWrongType(StructuresError):
-    want: tp.Type
+    want: type
     patterns: list[str]

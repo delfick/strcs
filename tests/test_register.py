@@ -96,7 +96,7 @@ describe "Register":
         assert creg.register == {Thing: converter}
 
         with pytest.raises(strcs.errors.CanOnlyRegisterTypes):
-            creg[tp.cast(tp.Type, Thing())] = mock.Mock(name="nup")
+            creg[tp.cast(type, Thing())] = mock.Mock(name="nup")
 
     describe "can use the converters":
         it "works on anything", creg: strcs.CreateRegister:
@@ -297,11 +297,11 @@ describe "Register":
                 pass
 
             assert Thing not in creg
-            assert tp.cast(tp.Type, Thing()) not in creg
+            assert tp.cast(type, Thing()) not in creg
 
             creg[Thing] = tp.cast(strcs.ConvertFunction, mock.Mock(name="creator"))
             assert Thing in creg
-            assert tp.cast(tp.Type, Thing()) not in creg
+            assert tp.cast(type, Thing()) not in creg
 
 describe "Creators":
     it "stores the type and the register", creator: strcs.Creator, creg: strcs.CreateRegister:
@@ -402,7 +402,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing, assume_unchanged_converted=False)
-            def make(value: object, want: tp.Type, /) -> Thing:
+            def make(value: object, want: type, /) -> Thing:
                 called.append((value, want))
                 return thing
 
@@ -445,7 +445,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing)
-            def make(value: object, want: tp.Type, /, number: int, specific: Thing) -> Thing:
+            def make(value: object, want: type, /, number: int, specific: Thing) -> Thing:
                 called.append((value, want, number, specific))
                 return thing
 
@@ -560,7 +560,7 @@ describe "Creators":
             @define(frozen=True)
             class Annotation(strcs.MergedAnnotation):
                 one: int = 3
-                two: tp.Optional[str] = None
+                two: None | str = None
 
             @define
             class Thing:
@@ -611,9 +611,9 @@ describe "Creators":
 
             @define(frozen=True)
             class LottoAnnotation(strcs.Annotation):
-                numbers: tp.Tuple[int, int, int, int, int]
+                numbers: tuple[int, int, int, int, int]
 
-                def adjusted_meta(self, meta: strcs.Meta, typ: tp.Type) -> strcs.Meta:
+                def adjusted_meta(self, meta: strcs.Meta, typ: type) -> strcs.Meta:
                     return meta.clone({"powerball": self.numbers[-1], "numbers": self.numbers[:-1]})
 
             @define
@@ -630,7 +630,7 @@ describe "Creators":
                 results: tp.Annotated[list[Result], LottoAnnotation(numbers=(2, 6, 8, 10, 69))]
 
             @creator(Result)
-            def create_result(value: object, /, numbers: tp.Tuple, powerball: int) -> None | dict:
+            def create_result(value: object, /, numbers: tuple, powerball: int) -> None | dict:
                 if not isinstance(value, Ticket):
                     return None
                 return {"winner": value.numbers == list(numbers) and value.powerball == powerball}
@@ -936,7 +936,7 @@ describe "Creators":
 
             @creator(Things)
             def create_thing(
-                value: object, want: tp.Type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
+                value: object, want: type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
             ) -> None | Things:
                 if not isinstance(value, int):
                     return None
@@ -969,7 +969,7 @@ describe "Creators":
 
             @creator(Thing)
             def create_thing(
-                value: object, want: tp.Type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
+                value: object, want: type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
             ) -> None | Thing:
                 if not isinstance(value, int):
                     return None
