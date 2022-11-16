@@ -400,7 +400,7 @@ describe "Meta":
             with pytest.raises(strcs.errors.MultipleNamesForType):
                 meta.retrieve_one(int)
 
-        it "can get the one value based on patterns too":
+        def test_it_can_get_the_one_value_based_on_patterns_too(self) -> None:
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
@@ -413,7 +413,7 @@ describe "Meta":
             blah = Blah()
 
             class Thing:
-                e: Blah = blah
+                e: tp.ClassVar[Blah] = blah
 
             meta["d"] = Thing()
 

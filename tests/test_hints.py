@@ -41,8 +41,8 @@ describe "resolve_types":
 
     def assertWorks(
         self,
-        decorator: None | tp.Callable[type, type],
-        get_fields: tp.Callable[object, tp.Iterable[IsField]],
+        decorator: None | tp.Callable[[type], type],
+        get_fields: tp.Callable[[object], tp.Iterable[IsField]],
     ) -> None:
         class One:
             one: "int"

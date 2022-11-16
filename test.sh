@@ -1,2 +1,7 @@
 #!/bin/bash
-pytest -q $@
+
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+
+exec ./tools/venv tests "$@"

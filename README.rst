@@ -14,10 +14,13 @@ Documentation at https://strcs.readthedocs.io/
 Development
 -----------
 
-To run tests, install the code in a virtualenv and use the provided helper::
+To have a virtualenv that has everything needed in it::
+    
+    > source run.sh activate
 
-    > mkdir -p ~/.virtualenvs
-    > python -m venv ~/.virtualenvs/strcs
-    > source ~/.virtualenvs/strcs
-    > python -m pip install -e ".[tests]"
+To run tests, linting, formatting, type checking::
+
     > ./test.sh
+    > ./lint
+    > ./format
+    > ./types

@@ -1,16 +1,17 @@
 [tool.black]
 line-length = 100
-include = '\.py$'
+include = '(\.py|^venv)$'
 exclude = '''
 /(
      \.git
    | \.tox
    | dist
-   | tools
+   | tools/\.python
+   | docs/_build
+   | build
 )/
 '''
 
 [tool.mypy]
 plugins = 'noseOfYeti.plugins.mypy'
 ignore_missing_imports = true
-exclude = 'tools'
