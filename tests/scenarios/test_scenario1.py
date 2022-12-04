@@ -27,7 +27,7 @@ class Projects:
 
 
 @creator(Projects)
-def create_projects(value: object) -> None | dict:
+def create_projects(value: object) -> dict | None:
     if isinstance(value, list):
         return {"projects": value}
     elif isinstance(value, dict) and "projects" in value:
@@ -59,7 +59,7 @@ def create_project(
 
 
 @creator(Detail)
-def create_detail(value: object, /, project: Project) -> None | dict:
+def create_detail(value: object, /, project: Project) -> dict | None:
     if not isinstance(value, dict):
         return None
 

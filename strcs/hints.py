@@ -66,8 +66,8 @@ class WithClassGetItem(tp.Protocol[C]):
 
 def resolve_type(
     typ: object,
-    globalns: None | dict[str, object] = None,
-    localns: None | dict[str, object] = None,
+    globalns: dict[str, object] | None = None,
+    localns: dict[str, object] | None = None,
 ) -> object:
     origin = tp.get_origin(typ)
 
@@ -133,8 +133,8 @@ class FromFields(AnnotationUpdater):
 
 def resolve_types(
     cls: C,
-    globalns: None | dict[str, object] = None,
-    localns: None | dict[str, object] = None,
+    globalns: dict[str, object] | None = None,
+    localns: dict[str, object] | None = None,
 ) -> C:
     """
     Resolve any strings and forward annotations in type annotations.

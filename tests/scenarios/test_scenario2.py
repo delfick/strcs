@@ -38,14 +38,14 @@ class Overall:
 
 
 @creator(Number)
-def create_number(value: object, /, ann: NumberAnnotation) -> None | dict:
+def create_number(value: object, /, ann: NumberAnnotation) -> dict | None:
     if not isinstance(value, int):
         value = 0
     return {"val": value + ann.add}
 
 
 @creator(Sentence)
-def create_sentence(value: object, /, prefix: None | str) -> None | dict:
+def create_sentence(value: object, /, prefix: str | None) -> dict | None:
     if not isinstance(value, str):
         value = ""
     return {"val": (prefix or "") + value}

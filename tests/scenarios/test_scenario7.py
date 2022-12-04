@@ -23,12 +23,12 @@ class SubOther:
 
 @define
 class Other:
-    sub: None | SubOther
+    sub: SubOther | None
     val: int
 
 
 @creator(Other)
-def create_other(value: object, /, multiply: int = 1) -> None | dict:
+def create_other(value: object, /, multiply: int = 1) -> dict | None:
     if isinstance(value, dict):
         return {"val": value["val"] * multiply, "sub": value["sub"]}
 

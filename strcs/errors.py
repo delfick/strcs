@@ -23,7 +23,7 @@ class UnableToConvert(StructuresError):
     converting: object
     into: object
     reason: str
-    error: None | Exception = None
+    error: Exception | None = None
 
     def __str__(self) -> str:
         if isinstance(self.error, IterableValidationError):

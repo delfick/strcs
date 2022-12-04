@@ -158,7 +158,7 @@ def extract_type(typ: object) -> tuple[bool, object, type]:
     but tp.Annotated[list | None, "things"] would return (True, tp.Annotated[list, "things"], list)
     """
     original = typ
-    annotated: None | IsAnnotated = None
+    annotated: IsAnnotated | None = None
 
     if IsAnnotated.has(typ):
         annotated = typ
@@ -231,17 +231,17 @@ class Meta:
 
     def __init__(
         self,
-        data: None | dict[str, object] = None,
-        converter: None | cattrs.Converter = None,
+        data: dict[str, object] | None = None,
+        converter: cattrs.Converter | None = None,
     ):
         self.converter = converter or cattrs.Converter()
         self.data = data if data is not None else {}
 
     def clone(
         self,
-        data_extra: None | tp.Mapping[str, object] = None,
-        data_override: None | tp.Mapping[str, object] = None,
-        converter: None | cattrs.Converter = None,
+        data_extra: tp.Mapping[str, object] | None = None,
+        data_override: tp.Mapping[str, object] | None = None,
+        converter: cattrs.Converter | None = None,
     ) -> "Meta":
         if converter is None:
             converter = self.converter

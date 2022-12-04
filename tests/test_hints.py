@@ -42,14 +42,14 @@ describe "resolve_types":
 
     def assertWorks(
         self,
-        decorator: None | tp.Callable[[type], type],
+        decorator: tp.Callable[[type], type] | None,
         get_fields: tp.Callable[[type], tp.Iterable[IsField]],
     ) -> None:
         class One:
             one: "int"
             two: tp.Optional["str"]
             three: tp.Annotated[tp.Optional["str"], 32]
-            four: tp.Annotated[None | str, 32]
+            four: tp.Annotated[str | None, 32]
             five: tp.Annotated["Stuff", 32]
             six: dict[int, "Stuff"]
             seven: tp.Annotated[dict[int, "Stuff"], 32]
@@ -58,8 +58,8 @@ describe "resolve_types":
             ten: list["Stuff"]
             eleven: tp.List["Stuff"]
             twelve: dict["Stuff", list[tuple["Stuff", "Stuff"]]]
-            thirteen: None | dict["Stuff", list[tuple["Stuff", "Stuff"]]]
-            fourteen: tp.Annotated[None | dict["Stuff", list[tuple["Stuff", "Stuff"]]], 56]
+            thirteen: dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None
+            fourteen: tp.Annotated[dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None, 56]
 
         if decorator:
             decorated_One = decorator(One)

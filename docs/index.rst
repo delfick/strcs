@@ -91,8 +91,8 @@ Here is a contrived example that shows a couple features. Read the
 
     @creator(Images)
     def create_images(
-        value: object, list[str]], /, excluded: None | list[str]
-    ) -> None | dict
+        value: object, list[str]], /, excluded:  list[str] | None
+    ) ->  dict | None
         """
         Please note that type annotations are not runtime constraints in python
         and there is no guarantee that what is passed in is a dictionary of str

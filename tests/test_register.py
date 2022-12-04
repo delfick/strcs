@@ -338,7 +338,7 @@ describe "Creators":
         class Info(strcs.MergedAnnotation):
             multiple: int
 
-        def multiply(value: object, /, multiple: int) -> None | int:
+        def multiply(value: object, /, multiple: int) -> int | None:
             if not isinstance(value, int):
                 return None
             return value * multiple
@@ -515,7 +515,7 @@ describe "Creators":
             @creator(Sentence)
             def create_sentence(
                 value: object, /, ann: SentenceAnnotation, suffix: str
-            ) -> None | dict:
+            ) -> dict | None:
                 if not isinstance(value, str):
                     return None
                 return {"sentence": ann.prefix + value + suffix}
@@ -560,14 +560,14 @@ describe "Creators":
             @define(frozen=True)
             class Annotation(strcs.MergedAnnotation):
                 one: int = 3
-                two: None | str = None
+                two: str | None = None
 
             @define
             class Thing:
                 val: str
 
             @creator(Thing)
-            def create_thing(value: object, /, one: int = 0, two: str = "asdf") -> None | dict:
+            def create_thing(value: object, /, one: int = 0, two: str = "asdf") -> dict | None:
                 if not isinstance(value, str):
                     return None
                 return {"val": f"{value}|{one}|{two}"}
@@ -595,7 +595,7 @@ describe "Creators":
                 things: list[Thing]
 
             @creator(Thing)
-            def create_thing(value: object) -> None | dict:
+            def create_thing(value: object) -> dict | None:
                 if not isinstance(value, int):
                     return None
                 counts["upto"] += 1
@@ -630,7 +630,7 @@ describe "Creators":
                 results: tp.Annotated[list[Result], LottoAnnotation(numbers=(2, 6, 8, 10, 69))]
 
             @creator(Result)
-            def create_result(value: object, /, numbers: tuple, powerball: int) -> None | dict:
+            def create_result(value: object, /, numbers: tuple, powerball: int) -> dict | None:
                 if not isinstance(value, Ticket):
                     return None
                 return {"winner": value.numbers == list(numbers) and value.powerball == powerball}
@@ -661,7 +661,7 @@ describe "Creators":
                 val: int
 
             @creator(Thing)
-            def create_thing(value: object) -> None | dict:
+            def create_thing(value: object) -> dict | None:
                 if not isinstance(value, int):
                     return None
                 return {"val": value * 2}
@@ -689,12 +689,12 @@ describe "Creators":
                 val: int
 
             @creator(Thing)
-            def create_thing(value: object) -> None | dict:
+            def create_thing(value: object) -> dict | None:
                 if not isinstance(value, int):
                     return None
                 return {"val": value * 2}
 
-            def other_creator(value: object, /, add: int) -> None | dict:
+            def other_creator(value: object, /, add: int) -> dict | None:
                 if not isinstance(value, int):
                     return None
                 return {"val": value + add}
@@ -798,7 +798,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing)
-            def make(thing: object) -> None | Thing | dict:
+            def make(thing: object) -> Thing | dict | None:
                 called.append(1)
                 if not isinstance(thing, (Thing, dict)):
                     return None
@@ -937,7 +937,7 @@ describe "Creators":
             @creator(Things)
             def create_thing(
                 value: object, want: type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
-            ) -> None | Things:
+            ) -> Things | None:
                 if not isinstance(value, int):
                     return None
                 return _register.create(
@@ -970,7 +970,7 @@ describe "Creators":
             @creator(Thing)
             def create_thing(
                 value: object, want: type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
-            ) -> None | Thing:
+            ) -> Thing | None:
                 if not isinstance(value, int):
                     return None
                 return _register.create(
@@ -1121,7 +1121,7 @@ describe "Creators":
                 @creator(Thing)
                 def make(
                     value: object,
-                ) -> tp.Generator[None | dict | Thing | type[strcs.NotSpecified], Thing, None]:
+                ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified] | None, Thing, None]:
                     made = yield {"one": 0}
                     assert isinstance(made, Thing)
                     assert made.one == 0

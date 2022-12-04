@@ -34,7 +34,7 @@ class Thing:
 
 
 @creator(Other)
-def create_other(value: object, /, _register: strcs.CreateRegister) -> None | dict:
+def create_other(value: object, /, _register: strcs.CreateRegister) -> dict | None:
     if value is not strcs.NotSpecified:
         return None
 
@@ -44,7 +44,7 @@ def create_other(value: object, /, _register: strcs.CreateRegister) -> None | di
 
 
 @creator(Itself)
-def create_itself(value: object, want: type, /, _register: strcs.CreateRegister) -> None | Itself:
+def create_itself(value: object, want: type, /, _register: strcs.CreateRegister) -> Itself | None:
     if not isinstance(value, int):
         return None
 

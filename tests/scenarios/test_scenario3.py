@@ -18,7 +18,7 @@ class MultiplicationAnnotation(strcs.MergedAnnotation):
     multiply_by: int
 
 
-def change(value: object, /, addition: int = 0, multiply_by: int = 1) -> None | float:
+def change(value: object, /, addition: int = 0, multiply_by: int = 1) -> float | None:
     if not isinstance(value, (float, int)):
         return None
     return float((value + addition) * multiply_by)
@@ -39,7 +39,7 @@ class Things:
 
 
 @creator(Thing)
-def create_thing(value: object) -> None | dict:
+def create_thing(value: object) -> dict | None:
     if not isinstance(value, (int, float)):
         return None
     return {"base": value, "raised": value + 0.1, "elevated": value + 0.2}

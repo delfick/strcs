@@ -24,7 +24,7 @@ For example:
 
 
     @creator(Thing)
-    def create_thing(value: object, /) -> None | dict:
+    def create_thing(value: object, /) -> dict | None:
         if not isinstance(value, int):
             return None
         return {"one": value}
@@ -133,7 +133,7 @@ converter being used, and the register being used:
     @creator(Thing)
     def create_thing(
         value: object, /, _meta: strcs.Meta, _converter: cattrs.Converter, _register: strcs.CreateRegister
-    ) -> None | dict:
+    ) -> dict | None:
         if not isinstance(value, dict):
             return None
         assert _meta is meta
@@ -210,7 +210,7 @@ argument in the creator so that an infinite loop may be avoided.
     @creator(Thing)
     def create_thing(
         value: object, want: type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
-    ) -> None | Thing:
+    ) -> Thing | None:
         if not (isinstance(value, list) and len(value) == 2 and all(isinstance(v, int) for v in value)):
             return None
 

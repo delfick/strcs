@@ -80,7 +80,7 @@ A developer may manually do this resolution using ``strcs.resolve_types``:
 
     @define
     class Other:
-        thing: None | Thing
+        thing: Thing | None
 
 
     strcs.resolve_types(Thing)
@@ -111,7 +111,7 @@ situation where types are already available at definition:
     @strcs.resolve_types
     @define
     class Other:
-        thing: None | Thing
+        thing: Thing | None
 
 
     strcs.resolve_types(Thing)

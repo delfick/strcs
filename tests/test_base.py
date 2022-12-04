@@ -23,7 +23,7 @@ class IsRegister:
         skip_creator: strcs.ConvertDefinition,
     ):
         self.reg = reg
-        self.got: None | object = None
+        self.got: object | None = None
         self.last_type = last_type
         self.last_meta = last_meta
         self.skip_creator = skip_creator

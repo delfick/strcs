@@ -19,8 +19,8 @@ an object it uses to modify the meta and/or creator:
 
     @define(frozen=True)
     class MathsAnnotation(strcs.MergedAnnotation):
-        addition: None | int = None
-        multiplication: None | int = None
+        addition: int | None = None
+        multiplication: int | None = None
 
 
     def do_maths(value: int, /, addition: int = 0, multiplication: int = 1) -> int:
@@ -40,7 +40,7 @@ an object it uses to modify the meta and/or creator:
 
 
     @creator(Thing)
-    def create_thing(value: object) -> None | dict:
+    def create_thing(value: object) -> dict | None:
         if not isinstance(value, int):
             return None
         return {"val": value}
@@ -96,7 +96,7 @@ strategy may be provided by implementing ``adjusted_meta`` on the ``Annotation``
             two: int
 
         @creator(MyKls)
-        def create_mykls(value: object, /, annotation: MyAnnotation) -> None | dict:
+        def create_mykls(value: object, /, annotation: MyAnnotation) -> dict | None:
             if not isinstance(value, str):
                 return None
             return {"key": f"{value}-{annotation.one}-{annotation.two}"}
@@ -113,7 +113,7 @@ strategy may be provided by implementing ``adjusted_meta`` on the ``Annotation``
             two: int
 
         @creator(MyKls)
-        def create_mykls(value: object, /, one: int = 0, two: int = 0) -> None | dict:
+        def create_mykls(value: object, /, one: int = 0, two: int = 0) -> dict | None:
             if not isinstance(value, str):
                 return None
             return {"key": f"{value}-{one}-{two}"}
@@ -124,11 +124,11 @@ strategy may be provided by implementing ``adjusted_meta`` on the ``Annotation``
 
         @define(frozen=True)
         class MyAnnotation(strcs.MergedAnnotation):
-            one: None | int = None
-            two: None | int = None
+            one: int | None = None
+            two: int | None = None
 
         @creator(MyKls)
-        def create_mykls(value: object, /, one: int = 0, two: int = 0) -> None | dict:
+        def create_mykls(value: object, /, one: int = 0, two: int = 0) -> dict | None:
             if not isinstance(value, str):
                 return None
             # one and two will be zero each instead of None when MyKls
