@@ -139,48 +139,77 @@ class IsAnnotated(tp.Protocol):
         return tp.get_origin(typ) is tp.Annotated and hasattr(typ, "__args__")
 
 
-def extract_type(typ: type[T]) -> tuple[bool, type[U | T]]:
+def extract_type(typ: object) -> tuple[bool, object, type]:
     """
-    Given some type, return a tuple of (optional, type)
+    Given some type, return a tuple of (optional, type_or_annotated, type)
 
-    So str would return (False, str)
+    So str would return (False, str, str)
 
-    whereas tp.Optional[str] would return (True, str)
+    list[str] would return (False, list[str], list)
 
-    and str | bool would return (False, str | bool)
+    whereas tp.Optional[str] would return (True, str, str)
 
-    but tp.Optional[str | bool] would return (True, str | bool)
+    and str | bool would return (False, str | bool, str | bool)
+
+    but tp.Optional[str | bool] would return (True, str | bool, str | bool)
+
+    And tp.Annotated[list, "things"] would return (False, tp.Annotated[list, "things"], list)
+
+    but tp.Annotated[list | None, "things"] would return (True, tp.Annotated[list, "things"], list)
     """
+    original = typ
     annotated: None | IsAnnotated = None
 
     if IsAnnotated.has(typ):
         annotated = typ
         typ = typ.__args__[0]
 
-    def origin_or_type(typ: type[T]) -> type[T]:
+    def origin_or_type(typ: object) -> object:
         orig = tp.get_origin(typ)
-        if not isinstance(orig, type) or orig in (None, types.UnionType, tp.Union, tp.Annotated):
+        if not isinstance(orig, type) or orig in (None, types.UnionType, tp.Union):
             return typ
         else:
             return orig
 
     optional = False
+    extracted = typ
     if tp.get_origin(typ) in (types.UnionType, tp.Union):
         if type(None) in tp.get_args(typ):
             optional = True
 
             remaining = tuple(a for a in tp.get_args(typ) if a not in (types.NoneType,))
             if len(remaining) == 1:
-                typ = origin_or_type(remaining[0])
+                extracted = remaining[0]
+                typ = origin_or_type(extracted)
             else:
                 typ = functools.reduce(operator.or_, remaining)
+                extracted = typ
     else:
         typ = origin_or_type(typ)
 
-    if annotated is None:
-        return optional, typ
-    else:
-        return optional, annotated.copy_with((typ,))
+    class InstanceCheckMeta(type):
+        def __repr__(self) -> str:
+            return repr(typ)
+
+        def __instancecheck__(self, obj: object) -> bool:
+            return isinstance(obj, typ)  # type:ignore
+
+        def __eq__(self, o: object) -> bool:
+            return o == typ
+
+    ret: object = extracted
+    if annotated is not None:
+        ret = annotated.copy_with((extracted,))
+
+    class InstanceCheck(metaclass=InstanceCheckMeta):
+        _typ = typ
+        _original = original
+        _optional = optional
+        _returning = ret
+        __args__ = getattr(typ, "__args__", None)
+        __origin__ = getattr(typ, "__args__", None)
+
+    return optional, ret, InstanceCheck
 
 
 class Meta:
@@ -256,10 +285,10 @@ class Meta:
         if typ is object:
             return False, tp.cast(dict[str, T], data)
 
-        optional, typ = extract_type(typ)
-        available = {n: v for n, v in data.items() if isinstance(v, typ)}
+        optional, _, typ = extract_type(typ)
+        available: dict[str, object] = {n: v for n, v in data.items() if isinstance(v, typ)}
 
-        remove_bools = typ is int
+        remove_bools = typ == int
         ags = getattr(typ, "__args__", None)
         if ags:
             if int in ags and bool not in ags:

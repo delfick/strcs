@@ -153,7 +153,7 @@ class Ann(_Ann[T]):
             clone = meta.clone()
             for field in attrs.fields(self.meta.__class__):
                 if not field.name.startswith("_"):
-                    optional, _ = extract_type(field.type)
+                    optional, _, _ = extract_type(field.type)
                     val = getattr(self.meta, field.name)
                     if not optional or val is not None:
                         clone[field.name] = val
