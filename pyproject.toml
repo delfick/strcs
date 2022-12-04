@@ -15,3 +15,4 @@ exclude = '''
 [tool.mypy]
 plugins = 'noseOfYeti.plugins.mypy'
 ignore_missing_imports = true
+show_column_numbers = true

@@ -135,7 +135,7 @@ class IsAnnotated(tp.Protocol):
         ...
 
     @classmethod
-    def has(self, typ: type) -> tp.TypeGuard["IsAnnotated"]:
+    def has(self, typ: object) -> tp.TypeGuard["IsAnnotated"]:
         return tp.get_origin(typ) is tp.Annotated and hasattr(typ, "__args__")
 
 
@@ -239,8 +239,8 @@ class Meta:
 
     def clone(
         self,
-        data_extra: None | dict[str, object] = None,
-        data_override: None | dict[str, object] = None,
+        data_extra: None | tp.Mapping[str, object] = None,
+        data_override: None | tp.Mapping[str, object] = None,
         converter: None | cattrs.Converter = None,
     ) -> "Meta":
         if converter is None:
@@ -269,8 +269,8 @@ class Meta:
         self.data.update(data)
 
     def find_by_type(
-        self, typ: type[T], data: dict[str, object] | type[Empty] = Empty
-    ) -> tuple[bool, dict[str, T]]:
+        self, typ: object, data: tp.Mapping[str, object] | type[Empty] = Empty
+    ) -> tuple[bool, dict[str, object]]:
         """
         Return (optional, found)
 
@@ -283,7 +283,7 @@ class Meta:
         data = tp.cast(dict[str, object], data)
 
         if typ is object:
-            return False, tp.cast(dict[str, T], data)
+            return False, data
 
         optional, _, typ = extract_type(typ)
         available: dict[str, object] = {n: v for n, v in data.items() if isinstance(v, typ)}
@@ -299,7 +299,7 @@ class Meta:
 
         return optional, available
 
-    def retrieve_patterns(self, typ: type[T], *patterns: str) -> dict[str, T]:
+    def retrieve_patterns(self, typ: object, *patterns: str) -> dict[str, object]:
         """
         Retrieve a dictionary of key to value for this patterns restrictions.
         """
@@ -310,7 +310,29 @@ class Meta:
         _, found = self.find_by_type(typ, data=data)
         return found
 
-    def retrieve_one(self, typ: type[T], *patterns: str, default: object = inspect._empty) -> T:
+    @tp.overload
+    def retrieve_one(
+        self,
+        typ: type[T],
+        *patterns: str,
+        default: object = inspect._empty,
+        refined_type: None = None,
+    ) -> T:
+        ...
+
+    @tp.overload
+    def retrieve_one(
+        self, typ: object, *patterns: str, default: object = inspect._empty, refined_type: T
+    ) -> T:
+        ...
+
+    def retrieve_one(
+        self,
+        typ: type[T] | object,
+        *patterns: str,
+        default: object = inspect._empty,
+        refined_type: T | None = None,
+    ) -> object:
         """
         Retrieve a single value for this type and patterns restrictions
 

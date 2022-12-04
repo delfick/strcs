@@ -57,6 +57,7 @@ describe "Auto resolves types by default":
         assert isinstance(other, Other)
         assert isinstance(other.stuff, Stuff)
         assert other.val == 0
+        assert other.sub is not None
         assert isinstance(other.sub.stuff, Stuff)
         assert other.sub.other.val == 3
         assert other.sub.other.sub is None

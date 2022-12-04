@@ -58,6 +58,7 @@ describe "Fails to create if the types are strings":
         other = reg.create(Other, 3)
         assert isinstance(other, Other)
         assert other.val == 0
+        assert other.sub is not None
         assert other.sub.other.val == 3
         assert other.sub.other.sub is None
         assert other.sub.another.val == 6

@@ -23,8 +23,9 @@ class AnnotationField:
 
 describe "resolve_types":
     it "just returns the object if it's not an attrs/dataclass/class":
+        thing: object
         for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
-            assert strcs.resolve_types(thing) is thing
+            assert strcs.resolve_types(thing) is thing  # type: ignore
 
     it "works on normal classes":
 
@@ -42,7 +43,7 @@ describe "resolve_types":
     def assertWorks(
         self,
         decorator: None | tp.Callable[[type], type],
-        get_fields: tp.Callable[[object], tp.Iterable[IsField]],
+        get_fields: tp.Callable[[type], tp.Iterable[IsField]],
     ) -> None:
         class One:
             one: "int"

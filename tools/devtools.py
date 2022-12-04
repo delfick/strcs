@@ -17,7 +17,7 @@ here = Path(__file__).parent
 if platform.system() == "Windows":
     import mslex
 
-    shlex = mslex
+    shlex = mslex  # noqa
 
 
 class Command(tp.Protocol):

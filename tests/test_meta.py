@@ -385,7 +385,7 @@ describe "Meta":
             meta = Meta()
             meta["nup"] = "hello"
 
-            assert meta.retrieve_one(tp.Optional[int]) is None
+            assert meta.retrieve_one(tp.Optional[int], refined_type=int) is None
 
         it "can complain if there are 0 found values":
             meta = Meta()
