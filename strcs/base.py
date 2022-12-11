@@ -4,6 +4,7 @@ import typing as tp
 import attrs
 import cattrs
 from attrs import define
+from attrs import has as attrs_has
 
 from . import errors
 from .hints import resolve_types
@@ -66,7 +67,7 @@ def take_or_make(value: object, typ: type[T], /) -> ConvertResponse[T]:
 def filldict(
     converter: cattrs.Converter, register: "CreateRegister", res: object, want: type
 ) -> object:
-    if isinstance(res, dict) and hasattr(want, "__attrs_attrs__"):
+    if isinstance(res, dict) and attrs_has(want):
         for field in attrs.fields(want):
             if field.type is not None and field.name not in res:
                 if _CreateStructureHook(register, converter, field.type).check_func(field.type):
@@ -169,7 +170,7 @@ class Ann(_Ann[T]):
             return creator
 
         wrapped, _ = CreatorDecorator(
-            register, typ, assume_unchanged_converted=hasattr(typ, "__attrs_attrs__")
+            register, typ, assume_unchanged_converted=attrs_has(typ)
         ).wrap(self.creator)
 
         return wrapped
@@ -426,7 +427,7 @@ class _CreateStructureHook:
             self.cache[want] = creator
             return True
 
-        return bool(ann or self.once_only_creator or hasattr(want, "__attrs_attrs__"))
+        return bool(ann or self.once_only_creator or attrs_has(want))
 
     def bypass(self, value: object, want: type[T]) -> T:
         self.do_check = False
