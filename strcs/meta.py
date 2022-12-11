@@ -235,7 +235,7 @@ class Meta:
         data: dict[str, object] | None = None,
         converter: cattrs.Converter | None = None,
     ):
-        self.converter = converter or cattrs.Converter()
+        self.converter = converter or cattrs.GenConverter()
         self.data = data if data is not None else {}
 
     def clone(
