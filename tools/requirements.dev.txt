@@ -5,7 +5,7 @@ neovim==0.3.1
 tox==3.27.0
 python-language-server==0.36.2
 python-lsp-black==1.2.1
-pylsp-mypy==0.6.3
+pylsp-mypy==0.6.4
 tox-asdf==0.1.0
 mslex==0.3.0
 isort==5.11.4
