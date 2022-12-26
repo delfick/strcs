@@ -8,3 +8,5 @@ python-lsp-black==1.2.1
 pylsp-mypy==0.6.3
 tox-asdf==0.1.0
 mslex==0.3.0
+isort==5.11.4
+pyls-isort==0.2.2
