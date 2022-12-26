@@ -1,14 +1,15 @@
-from . import errors
-
-from collections.abc import Mapping
-from attrs import define
-import typing as tp
-import functools
-import operator
 import fnmatch
+import functools
 import inspect
-import cattrs
+import operator
 import types
+import typing as tp
+from collections.abc import Mapping
+
+import cattrs
+from attrs import define
+
+from . import errors
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")

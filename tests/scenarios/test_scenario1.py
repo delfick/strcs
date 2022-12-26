@@ -1,8 +1,10 @@
 # coding: spec
 
-from attrs import define, field
 import typing as tp
+
 import pytest
+from attrs import define, field
+
 import strcs
 
 reg = strcs.CreateRegister()

@@ -1,8 +1,12 @@
 # coding: spec
 
-from dataclasses import dataclass, fields as dataclass_fields
-from attrs import define, fields as attrs_fields
 import typing as tp
+from dataclasses import dataclass
+from dataclasses import fields as dataclass_fields
+
+from attrs import define
+from attrs import fields as attrs_fields
+
 import strcs
 
 

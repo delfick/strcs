@@ -1,9 +1,10 @@
-from cattrs.errors import IterableValidationError
-from textwrap import dedent
-from attrs import define
-import typing as tp
-import traceback
 import inspect
+import traceback
+import typing as tp
+from textwrap import dedent
+
+from attrs import define
+from cattrs.errors import IterableValidationError
 
 
 @define

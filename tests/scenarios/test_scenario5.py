@@ -1,9 +1,9 @@
 # coding: spec
 
-from attrs import define
 import cattrs
-import strcs
+from attrs import define
 
+import strcs
 
 reg = strcs.CreateRegister()
 creator = reg.make_decorator()

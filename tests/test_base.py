@@ -1,12 +1,13 @@
 # coding: spec
 
-from strcs.base import _ArgsExtractor
-import strcs
-
-from unittest import mock
 import inspect
+from unittest import mock
+
 import cattrs
 import pytest
+
+import strcs
+from strcs.base import _ArgsExtractor
 
 
 @pytest.fixture()

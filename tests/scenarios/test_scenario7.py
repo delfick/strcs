@@ -1,10 +1,11 @@
 # coding: spec
 
-from attrs import define
 import typing as tp
-import pytest
-import strcs
 
+import pytest
+from attrs import define
+
+import strcs
 
 reg = strcs.CreateRegister(auto_resolve_string_annotations=False)
 creator = reg.make_decorator()

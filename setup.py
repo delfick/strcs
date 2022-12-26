@@ -1,6 +1,6 @@
-from setuptools import setup
-
 import runpy
+
+from setuptools import setup
 
 VERSION = runpy.run_path("strcs/version.py")["VERSION"]
 

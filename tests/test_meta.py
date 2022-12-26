@@ -1,12 +1,13 @@
 # coding: spec
 
-from strcs.meta import extract_type, Narrower, Meta
-import strcs
-
-import typing as tp
 import secrets
-import pytest
+import typing as tp
+
 import cattrs
+import pytest
+
+import strcs
+from strcs.meta import Meta, Narrower, extract_type
 
 
 class IsConverter:

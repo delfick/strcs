@@ -1,10 +1,13 @@
-from dataclasses import is_dataclass, fields as dataclass_fields
-from attrs import fields as attrs_fields, has as is_attrs
-import typing as tp
 import functools
 import operator
-import types
 import sys
+import types
+import typing as tp
+from dataclasses import fields as dataclass_fields
+from dataclasses import is_dataclass
+
+from attrs import fields as attrs_fields
+from attrs import has as is_attrs
 
 T = tp.TypeVar("T")
 C = tp.TypeVar("C", bound=type)

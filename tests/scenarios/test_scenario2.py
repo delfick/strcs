@@ -1,7 +1,9 @@
 # coding: spec
 
-from attrs import define, asdict
 import typing as tp
+
+from attrs import asdict, define
+
 import strcs
 
 reg = strcs.CreateRegister()

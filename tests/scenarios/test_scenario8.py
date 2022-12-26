@@ -1,9 +1,10 @@
 # coding: spec
 
-from attrs import define
 import typing as tp
-import strcs
 
+from attrs import define
+
+import strcs
 
 reg = strcs.CreateRegister()
 creator = reg.make_decorator()

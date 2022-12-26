@@ -1,14 +1,15 @@
 # coding: spec
 
-from strcs.base import NotSpecifiedMeta, CreateArgs, Meta, ConvertDefinition
-import strcs
-
-from unittest import mock
-from attrs import define
-import typing as tp
 import secrets
+import typing as tp
+from unittest import mock
+
 import cattrs
 import pytest
+from attrs import define
+
+import strcs
+from strcs.base import ConvertDefinition, CreateArgs, Meta, NotSpecifiedMeta
 
 
 @pytest.fixture()
