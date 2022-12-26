@@ -29,7 +29,7 @@ describe "resolve_types":
     it "just returns the object if it's not an attrs/dataclass/class":
         thing: object
         for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
-            assert strcs.resolve_types(thing) is thing  # type: ignore
+            assert strcs.resolve_types(tp.cast(type, thing)) is thing
 
     it "works on normal classes":
 
