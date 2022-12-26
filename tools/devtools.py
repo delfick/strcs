@@ -37,7 +37,7 @@ def run(*args: str | Path, _env: None | dict[str, str] = None) -> None:
     print(f"Running '{cmd}'")
     ret = os.system(cmd)
     if ret != 0:
-        sys.exit(ret)
+        sys.exit(1)
 
 
 class App:
