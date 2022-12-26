@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
-import typing as tp
-import subprocess
-import shutil
-import runpy
 import glob
-import sys
 import os
+import runpy
+import shutil
+import subprocess
+import sys
+import typing as tp
+from pathlib import Path
 
 here = Path(__file__).parent
 manager = runpy.run_path(str(Path(__file__).parent / "bootstrap_venvstarter.py"))["manager"]
@@ -15,6 +15,7 @@ manager = runpy.run_path(str(Path(__file__).parent / "bootstrap_venvstarter.py")
 
 def run(venv_location: Path, args: tp.List[str]) -> tp.Union[None, str, tp.List[str]]:
     os.environ["NOSE_OF_YETI_BLACK_COMPAT"] = "true"
+    os.environ["NOSE_OF_YETI_IT_RETURN_TYPE"] = "true"
     devtools_location = Path(__file__).parent / "devtools.py"
     return ["python", str(devtools_location)]
 
@@ -32,6 +33,6 @@ manager.add_local_dep(
         "version.py",
     ),
     name="strcs=={version}",
-    with_tests=True
+    with_tests=True,
 )
 manager.run()
