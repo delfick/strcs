@@ -67,7 +67,7 @@ this by returning a dictionary that cattrs will then use to create the instance.
 
 
    @creator(T)
-   def creator(value: object, want: type[T], /) -> strcs.ConvertResponse:
+   def creator(value: object, want: strcs.Type[T], /) -> strcs.ConvertResponse:
        """
        The type being created may be a subclass of T and want will be that type
 
@@ -91,7 +91,7 @@ this by returning a dictionary that cattrs will then use to create the instance.
 
 
    @creator(T)
-   def creator(value: object, want: type[T], /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
+   def creator(value: object, want: strcs.Type[T], /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
        """
        The positional only slash means that val and want aren't taken from
        possible names from the meta
@@ -209,7 +209,7 @@ argument in the creator so that an infinite loop may be avoided.
 
     @creator(Thing)
     def create_thing(
-        value: object, want: type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
+        value: object, want: strcs.Type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
     ) -> Thing | None:
         if not (isinstance(value, list) and len(value) == 2 and all(isinstance(v, int) for v in value)):
             return None

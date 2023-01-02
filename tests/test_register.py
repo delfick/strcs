@@ -9,7 +9,6 @@ import pytest
 from attrs import define
 
 import strcs
-from strcs.base import ConvertDefinition, CreateArgs, Meta, NotSpecifiedMeta
 
 
 @pytest.fixture()
@@ -36,8 +35,8 @@ class IsMeta:
         return "<IsMeta?>"
 
     @classmethod
-    def test(kls) -> Meta:
-        return tp.cast(Meta, kls())
+    def test(kls) -> strcs.Meta:
+        return tp.cast(strcs.Meta, kls())
 
 
 class IsConverter:
@@ -78,26 +77,17 @@ describe "Register":
         assert Thing not in creg
         creg[Thing] = thing_maker
         assert Thing in creg
-        assert creg.register == {Thing: thing_maker}
+        assert creg.register == {strcs.Type.create(Thing): thing_maker}
 
         assert Stuff not in creg
         creg[Stuff] = stuff_maker
         assert Stuff in creg
         assert Thing in creg
 
-        assert creg.register == {Thing: thing_maker, Stuff: stuff_maker}
-
-    it "cannot register things that aren't types", creg: strcs.CreateRegister:
-
-        class Thing:
-            pass
-
-        converter = mock.Mock(name="converter")
-        creg[Thing] = converter
-        assert creg.register == {Thing: converter}
-
-        with pytest.raises(strcs.errors.CanOnlyRegisterTypes):
-            creg[tp.cast(type, Thing())] = mock.Mock(name="nup")
+        assert creg.register == {
+            strcs.Type.create(Thing): thing_maker,
+            strcs.Type.create(Stuff): stuff_maker,
+        }
 
     describe "can use the converters":
         it "works on anything", creg: strcs.CreateRegister:
@@ -111,7 +101,13 @@ describe "Register":
             creg[Thing] = thing_maker
             assert creg.create(Thing) is thing
             thing_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Thing, IsMeta.test(), IsConverter.test(), creg)
+                strcs.CreateArgs(
+                    strcs.NotSpecified,
+                    strcs.Type.create(Thing),
+                    IsMeta.test(),
+                    IsConverter.test(),
+                    creg,
+                )
             )
 
             class Stuff:
@@ -122,7 +118,13 @@ describe "Register":
             creg[Stuff] = stuff_maker
             assert creg.create(Stuff) is stuff
             stuff_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Stuff, IsMeta.test(), IsConverter.test(), creg)
+                strcs.CreateArgs(
+                    strcs.NotSpecified,
+                    strcs.Type.create(Stuff),
+                    IsMeta.test(),
+                    IsConverter.test(),
+                    creg,
+                )
             )
 
         it "lets converter work on other types", creg: strcs.CreateRegister:
@@ -144,14 +146,16 @@ describe "Register":
 
             thing_maker = mock.Mock(name="thing_maker")
             thing_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
-                args.value, args.want
+                args.value, args.want.want
             )
             creg[Thing] = thing_maker
 
             value = {"number": 20, "obj": {"one": 20, "two": 50, "other": {"name": "there"}}}
             made = creg.create(Thing, value)
             thing_maker.assert_called_once_with(
-                CreateArgs(value, Thing, IsMeta.test(), IsConverter.test(), creg)
+                strcs.CreateArgs(
+                    value, strcs.Type.create(Thing), IsMeta.test(), IsConverter.test(), creg
+                )
             )
             assert isinstance(made, Thing)
             assert made.number == 20
@@ -175,14 +179,20 @@ describe "Register":
 
             stuff_maker = mock.Mock(name="stuff_maker")
             stuff_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
-                args.value, args.want
+                args.value, args.want.want
             )
             creg[Stuff] = stuff_maker
 
             value = {"name": "hi", "stuff": {"one": 45, "two": 76}}
             made = creg.create(Other, value)
             stuff_maker.assert_called_once_with(
-                CreateArgs({"one": 45, "two": 76}, Stuff, IsMeta.test(), IsConverter.test(), creg)
+                strcs.CreateArgs(
+                    {"one": 45, "two": 76},
+                    strcs.Type.create(Stuff),
+                    IsMeta.test(),
+                    IsConverter.test(),
+                    creg,
+                )
             )
             assert isinstance(made, Other)
             assert made.name == "hi"
@@ -200,9 +210,11 @@ describe "Register":
             class Thing:
                 stuff: Stuff
 
-            creg[Thing] = lambda args: args.converter.structure_attrs_fromdict(
-                args.value, args.want
-            )
+            def creator(args: strcs.CreateArgs[Thing]) -> Thing:
+                assert isinstance(args.value, dict)
+                return args.converter.structure_attrs_fromdict(args.value, args.want.checkable)
+
+            creg[Thing] = creator
 
             stuff = Stuff(one=4)
             made = creg.create(Thing, {"stuff": stuff})
@@ -219,9 +231,11 @@ describe "Register":
             class Thing:
                 stuff: Stuff
 
-            creg[Thing] = lambda args: args.converter.structure_attrs_fromdict(
-                args.value, args.want
-            )
+            def creator(args: strcs.CreateArgs[Thing]) -> Thing:
+                assert isinstance(args.value, dict)
+                return args.converter.structure_attrs_fromdict(args.value, args.want.checkable)
+
+            creg[Thing] = creator
 
             stuff = Stuff(one=4)
             with pytest.raises(cattrs.errors.StructureHandlerNotFoundError):
@@ -252,7 +266,7 @@ describe "Register":
 
             shape_maker = mock.Mock(name="shape_maker")
             shape_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
-                {"three": meta.retrieve_one(int, "three")}, args.want
+                {"three": meta.retrieve_one(int, "three")}, args.want.want
             )
             creg[Shape] = shape_maker
 
@@ -267,7 +281,9 @@ describe "Register":
             assert made.two == 22
             assert made.three == 100
             shape_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Square, meta, IsConverter.test(), creg)
+                strcs.CreateArgs(
+                    strcs.NotSpecified, strcs.Type.create(Square), meta, IsConverter.test(), creg
+                )
             )
             shape_maker.reset_mock()
 
@@ -277,7 +293,9 @@ describe "Register":
             assert tri.two == 45
             assert tri.three == 100
             shape_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Triangle, meta, IsConverter.test(), creg)
+                strcs.CreateArgs(
+                    strcs.NotSpecified, strcs.Type.create(Triangle), meta, IsConverter.test(), creg
+                )
             )
             shape_maker.reset_mock()
 
@@ -287,7 +305,9 @@ describe "Register":
             assert shape.two == 2
             assert shape.three == 100
             shape_maker.assert_called_once_with(
-                CreateArgs(strcs.NotSpecified, Shape, meta, IsConverter.test(), creg)
+                strcs.CreateArgs(
+                    strcs.NotSpecified, strcs.Type.create(Shape), meta, IsConverter.test(), creg
+                )
             )
             shape_maker.reset_mock()
 
@@ -311,7 +331,7 @@ describe "Creators":
             pass
 
         dec = tp.cast(strcs.CreatorDecorator, creator(Thing))
-        assert dec.typ is Thing
+        assert dec.typ == strcs.Type.create(Thing)
         assert dec.register is creg
 
     it "takes a ConvertDefinition", creator: strcs.Creator:
@@ -325,7 +345,7 @@ describe "Creators":
         assert not hasattr(dec, "func")
 
         make = mock.Mock(name="make", side_effect=lambda: thing)
-        decorated = dec(tp.cast(ConvertDefinition[Thing], make))
+        decorated = dec(tp.cast(strcs.ConvertDefinition[Thing], make))
 
         assert decorated is make
         assert tp.cast(strcs.CreatorDecorator, dec).func is make
@@ -333,7 +353,7 @@ describe "Creators":
         assert tp.cast(strcs.CreatorDecorator, dec).register.create(Thing) is thing
         make.assert_called_once_with()
 
-    it "can work on things that aren't attrs classes", creator: strcs.Creator, creg: strcs.CreateRegister:
+    it "can be given as an override in an annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
 
         @define(frozen=True)
         class Info(strcs.MergedAnnotation):
@@ -344,11 +364,11 @@ describe "Creators":
                 return None
             return value * multiple
 
-        assert creg.create_annotated(int, strcs.Ann(Info(multiple=2), multiply), 3) == 6
+        assert creg.create_annotated(int, strcs.AnnBase(Info(multiple=2), multiply), 3) == 6
 
         @define
         class Thing:
-            thing: tp.Annotated[int, strcs.Ann(Info(multiple=5), multiply)]
+            thing: tp.Annotated[int, strcs.AnnBase(Info(multiple=5), multiply)]
 
         assert creg.create(Thing, {"thing": 20}).thing == 100
 
@@ -403,8 +423,8 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing, assume_unchanged_converted=False)
-            def make(value: object, want: type, /) -> Thing:
-                called.append((value, want))
+            def make(value: object, want: strcs.Type, /) -> Thing:
+                called.append((value, want.want))
                 return thing
 
             assert creg.create(Thing) is thing
@@ -446,8 +466,8 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing)
-            def make(value: object, want: type, /, number: int, specific: Thing) -> Thing:
-                called.append((value, want, number, specific))
+            def make(value: object, want: strcs.Type, /, number: int, specific: Thing) -> Thing:
+                called.append((value, want.want, number, specific))
                 return thing
 
             meta = strcs.Meta()
@@ -703,7 +723,7 @@ describe "Creators":
             @define
             class Things:
                 thing1: Thing
-                thing2: tp.Annotated[Thing, strcs.Ann(ThingAnnotation(add=20), other_creator)]
+                thing2: tp.Annotated[Thing, strcs.AnnBase(ThingAnnotation(add=20), other_creator)]
                 thing3: Thing
 
             things = creg.create(Things, {"thing1": 1, "thing2": 5, "thing3": 10})
@@ -824,12 +844,12 @@ describe "Creators":
         it "can use NotSpecified if the type we want is that and we return True", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
 
-            @creator(NotSpecifiedMeta, assume_unchanged_converted=False)
+            @creator(strcs.NotSpecifiedMeta, assume_unchanged_converted=False)
             def make() -> bool:
                 called.append(1)
                 return True
 
-            assert creg.create(NotSpecifiedMeta) is strcs.NotSpecified
+            assert creg.create(strcs.NotSpecifiedMeta) is strcs.NotSpecified
             assert called == [1]
 
         it "turns a dictionary into the object", creator: strcs.Creator, creg: strcs.CreateRegister:
@@ -937,7 +957,11 @@ describe "Creators":
 
             @creator(Things)
             def create_thing(
-                value: object, want: type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
+                value: object,
+                want: strcs.Type,
+                /,
+                _meta: strcs.Meta,
+                _register: strcs.CreateRegister,
             ) -> Things | None:
                 if not isinstance(value, int):
                     return None
@@ -970,7 +994,11 @@ describe "Creators":
 
             @creator(Thing)
             def create_thing(
-                value: object, want: type, /, _meta: strcs.Meta, _register: strcs.CreateRegister
+                value: object,
+                want: strcs.Type,
+                /,
+                _meta: strcs.Meta,
+                _register: strcs.CreateRegister,
             ) -> Thing | None:
                 if not isinstance(value, int):
                     return None
