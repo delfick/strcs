@@ -124,14 +124,16 @@ class FromAnnotations(AnnotationUpdater):
 
 
 class FromFields(AnnotationUpdater):
-    def __init__(self, fields: dict[str, IsField]):
+    def __init__(self, cls: type, fields: dict[str, IsField]):
         self.fields = fields
+        self.annotations = cls.__annotations__
 
     def __contains__(self, name: object) -> bool:
         return isinstance(name, str) and name in self.fields
 
     def update(self, name: str, typ: object) -> None:
         object.__setattr__(self.fields[name], "type", typ)
+        self.annotations[name] = typ
 
 
 def resolve_types(
@@ -168,10 +170,10 @@ def resolve_types(
         allfields: AnnotationUpdater
 
         if is_attrs(cls):
-            allfields = FromFields({field.name: field for field in attrs_fields(cls)})
+            allfields = FromFields(cls, {field.name: field for field in attrs_fields(cls)})
 
         elif is_dataclass(cls):
-            allfields = FromFields({field.name: field for field in dataclass_fields(cls)})
+            allfields = FromFields(cls, {field.name: field for field in dataclass_fields(cls)})
 
         elif isinstance(cls, type) and hasattr(cls, "__annotations__"):
             allfields = FromAnnotations(cls)
@@ -179,7 +181,7 @@ def resolve_types(
         else:
             return cls
 
-        # Copied form standard libarary typing.get_type_hints
+        # Copied from standard library typing.get_type_hints
         # Cause I need globals/locals to resolve nested types that don't have forwardrefs
 
         for base in reversed(cls.__mro__):
