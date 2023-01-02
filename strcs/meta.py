@@ -215,14 +215,28 @@ def extract_type(typ: object) -> tuple[bool, object, type]:
         _optional = optional
         _returning = ret
 
+        def __new__(mcls, *args, **kwargs):
+            return typ(*args, **kwargs)
+
         @classmethod
         def __subclasshook__(cls, C: type) -> bool:
-            return issubclass(C, tp.cast(type, typ))
+            if not isinstance(typ, type):
+                return False
+
+            if hasattr(C, "_typ") and isinstance(C, abc.ABCMeta):
+                C = tp.cast(type[InstanceCheck], C)
+                if isinstance(C._typ, type):
+                    C = C._typ
+            return issubclass(C, typ)
 
     if hasattr(typ, "__args__"):
         InstanceCheck.__args__ = typ.__args__  # type: ignore
     if hasattr(typ, "__origin__"):
         InstanceCheck.__origin__ = typ.__origin__  # type: ignore
+    if hasattr(typ, "__attrs_attrs__"):
+        InstanceCheck.__attrs_attrs__ = typ.__attrs_attrs__  # type:ignore
+    if hasattr(typ, "__dataclass_fields__"):
+        InstanceCheck.__dataclass_fields__ = typ.__dataclass_fields__  # type:ignore
 
     return optional, ret, InstanceCheck
 
