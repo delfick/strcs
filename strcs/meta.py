@@ -1,3 +1,4 @@
+import abc
 import fnmatch
 import functools
 import inspect
@@ -193,22 +194,35 @@ def extract_type(typ: object) -> tuple[bool, object, type]:
             return repr(typ)
 
         def __instancecheck__(self, obj: object) -> bool:
-            return isinstance(obj, typ)  # type:ignore
+            return isinstance(obj, tp.cast(type, typ))
 
         def __eq__(self, o: object) -> bool:
             return o == typ
+
+        def __hash__(self) -> int:
+            return hash(typ)
 
     ret: object = extracted
     if annotated is not None:
         ret = annotated.copy_with((extracted,))
 
-    class InstanceCheck(metaclass=InstanceCheckMeta):
+    class CombinedMeta(InstanceCheckMeta, abc.ABCMeta):
+        pass
+
+    class InstanceCheck(abc.ABC, metaclass=CombinedMeta):
         _typ = typ
         _original = original
         _optional = optional
         _returning = ret
-        __args__ = getattr(typ, "__args__", None)
-        __origin__ = getattr(typ, "__args__", None)
+
+        @classmethod
+        def __subclasshook__(cls, C: type) -> bool:
+            return issubclass(C, tp.cast(type, typ))
+
+    if hasattr(typ, "__args__"):
+        InstanceCheck.__args__ = typ.__args__  # type: ignore
+    if hasattr(typ, "__origin__"):
+        InstanceCheck.__origin__ = typ.__origin__  # type: ignore
 
     return optional, ret, InstanceCheck
 
