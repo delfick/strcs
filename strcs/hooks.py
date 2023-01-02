@@ -14,6 +14,14 @@ T = tp.TypeVar("T")
 U = tp.TypeVar("U")
 
 
+def _object_check(typ: type) -> bool:
+    return typ is object
+
+
+def _passthrough(obj: object, typ: type) -> object:
+    return obj
+
+
 class CreateStructureHook:
     @classmethod
     def structure(
@@ -48,7 +56,7 @@ class CreateStructureHook:
             once_only_creator=creator,
         )
 
-        converter.register_structure_hook_func(lambda t: t is object, lambda o, _: o)
+        converter.register_structure_hook_func(_object_check, _passthrough)
         converter.register_structure_hook_func(hooks.switch_check, hooks.convert)
 
         try:
@@ -56,6 +64,9 @@ class CreateStructureHook:
         finally:
             converter._structure_func._function_dispatch._handler_pairs.remove(
                 (hooks.switch_check, hooks.convert, False)
+            )
+            converter._structure_func._function_dispatch._handler_pairs.remove(
+                (_object_check, _passthrough, False)
             )
 
         return ret
