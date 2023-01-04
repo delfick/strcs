@@ -132,13 +132,48 @@ class Narrower:
 
 class IsAnnotated(tp.Protocol):
     __args__: tuple
+    __metadata__: tuple
 
     def copy_with(self, args: tuple) -> type:
         ...
 
     @classmethod
     def has(self, typ: object) -> tp.TypeGuard["IsAnnotated"]:
-        return tp.get_origin(typ) is tp.Annotated and hasattr(typ, "__args__")
+        return (
+            tp.get_origin(typ) is tp.Annotated
+            and hasattr(typ, "__args__")
+            and hasattr(typ, "__metadata__")
+        )
+
+
+def origin_or_type(typ: object) -> object:
+    orig = tp.get_origin(typ)
+    if not isinstance(orig, type) or orig in (None, types.UnionType, tp.Union):
+        return typ
+    else:
+        return orig
+
+
+def extract_optional(typ: object) -> tuple[bool, object]:
+    optional = False
+    if tp.get_origin(typ) in (types.UnionType, tp.Union):
+        if type(None) in tp.get_args(typ):
+            optional = True
+
+            remaining = tuple(a for a in tp.get_args(typ) if a not in (types.NoneType,))
+            if len(remaining) == 1:
+                typ = remaining[0]
+            else:
+                typ = functools.reduce(operator.or_, remaining)
+
+    return optional, typ
+
+
+def extract_annotation(typ: object) -> tuple[object, IsAnnotated | None, object | None]:
+    if IsAnnotated.has(typ):
+        return typ.__args__[0], typ, typ.__metadata__[0]
+    else:
+        return typ, None, None
 
 
 def extract_type(typ: object) -> tuple[bool, object, type]:
@@ -158,36 +193,48 @@ def extract_type(typ: object) -> tuple[bool, object, type]:
     And tp.Annotated[list, "things"] would return (False, tp.Annotated[list, "things"], list)
 
     but tp.Annotated[list | None, "things"] would return (True, tp.Annotated[list, "things"], list)
+
+    and tp.Optional[tp.Annotated[list, "things"]] would return (True, tp.Annotated[list, "things"], list)
+
+
+    The final part of the returned tuple is a type that pretends to be the correct type.
+    This type may be used in isinstance and subclass checks and may be used to instantiate new instances
+    of that type. It will also have the fields on it that make it look like an attrs or dataclass class.
+
+    That type also contains:
+
+    _typ
+        The type being used for comparison
+
+    _original
+        The full original type this was extracted from
+
+    _optional
+        If the type was optional
+
+    _returning
+        The original type, including annotation, minus being optional
     """
     original = typ
     annotated: IsAnnotated | None = None
 
-    if IsAnnotated.has(typ):
-        annotated = typ
-        typ = typ.__args__[0]
+    optional, typ = extract_optional(typ)
+    extracted, annotated, annotation = extract_annotation(typ)
 
-    def origin_or_type(typ: object) -> object:
-        orig = tp.get_origin(typ)
-        if not isinstance(orig, type) or orig in (None, types.UnionType, tp.Union):
-            return typ
-        else:
-            return orig
+    if annotation is not None:
+        second_optional_pass, extracted = extract_optional(extracted)
+        typ = extracted
+        optional = optional or second_optional_pass
 
-    optional = False
-    extracted = typ
-    if tp.get_origin(typ) in (types.UnionType, tp.Union):
-        if type(None) in tp.get_args(typ):
-            optional = True
-
-            remaining = tuple(a for a in tp.get_args(typ) if a not in (types.NoneType,))
-            if len(remaining) == 1:
-                extracted = remaining[0]
-                typ = origin_or_type(extracted)
-            else:
-                typ = functools.reduce(operator.or_, remaining)
-                extracted = typ
+    if annotation is None and optional:
+        extracted, annotated, annotation = extract_annotation(typ)
+        typ = origin_or_type(extracted)
     else:
         typ = origin_or_type(typ)
+
+    ret: object = extracted
+    if annotated is not None:
+        ret = annotated.copy_with((extracted,))
 
     class InstanceCheckMeta(type):
         def __repr__(self) -> str:
@@ -201,10 +248,6 @@ def extract_type(typ: object) -> tuple[bool, object, type]:
 
         def __hash__(self) -> int:
             return hash(typ)
-
-    ret: object = extracted
-    if annotated is not None:
-        ret = annotated.copy_with((extracted,))
 
     class CombinedMeta(InstanceCheckMeta, abc.ABCMeta):
         pass

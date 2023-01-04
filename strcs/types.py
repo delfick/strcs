@@ -94,28 +94,33 @@ class Type(tp.Generic[T]):
         self.original = original
         self.optional, self.want, self.checkable = extract_type(self.original)
 
-        ann: Annotation | Ann[T] | ConvertDefinition[T] | None = None
+        ann: Ann[T] | None = None
         metadata: tuple[object] | None = getattr(self.want, "__metadata__", None)
+        ann_value: object | None = None
 
-        if metadata is not None:
-            if metadata and (isinstance(metadata[0], (Ann, Annotation)) or callable(metadata[0])):
-                ann = metadata[0]
+        if metadata is not None and metadata:
+            ann_value = metadata[0]
 
-                origin = getattr(self.want, "__origin__", None)
-                if origin is not None:
-                    self.want = origin
+            origin = getattr(self.want, "__origin__", None)
+            if origin is not None:
+                self.want = origin
 
-        if ann is not None and not isinstance(ann, Ann):
+        if ann_value is not None and (
+            isinstance(ann_value, (Ann, Annotation)) or callable(ann_value)
+        ):
             from .annotations import AnnBase
 
-            if isinstance(ann, (Annotation, AdjustableMeta)):
-                ann = AnnBase[T](ann)
-            elif callable(ann):
-                ann = AnnBase[T](creator=ann)
+            if isinstance(ann_value, Ann):
+                ann = ann_value
+            elif isinstance(ann_value, (Annotation, AdjustableMeta)):
+                ann = AnnBase[T](ann_value)
+            elif callable(ann_value):
+                ann = AnnBase[T](creator=ann_value)
 
         self.ann = ann
+        self.ann_value = ann_value
         self.origin = tp.get_origin(self.want)
-        self.is_annotated = self.ann is not None
+        self.is_annotated = self.ann_value is not None
 
         self.fields_from: object = self.want
         self.typevar_map: dict[tp.TypeVar, type] = {}
@@ -279,31 +284,6 @@ class Type(tp.Generic[T]):
             return instance_is or issubclass(self.checkable, subclass_of.checkable)
         else:
             return instance_is
-
-    def find_generic_subtypes(self, *types: type) -> list[type]:
-        args = getattr(self.want, "__args__", None)
-        if not isinstance(args, tuple) or not args:
-            raise ValueError(f"Expected object to have sub types defined: {self.want}")
-
-        if len(args) < len(types):
-            raise ValueError(
-                f"Expected at least {len(types)} subtypes, only got {len(args)}: {self.want}"
-            )
-
-        result: list[type] = []
-        for i, (want, ag) in enumerate(zip(types, args)):
-            if want == ag or want in (object, tp.Any):
-                result.append(ag)
-                continue
-
-            if isinstance(ag, type) and not issubclass(ag, want):
-                raise ValueError(
-                    f"Expected subtype {i} to be a subclass of {want}, got {ag}: {want}"
-                )
-
-            result.append(ag)
-
-        return result
 
     def fill(self, res: object) -> tp.Mapping[str, object]:
         if res is NotSpecified:
