@@ -4,9 +4,10 @@ import typing as tp
 import cattrs
 
 from .meta import Meta
-from .types import ConvertDefinition, Type
+from .types import Type
 
 if tp.TYPE_CHECKING:
+    from .decorator import ConvertDefinition
     from .register import CreateRegister
 
 T = tp.TypeVar("T")
@@ -20,7 +21,7 @@ class ArgsExtractor(tp.Generic[T]):
         value: object,
         want: Type[T],
         meta: Meta,
-        creator: ConvertDefinition[T],
+        creator: "ConvertDefinition[T]",
         converter: cattrs.Converter,
         register: "CreateRegister",
     ):

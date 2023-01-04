@@ -9,30 +9,12 @@ from . import errors
 from .args_extractor import ArgsExtractor
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
-from .types import (
-    ConvertDefinition,
-    ConvertDefinitionNoValue,
-    ConvertDefinitionValue,
-    ConvertDefinitionValueAndType,
-    ConvertFunction,
-    ConvertResponse,
-    ConvertResponseGenerator,
-    Type,
-)
+from .types import Type
 
 if tp.TYPE_CHECKING:
     from .register import CreateRegister
 
 T = tp.TypeVar("T")
-
-
-def take_or_make(value: object, typ: Type[T], /) -> ConvertResponse[T]:
-    if typ.is_type_for(value):
-        return value
-    elif isinstance(value, (dict, NotSpecifiedMeta)):
-        return value
-    else:
-        return None
 
 
 @define
@@ -42,6 +24,34 @@ class CreateArgs(tp.Generic[T]):
     meta: Meta
     converter: cattrs.Converter
     register: "CreateRegister"
+
+
+ConvertResponseValues: tp.TypeAlias = bool | dict[str, object] | T | NotSpecifiedMeta
+ConvertResponseGenerator: tp.TypeAlias = tp.Generator[
+    tp.Optional[ConvertResponseValues[T] | tp.Generator], T, None
+]
+
+ConvertResponse: tp.TypeAlias = tp.Optional[ConvertResponseValues[T] | ConvertResponseGenerator[T]]
+
+ConvertDefinitionNoValue: tp.TypeAlias = tp.Callable[[], ConvertResponse[T]]
+ConvertDefinitionValue: tp.TypeAlias = tp.Callable[[object], ConvertResponse[T]]
+ConvertDefinitionValueAndType: tp.TypeAlias = tp.Callable[[object, Type], ConvertResponse[T]]
+# Also allowed is
+# - (Any, Type, /, meta1, meta2, ...)
+# - (Any, /, meta1, meta2, ...)
+# But python typing is restrictive and you can't express that
+
+ConvertDefinition: tp.TypeAlias = tp.Callable[..., ConvertResponse[T]]
+ConvertFunction: tp.TypeAlias = tp.Callable[[CreateArgs], T]
+
+
+def take_or_make(value: object, typ: Type[T], /) -> ConvertResponse[T]:
+    if typ.is_type_for(value):
+        return value
+    elif isinstance(value, (dict, NotSpecifiedMeta)):
+        return value
+    else:
+        return None
 
 
 class WrappedCreator(tp.Generic[T]):

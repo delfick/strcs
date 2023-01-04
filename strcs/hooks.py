@@ -2,10 +2,10 @@ import typing as tp
 
 import cattrs
 
-from .decorator import CreateArgs
+from .decorator import ConvertDefinition, ConvertFunction, CreateArgs
 from .meta import Meta
 from .not_specified import NotSpecified
-from .types import Ann, ConvertDefinition, ConvertFunction, Type
+from .types import Ann, Type
 
 if tp.TYPE_CHECKING:
     from .register import CreateRegister

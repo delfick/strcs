@@ -3,18 +3,16 @@ import typing as tp
 import attrs
 from attrs import define
 
-from .decorator import CreatorDecorator
-from .disassemble import Disassembled
-from .meta import Meta
-from .register import CreateRegister
-from .types import (
-    AdjustableMeta,
-    Annotation,
+from .decorator import (
     ConvertDefinition,
     ConvertFunction,
     ConvertResponse,
-    Type,
+    CreatorDecorator,
 )
+from .disassemble import Disassembled
+from .meta import Meta
+from .register import CreateRegister
+from .types import AdjustableMeta, Annotation, Type
 
 T = tp.TypeVar("T")
 

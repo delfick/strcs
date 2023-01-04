@@ -8,33 +8,14 @@ from attrs import define
 from .disassemble import Disassembled, _Field
 from .hints import resolve_types
 from .meta import Meta
-from .not_specified import NotSpecified, NotSpecifiedMeta
+from .not_specified import NotSpecified
 
 if tp.TYPE_CHECKING:
-    from .decorator import CreateArgs
+    from .decorator import ConvertFunction
     from .register import CreateRegister
 
 
 T = tp.TypeVar("T")
-U = tp.TypeVar("U")
-
-ConvertResponseValues: tp.TypeAlias = bool | dict[str, object] | T | NotSpecifiedMeta
-ConvertResponseGenerator: tp.TypeAlias = tp.Generator[
-    tp.Optional[ConvertResponseValues[T] | tp.Generator], T, None
-]
-
-ConvertResponse: tp.TypeAlias = tp.Optional[ConvertResponseValues[T] | ConvertResponseGenerator[T]]
-
-ConvertDefinitionNoValue: tp.TypeAlias = tp.Callable[[], ConvertResponse[T]]
-ConvertDefinitionValue: tp.TypeAlias = tp.Callable[[object], ConvertResponse[T]]
-ConvertDefinitionValueAndType: tp.TypeAlias = tp.Callable[[object, "Type"], ConvertResponse[T]]
-# Also allowed is
-# - (Any, Type, /, meta1, meta2, ...)
-# - (Any, /, meta1, meta2, ...)
-# But python typing is restrictive and you can't express that
-
-ConvertDefinition: tp.TypeAlias = tp.Callable[..., ConvertResponse[T]]
-ConvertFunction: tp.TypeAlias = tp.Callable[["CreateArgs"], T]
 
 
 @define
@@ -50,8 +31,8 @@ class Ann(tp.Protocol[T]):
         ...
 
     def adjusted_creator(
-        self, creator: ConvertFunction[T] | None, register: "CreateRegister", typ: "Type[T]"
-    ) -> ConvertFunction[T] | None:
+        self, creator: tp.Optional["ConvertFunction[T]"], register: "CreateRegister", typ: "Type[T]"
+    ) -> tp.Optional["ConvertFunction[T]"]:
         ...
 
 
@@ -203,8 +184,8 @@ class Type(tp.Generic[T]):
         return self.disassembled.find_generic_subtype(*want)
 
     def func_from(
-        self, options: list[tuple["Type", ConvertFunction[T]]]
-    ) -> ConvertFunction[T] | None:
+        self, options: list[tuple["Type", "ConvertFunction[T]"]]
+    ) -> tp.Optional["ConvertFunction[T]"]:
         for want, func in options:
             if want in (self.original, self.want) or want == self:
                 return func
