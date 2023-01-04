@@ -110,3 +110,10 @@ class CanOnlyRegisterTypes(StructuresError):
 class FoundWithWrongType(StructuresError):
     want: object
     patterns: list[str]
+
+
+@define
+class SupertypeNotValid(StructuresError):
+    want: object
+    got: object
+    reason: str

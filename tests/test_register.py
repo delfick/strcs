@@ -425,7 +425,9 @@ describe "Creators":
             @creator(Thing, assume_unchanged_converted=False)
             def make(value: object, want: strcs.Type, /) -> Thing:
                 called.append((value, want.want))
-                return thing
+                if not isinstance(value, Thing):
+                    return thing
+                return value
 
             assert creg.create(Thing) is thing
             assert called == [(strcs.NotSpecified, Thing)]
@@ -448,14 +450,21 @@ describe "Creators":
             class Child(Thing):
                 pass
 
-            assert creg.create(Child, thing) is thing
+            child = Child()
+            assert creg.create(Child, child) is child
             assert called == [
                 (strcs.NotSpecified, Thing),
                 (1, Thing),
                 ({"one": 2}, Thing),
                 (thing, Thing),
-                (thing, Child),
+                (child, Child),
             ]
+
+            with pytest.raises(strcs.errors.SupertypeNotValid) as e:
+                creg.create(Child, thing)
+
+            assert e.value.got == Thing
+            assert e.value.want == Child
 
         it "calls function with information from meta if it asks for it", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []

@@ -197,6 +197,11 @@ class Type(tp.Generic[T]):
     def is_type_for(self, instance: object) -> tp.TypeGuard[T]:
         return isinstance(instance, self.checkable)
 
+    def is_equivalent_type_for(self, value: object) -> tp.TypeGuard[T]:
+        if self.is_type_for(value):
+            return True
+        return issubclass(Type.create(type(value)).checkable, self.checkable)
+
     def resolve_types(self, *, _resolved: set["Type"] | None = None):
         if _resolved is None:
             _resolved = set()
@@ -272,18 +277,6 @@ class Type(tp.Generic[T]):
                 return func
 
         return None
-
-    def equivalent_type(
-        self, value: object, *, subclass_of: tp.Optional["Type"] = None
-    ) -> tp.TypeGuard[T]:
-        instance_is = isinstance(value, self.checkable) or (
-            isinstance(self.origin, type) and isinstance(value, self.origin)
-        )
-
-        if subclass_of is not None and isinstance(self.want, type):
-            return instance_is or issubclass(self.checkable, subclass_of.checkable)
-        else:
-            return instance_is
 
     def fill(self, res: object) -> tp.Mapping[str, object]:
         if res is NotSpecified:

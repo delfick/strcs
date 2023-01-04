@@ -1,3 +1,4 @@
+import collections.abc
 import inspect
 import typing as tp
 
@@ -99,7 +100,7 @@ class CreatorDecorator(tp.Generic[T]):
         register = create_args.register
         converter = create_args.converter
 
-        if self.assume_unchanged_converted and want.equivalent_type(value):
+        if self.assume_unchanged_converted and want.is_type_for(value):
             return tp.cast(T, value)
 
         try:
@@ -134,7 +135,7 @@ class CreatorDecorator(tp.Generic[T]):
                     reason="Converter didn't return a value to use",
                     creator=self.func,
                 )
-            elif want.equivalent_type(res, subclass_of=Type.create(type(res))):
+            elif want.is_equivalent_type_for(res):
                 return res
             elif res is True:
                 if value is NotSpecified and not want.checkable == type(NotSpecified):
@@ -146,6 +147,15 @@ class CreatorDecorator(tp.Generic[T]):
                     )
                 return tp.cast(T, value)
             else:
+                if not isinstance(res, collections.abc.Mapping) and issubclass(
+                    want.checkable, Type.create(type(res)).checkable
+                ):
+                    raise errors.SupertypeNotValid(
+                        want=want.checkable,
+                        got=Type.create(type(res)).checkable,
+                        reason="A Super type is not a valid value to convert",
+                    )
+
                 try:
                     return want.convert(res, converter)
                 except Exception as error:
