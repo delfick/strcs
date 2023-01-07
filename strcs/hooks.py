@@ -113,7 +113,7 @@ class CreateStructureHook:
             creator = want.ann.adjusted_creator(creator, self.register, want)
             if meta is not self.meta:
                 return self.register.create(
-                    want.without_annotation(), value, meta=meta, once_only_creator=creator
+                    want.without_annotation, value, meta=meta, once_only_creator=creator
                 )
 
         if (

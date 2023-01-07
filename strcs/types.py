@@ -1,15 +1,13 @@
 import collections
-import dataclasses
-import itertools
 import typing as tp
 
 import attrs
 import cattrs
 from attrs import define
-from attrs import has as attrs_has
 
+from .disassemble import Disassembled, _Field
 from .hints import resolve_types
-from .meta import Meta, extract_type
+from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
 
 if tp.TYPE_CHECKING:
@@ -64,11 +62,15 @@ class AdjustableMeta(tp.Protocol[T]):
 
 
 class Type(tp.Generic[T]):
-    original: object
-    want: object
-    ann: Ann | None
-    origin: object
-    checkable: type
+    @define
+    class Field:
+        name: str
+        type: "Type"
+
+    _ann: Ann[T] | None
+    _fields: list[Field]
+    _without_optional: "Type[T]"
+    _without_annotation: "Type[T]"
 
     @classmethod
     def create(cls, original: object, *, _made: dict[object, "Type"] | None = None) -> "Type":
@@ -79,104 +81,72 @@ class Type(tp.Generic[T]):
             _made = {}
         return Type(original, _made=_made)
 
-    @define
-    class _Field:
-        name: str
-        type: type
-
-    @define
-    class Field:
-        name: str
-        type: "Type"
-
     def __init__(self, original: object, *, _made: dict[object, "Type"] | None = None):
         self._made = _made
         self.original = original
-        self.optional, self.want, self.checkable = extract_type(self.original)
+        self.disassembled = Disassembled.create(self.original)
 
-        ann: Ann[T] | None = None
-        metadata: tuple[object] | None = getattr(self.want, "__metadata__", None)
-        ann_value: object | None = None
-
-        if metadata is not None and metadata:
-            ann_value = metadata[0]
-
-            origin = getattr(self.want, "__origin__", None)
-            if origin is not None:
-                self.want = origin
-
-        if ann_value is not None and (
-            isinstance(ann_value, (Ann, Annotation)) or callable(ann_value)
-        ):
-            from .annotations import AnnBase
-
-            if isinstance(ann_value, Ann):
-                ann = ann_value
-            elif isinstance(ann_value, (Annotation, AdjustableMeta)):
-                ann = AnnBase[T](ann_value)
-            elif callable(ann_value):
-                ann = AnnBase[T](creator=ann_value)
-
-        self.ann = ann
-        self.ann_value = ann_value
+        self.want = self.disassembled.extracted
         self.origin = tp.get_origin(self.want)
-        self.is_annotated = self.ann_value is not None
 
-        self.fields_from: object = self.want
-        self.typevar_map: dict[tp.TypeVar, type] = {}
-        self.typevars: list[tp.TypeVar] = []
+    def _make_type(self, typ: object) -> "Type":
+        if self._made is None:
+            return Type.create(typ)
 
-        for base in getattr(self.origin, "__orig_bases__", ()):
-            self.typevars.extend(tp.get_args(base))
+        if typ not in self._made:
+            self._made[typ] = Type.create(typ, _made=self._made)
+        return self._made[typ]
 
-        for tv, ag in zip(self.typevars, tp.get_args(self.want)):
-            self.typevar_map[tv] = ag
+    @property
+    def optional(self) -> bool:
+        return self.disassembled.optional
 
-        if (
-            not isinstance(self.want, type)
-            or (not attrs_has(self.want) and not dataclasses.is_dataclass(self.want))
-            and self.origin
-        ):
-            self.fields_from = self.origin
+    @property
+    def ann_value(self) -> object | None:
+        return self.disassembled.annotation
 
-        self.fields_getter: tp.Callable[..., tp.Sequence[Type._Field]] | None = None
+    @property
+    def ann(self) -> object | None:
+        if not hasattr(self, "_ann"):
+            ann: Ann[T] | None = None
+            if self.ann_value is not None and (
+                isinstance(self.ann_value, (Ann, Annotation)) or callable(self.ann_value)
+            ):
+                from .annotations import AnnBase
 
-        if isinstance(self.fields_from, type) and attrs_has(self.fields_from):
-            self.fields_getter = tp.cast(tp.Callable[..., tp.Sequence[Type._Field]], attrs.fields)
-        elif dataclasses.is_dataclass(self.fields_from):
-            self.fields_getter = tp.cast(
-                tp.Callable[..., tp.Sequence[Type._Field]], dataclasses.fields
-            )
+                if isinstance(self.ann_value, Ann):
+                    ann = self.ann_value
+                elif isinstance(self.ann_value, (Annotation, AdjustableMeta)):
+                    ann = AnnBase[T](self.ann_value)
+                elif callable(self.ann_value):
+                    ann = AnnBase[T](creator=self.ann_value)
+            self._ann = ann
+        return self._ann
 
-        self.has_fields = self.fields_getter is not None
-
-    def without_annotation(self) -> "Type[T]":
-        typ = self.want
-        if self.optional:
-            typ = tp.Optional[self.want]
-        return Type(typ)
+    @property
+    def checkable(self) -> type:
+        return self.disassembled.checkable
 
     @property
     def fields(self) -> list[Field]:
-        if self.fields_getter is None:
-            return []
+        if not hasattr(self, "_fields"):
+            fields: list[Type.Field] = []
+            for field in self.disassembled.fields:
+                fields.append(Type.Field(name=field.name, type=self._make_type(field.type)))
 
-        fields: list[Type.Field] = []
-        for field in self.fields_getter(self.fields_from):
-            field_type = field.type
-            if isinstance(field_type, tp.TypeVar):
-                field_type = self.typevar_map.get(field.type, object)
+            self._fields = fields
+        return self._fields
 
-            if self._made is not None:
-                if field_type not in self._made:
-                    self._made[field_type] = Type.create(field_type, _made=self._made)
-                as_Type = self._made[field_type]
-            else:
-                as_Type = Type.create(field_type)
+    @property
+    def without_annotation(self) -> "Type[T]":
+        if not hasattr(self, "_without_annotation"):
+            self._without_annotation = self._make_type(self.disassembled.without_annotation)
+        return self._without_annotation
 
-            fields.append(Type.Field(name=field.name, type=as_Type))
-
-        return fields
+    def without_optional(self) -> "Type[T]":
+        if not hasattr(self, "_without_optional"):
+            self._without_optional = self._make_type(self.disassembled.without_optional)
+        return self._without_optional
 
     def __hash__(self) -> int:
         return hash(self.original)
@@ -192,15 +162,20 @@ class Type(tp.Generic[T]):
 
     @property
     def processable(self) -> bool:
-        return self.is_annotated or self.has_fields
+        return self.disassembled.is_annotated or self.disassembled.has_fields
+
+    @property
+    def has_fields(self) -> bool:
+        return self.disassembled.has_fields
 
     def is_type_for(self, instance: object) -> tp.TypeGuard[T]:
-        return isinstance(instance, self.checkable)
+        return self.disassembled.is_type_for(instance)
 
     def is_equivalent_type_for(self, value: object) -> tp.TypeGuard[T]:
-        if self.is_type_for(value):
-            return True
-        return issubclass(Type.create(type(value)).checkable, self.checkable)
+        return self.disassembled.is_equivalent_type_for(
+            value, lambda: self._make_type(type(value)).checkable
+        )
+        return issubclass(self._make_type(type(value)).checkable, self.checkable)
 
     def resolve_types(self, *, _resolved: set["Type"] | None = None):
         if _resolved is None:
@@ -225,55 +200,28 @@ class Type(tp.Generic[T]):
             field.type.resolve_types(_resolved=_resolved)
 
     def find_generic_subtype(self, *want: type) -> list[type]:
-        result: list[type] = []
-        for tv, wa in itertools.zip_longest(self.typevars, want):
-            if wa is None:
-                break
-            if tv is None:
-                raise ValueError(
-                    f"The type has less typevars ({len(self.typevars)}) than wanted ({len(want)})"
-                )
-
-            typ = self.typevar_map[tv]
-            if not issubclass(typ, want):
-                raise ValueError(
-                    f"The concrete type {typ} is not a subclass of what was asked for {wa}"
-                )
-
-            result.append(typ)
-
-        return result
+        return self.disassembled.find_generic_subtype(*want)
 
     def func_from(
-        self, options: list[tuple[object, ConvertFunction[T]]]
+        self, options: list[tuple["Type", ConvertFunction[T]]]
     ) -> ConvertFunction[T] | None:
         for want, func in options:
-            if want in (self.original, self.want):
+            if want in (self.original, self.want) or want == self:
                 return func
 
         for want, func in options:
-            if want is self.origin:
-                return func
-
-            check_against = want
-            if isinstance(check_against, Type):
-                check_against = check_against.checkable
-            elif isinstance(check_against, type):
-                check_against = Type.create(check_against).checkable
-
-            if (
-                isinstance(check_against, type)
-                and isinstance(getattr(check_against, "_typ", None), type)
-                and isinstance(getattr(self.checkable, "_typ", None), type)
-                and issubclass(self.checkable, check_against)
-            ):
+            if issubclass(self.checkable, want.checkable):
                 return func
 
         if not isinstance(self.origin, type):
             return None
 
         for want, func in options:
-            if isinstance(want, type) and issubclass(self.origin, want):
+            if want is self.origin:
+                return func
+
+        for want, func in options:
+            if issubclass(self.origin, want.checkable):
                 return func
 
         return None
@@ -285,7 +233,7 @@ class Type(tp.Generic[T]):
         if not isinstance(res, collections.abc.Mapping):
             raise ValueError(f"Can only fill mappings, got {type(res)}")
 
-        if isinstance(res, dict) and self.has_fields:
+        if isinstance(res, dict):
             for field in self.fields:
                 if field.type is not None and field.name not in res:
                     if field.type.processable:
@@ -315,7 +263,7 @@ class Type(tp.Generic[T]):
 
             attribute = tp.cast(
                 attrs.Attribute,
-                Type._Field(name=field.name, type=tp.cast(type, field.type.original)),
+                _Field(name=field.name, type=tp.cast(type, field.type.original)),
             )
             conv_obj[name] = converter._structure_attribute(attribute, val)
 

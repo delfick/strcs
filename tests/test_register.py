@@ -221,7 +221,7 @@ describe "Register":
             assert isinstance(made, Thing)
             assert made.stuff is stuff
 
-        it "still fails to recreate normal objects", creg: strcs.CreateRegister:
+        it "can recreate normal objects", creg: strcs.CreateRegister:
 
             class Stuff:
                 def __init__(self, one: int):
@@ -238,8 +238,7 @@ describe "Register":
             creg[Thing] = creator
 
             stuff = Stuff(one=4)
-            with pytest.raises(cattrs.errors.StructureHandlerNotFoundError):
-                creg.create(Thing, {"stuff": stuff})
+            creg.create(Thing, {"stuff": stuff})
 
         it "let's us convert with super types", creg: strcs.CreateRegister:
 
