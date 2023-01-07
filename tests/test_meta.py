@@ -7,7 +7,7 @@ import cattrs
 import pytest
 
 import strcs
-from strcs.meta import Meta, Narrower, extract_type
+from strcs.meta import Meta, Narrower
 
 
 class IsConverter:
@@ -23,44 +23,6 @@ class IsConverter:
                 return f"<Given {type(self.given)}, expected a Converter>"
         return "<IsConverter?>"
 
-
-describe "extract_type":
-
-    it "can return annotated types":
-        assert extract_type(tp.Annotated[int, "stuff"]) == (False, tp.Annotated[int, "stuff"], int)
-        assert extract_type(tp.Annotated[tp.Optional[int], "things"]) == (
-            True,
-            tp.Annotated[int, "things"],
-            int,
-        )
-
-    it "can return the type and that it isn't optional when not optional":
-        assert extract_type(list[str]) == (False, list[str], list)
-        assert extract_type(dict[str, bool]) == (False, dict[str, bool], dict)
-        assert extract_type(str | bool) == (False, str | bool, str | bool)
-
-        T = tp.TypeVar("T")
-        assert extract_type(T) == (False, T, T)
-
-        class Thing:
-            pass
-
-        assert extract_type(Thing) == (False, Thing, Thing)
-
-        extract_type("asdf") == (False, "asdf", "asdf")
-
-    it "can return the embedded type and that it is optional when is optional":
-        assert extract_type(tp.Optional[list[str]]) == (True, list[str], list)
-        assert extract_type(tp.Optional[dict[str, bool]]) == (True, dict[str, bool], dict)
-        assert extract_type(str | bool | None) == (True, str | bool, str | bool)
-
-        T = tp.TypeVar("T")
-        assert extract_type(tp.Optional[T]) == (True, T, T)
-
-        class Thing:
-            pass
-
-        assert extract_type(tp.Optional[Thing]) == (True, Thing, Thing)
 
 describe "Narrower":
     describe "narrow":

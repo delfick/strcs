@@ -4,7 +4,8 @@ import attrs
 from attrs import define
 
 from .decorator import CreatorDecorator
-from .meta import Meta, extract_type
+from .disassemble import Disassembled
+from .meta import Meta
 from .register import CreateRegister
 from .types import (
     AdjustableMeta,
@@ -42,7 +43,7 @@ class AnnBase(tp.Generic[T]):
             clone = meta.clone()
             for field in attrs.fields(self.meta.__class__):  # type:ignore
                 if not field.name.startswith("_"):
-                    optional, _, _ = extract_type(field.type)
+                    optional = Disassembled.create(field.type).optional
                     val = getattr(self.meta, field.name)
                     if not optional or val is not None:
                         clone[field.name] = val

@@ -9,6 +9,8 @@ from dataclasses import is_dataclass
 from attrs import fields as attrs_fields
 from attrs import has as is_attrs
 
+from .disassemble import Disassembled
+
 T = tp.TypeVar("T")
 C = tp.TypeVar("C", bound=type)
 
@@ -181,6 +183,8 @@ def resolve_types(
         else:
             return cls
 
+        tp.cast(WithResolvedTypes[C], cls).__strcs_types_resolved__ = cls
+
         # Copied from standard library typing.get_type_hints
         # Cause I need globals/locals to resolve nested types that don't have forwardrefs
 
@@ -201,6 +205,7 @@ def resolve_types(
                 # *base_globals* first rather than *base_locals*.
                 # This only affects ForwardRefs.
                 base_globals, base_locals = base_locals, base_globals
+
             for name, value in ann.items():
                 if value is None:
                     value = type(None)
@@ -208,8 +213,12 @@ def resolve_types(
                     value = tp.ForwardRef(value, is_argument=False, is_class=True)
 
                 if name in allfields:
-                    allfields.update(name, resolve_type(value, base_globals, base_locals))
+                    disassembled = Disassembled.create(value)
 
-        tp.cast(WithResolvedTypes[C], cls).__strcs_types_resolved__ = cls
+                    resolved = resolve_type(disassembled.extracted, base_globals, base_locals)
+                    if isinstance(resolved, type):
+                        resolve_types(resolved, base_globals, base_locals)
+
+                    allfields.update(name, disassembled.reassemble(resolved))
 
     return cls

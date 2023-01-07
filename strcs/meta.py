@@ -11,6 +11,7 @@ import cattrs
 from attrs import define
 
 from . import errors
+from .disassemble import Disassembled
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
@@ -341,7 +342,11 @@ class Meta:
         self.data.update(data)
 
     def find_by_type(
-        self, typ: object, data: tp.Mapping[str, object] | type[Empty] = Empty
+        self,
+        typ: object,
+        data: tp.Mapping[str, object] | type[Empty] = Empty,
+        *,
+        remove_nones: bool = True,
     ) -> tuple[bool, dict[str, object]]:
         """
         Return (optional, found)
@@ -357,10 +362,12 @@ class Meta:
         if typ is object:
             return False, data
 
-        optional, _, typ = extract_type(typ)
+        disassembled = Disassembled.create(typ)
+        optional = disassembled.optional
+        typ = disassembled.checkable
         available: dict[str, object] = {n: v for n, v in data.items() if isinstance(v, typ)}
 
-        remove_bools = typ == int
+        remove_bools = typ == int and typ != bool
         ags = getattr(typ, "__args__", None)
         if ags:
             if int in ags and bool not in ags:
@@ -368,6 +375,9 @@ class Meta:
 
         if remove_bools:
             available = {n: v for n, v in available.items() if not isinstance(v, bool)}
+
+        if remove_nones:
+            available = {n: v for n, v in available.items() if v is not None}
 
         return optional, available
 
