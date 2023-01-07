@@ -5,7 +5,7 @@ import attrs
 import cattrs
 from attrs import define
 
-from .disassemble import Disassembled, _Field
+from .disassemble import Disassembled, Field
 from .hints import resolve_types
 from .meta import Meta
 from .not_specified import NotSpecified
@@ -43,13 +43,7 @@ class AdjustableMeta(tp.Protocol[T]):
 
 
 class Type(tp.Generic[T]):
-    @define
-    class Field:
-        name: str
-        type: "Type"
-
     _ann: Ann[T] | None
-    _fields: list[Field]
     _without_optional: "Type[T]"
     _without_annotation: "Type[T]"
 
@@ -111,11 +105,13 @@ class Type(tp.Generic[T]):
     @property
     def fields(self) -> list[Field]:
         if not hasattr(self, "_fields"):
-            fields: list[Type.Field] = []
+            res: list[Field] = []
             for field in self.disassembled.fields:
-                fields.append(Type.Field(name=field.name, type=self._make_type(field.type)))
-
-            self._fields = fields
+                if field.type is None:
+                    res.append(field.with_replaced_type(field.type))
+                else:
+                    res.append(field.with_replaced_type(self._make_type(field.type)))
+            self._fields = res
         return self._fields
 
     @property
@@ -244,7 +240,7 @@ class Type(tp.Generic[T]):
 
             attribute = tp.cast(
                 attrs.Attribute,
-                _Field(name=field.name, type=tp.cast(type, field.type.original)),
+                Field(name=field.name, type=tp.cast(type, field.type.original)),
             )
             conv_obj[name] = converter._structure_attribute(attribute, val)
 

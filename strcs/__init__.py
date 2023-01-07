@@ -8,7 +8,7 @@ from .decorator import (
     CreateArgs,
     CreatorDecorator,
 )
-from .disassemble import Disassembled, InstanceCheck, InstanceCheckMeta
+from .disassemble import Disassembled, Field, InstanceCheck, InstanceCheckMeta
 from .hints import resolve_types
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
@@ -20,6 +20,7 @@ __all__ = [
     "Ann",
     "Type",
     "Meta",
+    "Field",
     "errors",
     "VERSION",
     "Creator",

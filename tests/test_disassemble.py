@@ -13,7 +13,7 @@ from attrs import has as attrs_has
 from strcs import Disassembled, InstanceCheck, InstanceCheckMeta, resolve_types
 from strcs.disassemble import (
     Default,
-    _Field,
+    Field,
     fields_from_attrs,
     fields_from_class,
     fields_from_dataclasses,
@@ -414,8 +414,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
         assert disassembled.fields == [
-            _Field(name="one", type=int),
-            _Field(name="two", type=str),
+            Field(name="one", type=int),
+            Field(name="two", type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_attrs
@@ -455,8 +455,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
         assert disassembled.fields == [
-            _Field(name="one", type=int),
-            _Field(name="two", type=str),
+            Field(name="one", type=int),
+            Field(name="two", type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_dataclasses
@@ -496,8 +496,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
         assert disassembled.fields == [
-            _Field(name="one", type=int),
-            _Field(name="two", type=str),
+            Field(name="one", type=int),
+            Field(name="two", type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter is fields_from_class
@@ -538,8 +538,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.fields == [
-            _Field(name="one", type=int),
-            _Field(name="two", type=str),
+            Field(name="one", type=int),
+            Field(name="two", type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_attrs
@@ -583,8 +583,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing | None
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.fields == [
-            _Field(name="one", type=int),
-            _Field(name="two", type=str),
+            Field(name="one", type=int),
+            Field(name="two", type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_dataclasses
@@ -631,8 +631,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing[int, str] | None
         assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
         assert disassembled.fields == [
-            _Field(name="one", type=int),
-            _Field(name="two", type=str),
+            Field(name="one", type=int),
+            Field(name="two", type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_dataclasses
@@ -676,8 +676,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing | None
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.fields == [
-            _Field(name="one", type=object),
-            _Field(name="two", type=object),
+            Field(name="one", type=object),
+            Field(name="two", type=object),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_attrs
@@ -709,7 +709,7 @@ describe "getting fields":
         resolve_types(Thing, globals(), locals())
 
         disassembled = Disassembled.create(Thing)
-        assert disassembled.fields == [_Field(name="stuff", type=Stuff | None)]
+        assert disassembled.fields == [Field(name="stuff", type=Stuff | None)]
 
     it "works on normal class":
 
@@ -723,15 +723,15 @@ describe "getting fields":
         assertParams(
             disassembled.fields,
             [
-                _Field(name="one", kind=inspect.Parameter.POSITIONAL_ONLY, type=int),
-                _Field(name="two", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=str),
-                _Field(
+                Field(name="one", kind=inspect.Parameter.POSITIONAL_ONLY, type=int),
+                Field(name="two", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=str),
+                Field(
                     name="three",
                     kind=inspect.Parameter.KEYWORD_ONLY,
                     type=bool,
                     default=Default(False),
                 ),
-                _Field(name="", kind=inspect.Parameter.VAR_KEYWORD, type=object),
+                Field(name="", kind=inspect.Parameter.VAR_KEYWORD, type=object),
             ],
         )
 
@@ -749,14 +749,14 @@ describe "getting fields":
         assertParams(
             disassembled.fields,
             [
-                _Field(name="one", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int),
-                _Field(
+                Field(name="one", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int),
+                Field(
                     name="two",
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     type=str,
                     default=Default("one"),
                 ),
-                _Field(
+                Field(
                     name="three",
                     kind=inspect.Parameter.KEYWORD_ONLY,
                     type=bool,
@@ -779,14 +779,14 @@ describe "getting fields":
         assertParams(
             disassembled.fields,
             [
-                _Field(name="one", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int),
-                _Field(
+                Field(name="one", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int),
+                Field(
                     name="two",
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     type=str,
                     default=Default("one"),
                 ),
-                _Field(
+                Field(
                     name="three",
                     kind=inspect.Parameter.KEYWORD_ONLY,
                     type=bool,

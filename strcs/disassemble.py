@@ -19,6 +19,7 @@ from attrs import has as attrs_has
 from .not_specified import NotSpecifiedMeta
 
 T = tp.TypeVar("T")
+U = tp.TypeVar("U")
 builtin_types = [v for v in vars(builtins).values() if isinstance(v, type)]
 
 
@@ -48,14 +49,17 @@ def kind_name(kind: int) -> str:
 
 
 @define
-class _Field:
+class Field(tp.Generic[T]):
     name: str
-    type: object
+    type: T
     kind: int = attrs.field(default=inspect.Parameter.POSITIONAL_OR_KEYWORD.value, repr=kind_name)
     default: tp.Callable[[], object | None] | None = attrs.field(default=None)
 
-    def with_replaced_type(self, typ: object) -> "_Field":
-        return self.__class__(name=self.name, type=typ, kind=self.kind, default=self.default)
+    def with_replaced_type(self, typ: U) -> "Field[U]":
+        return Field[U](name=self.name, type=typ, kind=self.kind, default=self.default)
+
+    def clone(self) -> "Field[T]":
+        return self.with_replaced_type(self.type)
 
     @kind.validator
     def check_kind(self, attribute: Attribute, value: object) -> None:
@@ -73,8 +77,8 @@ class _Field:
             )
 
 
-def fields_from_class(typ: type) -> tp.Sequence[_Field]:
-    result: list[_Field] = []
+def fields_from_class(typ: type) -> tp.Sequence[Field]:
+    result: list[Field] = []
     signature = inspect.signature(typ)
     for name, param in list(signature.parameters.items()):
         field_type = param.annotation
@@ -87,13 +91,13 @@ def fields_from_class(typ: type) -> tp.Sequence[_Field]:
         dflt: tp.Callable[[], object | None] | None = None
         if param.default is not inspect.Parameter.empty:
             dflt = Default(param.default)
-        result.append(_Field(name=name, default=dflt, kind=param.kind.value, type=field_type))
+        result.append(Field(name=name, default=dflt, kind=param.kind.value, type=field_type))
 
     return result
 
 
-def fields_from_attrs(typ: type) -> tp.Sequence[_Field]:
-    result: list[_Field] = []
+def fields_from_attrs(typ: type) -> tp.Sequence[Field]:
+    result: list[Field] = []
     for field in attrs_fields(typ):
         if not field.init:
             continue
@@ -125,7 +129,7 @@ def fields_from_attrs(typ: type) -> tp.Sequence[_Field]:
             name = name[len(f"{typ.__name__}_") + 1 :]
 
         result.append(
-            _Field(
+            Field(
                 name=name,
                 default=dflt,
                 kind=kind,
@@ -136,8 +140,8 @@ def fields_from_attrs(typ: type) -> tp.Sequence[_Field]:
     return result
 
 
-def fields_from_dataclasses(typ: type) -> tp.Sequence[_Field]:
-    result: list[_Field] = []
+def fields_from_dataclasses(typ: type) -> tp.Sequence[Field]:
+    result: list[Field] = []
     for field in dataclass_fields(typ):
         if not field.init:
             continue
@@ -158,7 +162,7 @@ def fields_from_dataclasses(typ: type) -> tp.Sequence[_Field]:
             dflt = field.default_factory
 
         name = field.name
-        result.append(_Field(name=name, default=dflt, kind=kind, type=field_type))
+        result.append(Field(name=name, default=dflt, kind=kind, type=field_type))
     return result
 
 
@@ -349,7 +353,7 @@ class Disassembled:
     _fields_from: object = attrs.field(init=False)
 
     @memoized_property
-    def fields_getter(self) -> tp.Callable[..., tp.Sequence[_Field]] | None:
+    def fields_getter(self) -> tp.Callable[..., tp.Sequence[Field]] | None:
         if isinstance(self.fields_from, type) and attrs_has(self.fields_from):
             return fields_from_attrs
         elif is_dataclass(self.fields_from):
@@ -364,14 +368,14 @@ class Disassembled:
 
         return None
 
-    _fields_getter: tp.Callable[..., tp.Sequence[_Field]] | None = attrs.field(init=False)
+    _fields_getter: tp.Callable[..., tp.Sequence[Field]] | None = attrs.field(init=False)
 
     @memoized_property
-    def fields(self) -> list[_Field]:
+    def fields(self) -> list[Field]:
         if self.fields_getter is None:
             return []
 
-        fields: list[_Field] = []
+        fields: list[Field] = []
 
         typevar_map, typevars = self.generics
         for field in self.fields_getter(self.fields_from):
@@ -382,7 +386,7 @@ class Disassembled:
 
         return fields
 
-    _fields: list[_Field] = attrs.field(init=False)
+    _fields: list[Field] = attrs.field(init=False)
 
     def find_generic_subtype(self, *want: type) -> list[type]:
         result: list[type] = []
