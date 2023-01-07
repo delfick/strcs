@@ -2,6 +2,7 @@ from . import errors
 from .annotations import AnnBase, Annotation, FromMeta, MergedAnnotation
 from .args_extractor import ArgsExtractor
 from .decorator import CreateArgs, CreatorDecorator
+from .disassemble import Disassembled, InstanceCheck, InstanceCheckMeta
 from .hints import resolve_types
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
@@ -21,7 +22,9 @@ __all__ = [
     "Annotation",
     "CreateArgs",
     "Registerer",
+    "Disassembled",
     "NotSpecified",
+    "InstanceCheck",
     "resolve_types",
     "ArgsExtractor",
     "CreateRegister",
@@ -31,4 +34,5 @@ __all__ = [
     "NotSpecifiedMeta",
     "MergedAnnotation",
     "ConvertDefinition",
+    "InstanceCheckMeta",
 ]

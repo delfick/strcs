@@ -18,7 +18,8 @@ setup(
     , python_requires = ">= 3.10"
 
     , install_requires =
-      [ "cattrs==22.1.0"
+      [ "attrs==22.2.0"
+      , "cattrs==22.2.0"
       ]
 
     , extras_require =
