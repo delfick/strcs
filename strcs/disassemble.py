@@ -16,6 +16,7 @@ from attrs import NOTHING, Attribute, define
 from attrs import fields as attrs_fields
 from attrs import has as attrs_has
 
+from .memoized_property import memoized_property
 from .not_specified import NotSpecifiedMeta
 
 T = tp.TypeVar("T")
@@ -164,32 +165,6 @@ def fields_from_dataclasses(typ: type) -> tp.Sequence[Field]:
         name = field.name
         result.append(Field(name=name, default=dflt, kind=kind, type=field_type))
     return result
-
-
-class memoized_property(tp.Generic[T]):
-    class Empty:
-        pass
-
-    def __init__(self, func: tp.Callable[..., T]):
-        self.func = func
-        self.name = func.__name__
-        self.__doc__ = func.__doc__
-        self.cache_name = "_{0}".format(self.name)
-
-    def __get__(self, instance: object = None, owner: object = None) -> T:
-        if instance is None:
-            return tp.cast(T, self)
-
-        if getattr(instance, self.cache_name, self.Empty) is self.Empty:
-            setattr(instance, self.cache_name, self.func(instance))
-        return getattr(instance, self.cache_name)
-
-    def __set__(self, instance, value):
-        setattr(instance, self.cache_name, value)
-
-    def __delete__(self, instance):
-        if hasattr(instance, self.cache_name):
-            delattr(instance, self.cache_name)
 
 
 class IsAnnotated(tp.Protocol):

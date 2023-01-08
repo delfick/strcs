@@ -7,6 +7,7 @@ from attrs import define
 
 from .disassemble import Disassembled, Field
 from .hints import resolve_types
+from .memoized_property import memoized_property
 from .meta import Meta
 from .not_specified import NotSpecified
 
@@ -43,10 +44,6 @@ class AdjustableMeta(tp.Protocol[T]):
 
 
 class Type(tp.Generic[T]):
-    _ann: Ann[T] | None
-    _without_optional: "Type[T]"
-    _without_annotation: "Type[T]"
-
     @classmethod
     def create(cls, original: object, *, _made: dict[object, "Type"] | None = None) -> "Type":
         if isinstance(original, Type):
@@ -80,50 +77,44 @@ class Type(tp.Generic[T]):
     def ann_value(self) -> object | None:
         return self.disassembled.annotation
 
-    @property
+    @memoized_property
     def ann(self) -> object | None:
-        if not hasattr(self, "_ann"):
-            ann: Ann[T] | None = None
-            if self.ann_value is not None and (
-                isinstance(self.ann_value, (Ann, Annotation)) or callable(self.ann_value)
-            ):
-                from .annotations import AnnBase
+        ann: Ann[T] | None = None
+        if self.ann_value is not None and (
+            isinstance(self.ann_value, (Ann, Annotation)) or callable(self.ann_value)
+        ):
+            from .annotations import AnnBase
 
-                if isinstance(self.ann_value, Ann):
-                    ann = self.ann_value
-                elif isinstance(self.ann_value, (Annotation, AdjustableMeta)):
-                    ann = AnnBase[T](self.ann_value)
-                elif callable(self.ann_value):
-                    ann = AnnBase[T](creator=self.ann_value)
-            self._ann = ann
-        return self._ann
+            if isinstance(self.ann_value, Ann):
+                ann = self.ann_value
+            elif isinstance(self.ann_value, (Annotation, AdjustableMeta)):
+                ann = AnnBase[T](self.ann_value)
+            elif callable(self.ann_value):
+                ann = AnnBase[T](creator=self.ann_value)
+
+        return ann
 
     @property
     def checkable(self) -> type:
         return self.disassembled.checkable
 
-    @property
+    @memoized_property
     def fields(self) -> list[Field]:
-        if not hasattr(self, "_fields"):
-            res: list[Field] = []
-            for field in self.disassembled.fields:
-                if field.type is None:
-                    res.append(field.with_replaced_type(field.type))
-                else:
-                    res.append(field.with_replaced_type(self._make_type(field.type)))
-            self._fields = res
-        return self._fields
+        res: list[Field] = []
+        for field in self.disassembled.fields:
+            if field.type is None:
+                res.append(field.with_replaced_type(field.type))
+            else:
+                res.append(field.with_replaced_type(self._make_type(field.type)))
+        return res
 
-    @property
+    @memoized_property
     def without_annotation(self) -> "Type[T]":
-        if not hasattr(self, "_without_annotation"):
-            self._without_annotation = self._make_type(self.disassembled.without_annotation)
-        return self._without_annotation
+        return self._make_type(self.disassembled.without_annotation)
 
+    @memoized_property
     def without_optional(self) -> "Type[T]":
-        if not hasattr(self, "_without_optional"):
-            self._without_optional = self._make_type(self.disassembled.without_optional)
-        return self._without_optional
+        return self._make_type(self.disassembled.without_optional)
 
     def __hash__(self) -> int:
         return hash(self.original)
