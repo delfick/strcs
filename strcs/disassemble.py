@@ -632,8 +632,8 @@ class Type(tp.Generic[T]):
                 return reprstr
 
             def __instancecheck__(self, obj: object) -> bool:
-                return (obj is None and disassembled.optional) or any(
-                    isinstance(obj, tp.cast(type, ch)) for ch in check_against
+                return (obj is None and disassembled.optional) or isinstance(
+                    obj, tuple(check_against)
                 )
 
             def __eq__(self, o: object) -> bool:
@@ -664,7 +664,7 @@ class Type(tp.Generic[T]):
                 if hasattr(C, "Meta") and issubclass(C.Meta, InstanceCheck.Meta):
                     if isinstance(C.Meta.typ, type):
                         C = C.Meta.typ
-                return any(issubclass(C, ch) for ch in check_against)
+                return issubclass(C, tuple(check_against))
 
             Meta = M
 
