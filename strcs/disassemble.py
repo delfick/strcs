@@ -420,16 +420,11 @@ class Disassembled:
     def is_type_for(self, instance: object) -> tp.TypeGuard[T]:
         return isinstance(instance, self.checkable)
 
-    def is_equivalent_type_for(
-        self, value: object, make_subclass_of: tp.Callable[[], type] | None = None
-    ) -> tp.TypeGuard[T]:
+    def is_equivalent_type_for(self, value: object) -> tp.TypeGuard[T]:
         if self.is_type_for(value):
             return True
 
-        if make_subclass_of is None:
-            subclass_of = self.disassemble(type(value)).checkable
-        else:
-            subclass_of = make_subclass_of()
+        subclass_of = self.disassemble(type(value)).checkable
         return issubclass(subclass_of, self.checkable)
 
     @memoized_property

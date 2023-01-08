@@ -140,10 +140,7 @@ class Type(tp.Generic[T]):
         return self.disassembled.is_type_for(instance)
 
     def is_equivalent_type_for(self, value: object) -> tp.TypeGuard[T]:
-        return self.disassembled.is_equivalent_type_for(
-            value, lambda: self._make_type(type(value)).checkable
-        )
-        return issubclass(self._make_type(type(value)).checkable, self.checkable)
+        return self.disassembled.is_equivalent_type_for(value)
 
     def resolve_types(self, *, _resolved: set["Type"] | None = None):
         if _resolved is None:
