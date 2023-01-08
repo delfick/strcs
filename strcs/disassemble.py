@@ -1,5 +1,6 @@
 import abc
 import builtins
+import collections.abc
 import functools
 import inspect
 import itertools
@@ -220,6 +221,8 @@ class InstanceCheck(abc.ABC):
 
 @define
 class Disassembled:
+    _cache: collections.abc.MutableMapping[object, "Disassembled"] = attrs.field(repr=False)
+
     original: object
     extracted: object
     optional_inner: bool
@@ -228,7 +231,27 @@ class Disassembled:
     annotation: object | None
 
     @classmethod
-    def create(cls, typ: object) -> "Disassembled":
+    def create(
+        cls,
+        typ: object,
+        *,
+        _cache: collections.abc.MutableMapping[object, "Disassembled"] | None = None,
+    ) -> "Disassembled":
+        if _cache is None:
+            _cache = {}
+
+        if isinstance(typ, Disassembled):
+            return typ
+
+        try:
+            hash(typ)
+            hashable = True
+        except TypeError:
+            hashable = False
+
+        if hashable and typ in _cache:
+            return _cache[typ]
+
         original = typ
         optional_inner = False
         optional_outer, typ = extract_optional(typ)
@@ -241,7 +264,8 @@ class Disassembled:
         if annotation is None and optional_outer:
             extracted, annotated, annotation = extract_annotation(typ)
 
-        return Disassembled(
+        made = Disassembled(
+            cache=_cache,
             original=original,
             extracted=extracted,
             optional_inner=optional_inner,
@@ -249,6 +273,14 @@ class Disassembled:
             annotated=annotated,
             annotation=annotation,
         )
+
+        if hashable:
+            _cache[typ] = made
+
+        return made
+
+    def disassemble(self, typ: object) -> "Disassembled":
+        return Disassembled.create(typ, _cache=self._cache)
 
     def reassemble(
         self, resolved: object, *, with_annotation: bool = True, with_optional: bool = True
@@ -395,7 +427,7 @@ class Disassembled:
             return True
 
         if make_subclass_of is None:
-            subclass_of = Disassembled.create(type(value)).checkable
+            subclass_of = self.disassemble(type(value)).checkable
         else:
             subclass_of = make_subclass_of()
         return issubclass(subclass_of, self.checkable)
@@ -414,7 +446,7 @@ class Disassembled:
             without_annotation = disassembled.without_annotation
 
         if origin is not None and origin in (types.UnionType, tp.Union):
-            check_against = tuple(Disassembled.create(a).checkable for a in tp.get_args(extracted))
+            check_against = tuple(self.disassemble(a).checkable for a in tp.get_args(extracted))
             Meta.typ = extracted
             Checker = self._checker_union(extracted, origin, check_against, Meta)
         else:
