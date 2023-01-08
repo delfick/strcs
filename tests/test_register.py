@@ -146,7 +146,7 @@ describe "Register":
 
             thing_maker = mock.Mock(name="thing_maker")
             thing_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
-                args.value, args.want.want
+                args.value, args.want.extracted
             )
             creg[Thing] = thing_maker
 
@@ -179,7 +179,7 @@ describe "Register":
 
             stuff_maker = mock.Mock(name="stuff_maker")
             stuff_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
-                args.value, args.want.want
+                args.value, args.want.extracted
             )
             creg[Stuff] = stuff_maker
 
@@ -212,7 +212,9 @@ describe "Register":
 
             def creator(args: strcs.CreateArgs[Thing]) -> Thing:
                 assert isinstance(args.value, dict)
-                return args.converter.structure_attrs_fromdict(args.value, args.want.checkable)
+                return args.converter.structure_attrs_fromdict(
+                    args.value, args.want.checkable_as_type
+                )
 
             creg[Thing] = creator
 
@@ -233,7 +235,9 @@ describe "Register":
 
             def creator(args: strcs.CreateArgs[Thing]) -> Thing:
                 assert isinstance(args.value, dict)
-                return args.converter.structure_attrs_fromdict(args.value, args.want.checkable)
+                return args.converter.structure_attrs_fromdict(
+                    args.value, args.want.checkable_as_type
+                )
 
             creg[Thing] = creator
 
@@ -265,7 +269,7 @@ describe "Register":
 
             shape_maker = mock.Mock(name="shape_maker")
             shape_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
-                {"three": meta.retrieve_one(int, "three")}, args.want.want
+                {"three": meta.retrieve_one(int, "three")}, args.want.extracted
             )
             creg[Shape] = shape_maker
 
@@ -330,7 +334,7 @@ describe "Creators":
             pass
 
         dec = tp.cast(strcs.CreatorDecorator, creator(Thing))
-        assert dec.typ == strcs.Type.create(Thing)
+        assert dec.original is Thing
         assert dec.register is creg
 
     it "takes a ConvertDefinition", creator: strcs.Creator:
@@ -423,7 +427,7 @@ describe "Creators":
 
             @creator(Thing, assume_unchanged_converted=False)
             def make(value: object, want: strcs.Type, /) -> Thing:
-                called.append((value, want.want))
+                called.append((value, want.extracted))
                 if not isinstance(value, Thing):
                     return thing
                 return value
@@ -475,7 +479,7 @@ describe "Creators":
 
             @creator(Thing)
             def make(value: object, want: strcs.Type, /, number: int, specific: Thing) -> Thing:
-                called.append((value, want.want, number, specific))
+                called.append((value, want.extracted, number, specific))
                 return thing
 
             meta = strcs.Meta()

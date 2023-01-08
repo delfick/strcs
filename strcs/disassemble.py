@@ -184,7 +184,7 @@ class IsAnnotated(tp.Protocol):
         )
 
 
-def extract_optional(typ: object) -> tuple[bool, object]:
+def extract_optional(typ: T) -> tuple[bool, T]:
     optional = False
     if tp.get_origin(typ) in (types.UnionType, tp.Union):
         if type(None) in tp.get_args(typ):
@@ -199,7 +199,7 @@ def extract_optional(typ: object) -> tuple[bool, object]:
     return optional, typ
 
 
-def extract_annotation(typ: object) -> tuple[object, IsAnnotated | None, object | None]:
+def extract_annotation(typ: T) -> tuple[T, IsAnnotated | None, object | None]:
     if IsAnnotated.has(typ):
         return typ.__args__[0], typ, typ.__metadata__[0]
     else:
@@ -220,11 +220,11 @@ class InstanceCheck(abc.ABC):
 
 
 @define
-class Disassembled:
+class Disassembled(tp.Generic[T]):
     _cache: collections.abc.MutableMapping[object, "Disassembled"] = attrs.field(repr=False)
 
     original: object
-    extracted: object
+    extracted: T
     optional_inner: bool
     optional_outer: bool
     annotated: IsAnnotated | None
@@ -235,13 +235,14 @@ class Disassembled:
         cls,
         typ: object,
         *,
+        expect: type[U] | None = None,
         _cache: collections.abc.MutableMapping[object, "Disassembled"] | None = None,
-    ) -> "Disassembled":
+    ) -> "Disassembled[U]":
         if _cache is None:
             _cache = {}
 
-        if isinstance(typ, Disassembled):
-            return typ
+        if isinstance(typ, cls):
+            return tp.cast(Disassembled[U], typ)
 
         try:
             hash(typ)
@@ -264,7 +265,9 @@ class Disassembled:
         if annotation is None and optional_outer:
             extracted, annotated, annotation = extract_annotation(typ)
 
-        made = Disassembled(
+        constructor = tp.cast(tp.Callable[..., Disassembled[U]], cls)
+
+        made = constructor(
             cache=_cache,
             original=original,
             extracted=extracted,
@@ -279,8 +282,17 @@ class Disassembled:
 
         return made
 
-    def disassemble(self, typ: object) -> "Disassembled":
-        return Disassembled.create(typ, _cache=self._cache)
+    def __hash__(self) -> int:
+        return hash(self.original)
+
+    def __eq__(self, o: object) -> tp.TypeGuard["Disassembled"]:
+        if not isinstance(o, Disassembled):
+            return False
+
+        return o.original == self.original
+
+    def disassemble(self, expect: type[U], typ: object) -> "Disassembled[U]":
+        return Disassembled.create(typ, expect=expect, _cache=self._cache)
 
     def reassemble(
         self, resolved: object, *, with_annotation: bool = True, with_optional: bool = True
@@ -302,6 +314,12 @@ class Disassembled:
     @property
     def optional(self) -> bool:
         return self.optional_inner or self.optional_outer
+
+    @memoized_property
+    def origin(self) -> object | None:
+        return tp.get_origin(self.extracted)
+
+    _origin: object | None = attrs.field(init=False)
 
     @memoized_property
     def origin_or_type(self) -> object:
@@ -424,8 +442,12 @@ class Disassembled:
         if self.is_type_for(value):
             return True
 
-        subclass_of = self.disassemble(type(value)).checkable
+        subclass_of = self.disassemble(object, type(value)).checkable
         return issubclass(subclass_of, self.checkable)
+
+    @property
+    def checkable_as_type(self) -> type[T]:
+        return tp.cast(type[T], self.checkable)
 
     @memoized_property
     def checkable(self) -> type[InstanceCheck]:
@@ -441,7 +463,9 @@ class Disassembled:
             without_annotation = disassembled.without_annotation
 
         if origin is not None and origin in (types.UnionType, tp.Union):
-            check_against = tuple(self.disassemble(a).checkable for a in tp.get_args(extracted))
+            check_against = tuple(
+                self.disassemble(object, a).checkable for a in tp.get_args(extracted)
+            )
             Meta.typ = extracted
             Checker = self._checker_union(extracted, origin, check_against, Meta)
         else:

@@ -67,7 +67,7 @@ class FromMeta:
     pattern: str
 
     def adjusted_meta(self, meta: Meta, typ: "Type[T]") -> Meta:
-        val: T = meta.retrieve_one(typ.checkable, self.pattern)
+        val: T = meta.retrieve_one(typ.checkable_as_type, self.pattern)
         return meta.clone(data_override={"retrieved": val})
 
     def adjusted_creator(

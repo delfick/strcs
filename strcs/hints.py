@@ -213,7 +213,7 @@ def resolve_types(
                     value = tp.ForwardRef(value, is_argument=False, is_class=True)
 
                 if name in allfields:
-                    disassembled = Disassembled.create(value)
+                    disassembled = Disassembled.create(value, expect=object)
 
                     resolved = resolve_type(disassembled.extracted, base_globals, base_locals)
                     if isinstance(resolved, type):

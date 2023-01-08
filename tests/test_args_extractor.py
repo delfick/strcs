@@ -24,7 +24,7 @@ class IsRegister:
     ):
         self.reg = reg
         self.got: object | None = None
-        self.last_type = strcs.Type.create(last_type)
+        self.last_type = strcs.Type.create(last_type, expect=object)
         self.last_meta = last_meta
         self.skip_creator = skip_creator
 
@@ -55,7 +55,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=mock.Mock),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -73,7 +73,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=mock.Mock),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -91,7 +91,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=mock.Mock),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -119,7 +119,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(Other),
+            want=strcs.Type.create(Other, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -133,7 +133,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(Other),
+            want=strcs.Type.create(Other, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -147,7 +147,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(Other),
+            want=strcs.Type.create(Other, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -178,7 +178,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -193,7 +193,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -208,7 +208,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -235,7 +235,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(Other),
+            want=strcs.Type.create(Other, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -253,7 +253,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=converter,
             register=strcs.CreateRegister(),
@@ -268,7 +268,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=converter,
             register=strcs.CreateRegister(),
@@ -283,7 +283,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=converter,
             register=strcs.CreateRegister(),
@@ -303,7 +303,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=reg,
@@ -318,7 +318,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=reg,
@@ -333,7 +333,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=reg,
@@ -364,7 +364,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta1,
             converter=converter1,
             register=register1,
@@ -393,7 +393,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta1,
             converter=converter1,
             register=register1,
@@ -422,7 +422,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta1,
             converter=converter1,
             register=register1,
@@ -442,7 +442,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=mock.Mock(name="val"),
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),
@@ -463,7 +463,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=mock.Mock(name="val"),
-            want=strcs.Type.create(mock.Mock),
+            want=strcs.Type.create(mock.Mock, expect=object),
             meta=meta,
             converter=cattrs.Converter(),
             register=strcs.CreateRegister(),

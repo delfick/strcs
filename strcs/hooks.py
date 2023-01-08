@@ -94,11 +94,13 @@ class CreateStructureHook:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type[T].create(typ)
+            want = Type.create(typ)
 
         normal_creator = want.func_from(list(self.register.register.items()))
 
-        if not bool(want.processable or self.once_only_creator or normal_creator):
+        if not bool(
+            want.is_annotated or want.has_fields or self.once_only_creator or normal_creator
+        ):
             return self.bypass(value, want)
 
         meta = self.meta
@@ -113,7 +115,10 @@ class CreateStructureHook:
             creator = want.ann.adjusted_creator(creator, self.register, want)
             if meta is not self.meta:
                 return self.register.create(
-                    want.without_annotation, value, meta=meta, once_only_creator=creator
+                    Type.create(want.without_annotation),
+                    value,
+                    meta=meta,
+                    once_only_creator=creator,
                 )
 
         if (

@@ -204,7 +204,7 @@ class Meta:
         if typ is object:
             return False, data
 
-        disassembled = Disassembled.create(typ)
+        disassembled = Disassembled.create(typ, expect=object)
         optional = disassembled.optional
         typ = disassembled.checkable
         available: dict[str, object] = {n: v for n, v in data.items() if isinstance(v, typ)}

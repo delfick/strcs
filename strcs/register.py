@@ -23,7 +23,7 @@ class CreateRegister:
     def __init__(
         self,
         *,
-        register: dict[Type[T], ConvertFunction[T]] | None = None,
+        register: dict[Type, ConvertFunction[T]] | None = None,
         last_meta: Meta | None = None,
         last_type: Type[T] | None = None,
         skip_creator: ConvertDefinition[T] | None = None,
@@ -48,11 +48,11 @@ class CreateRegister:
             auto_resolve_string_annotations=self.auto_resolve_string_annotations,
         )
 
-    def __setitem__(self, specification: object, creator: ConvertFunction[T]) -> None:
+    def __setitem__(self, specification: type[T] | Type[T], creator: ConvertFunction[T]) -> None:
         self.register[Type.create(specification)] = creator
 
     def __contains__(self, typ: type | Type[T]) -> bool:
-        return Type.create(typ).func_from(list(self.register.items())) is not None
+        return Type.create(typ, expect=object).func_from(list(self.register.items())) is not None
 
     def make_decorator(self) -> Creator:
         def creator(typ: object, assume_unchanged_converted=True) -> Registerer[T]:
@@ -74,7 +74,7 @@ class CreateRegister:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type[T].create(typ)
+            want = Type.create(typ)
 
         return CreateStructureHook.structure(
             register=self,
@@ -98,7 +98,7 @@ class CreateRegister:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type[T].create(tp.Annotated[typ, ann])
+            want = Type.create(tp.Annotated[typ, ann])
 
         return CreateStructureHook.structure(
             register=self,

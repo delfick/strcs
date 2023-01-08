@@ -67,6 +67,7 @@ class WrappedCreator(tp.Generic[T]):
 
 
 class CreatorDecorator(tp.Generic[T]):
+    typ: Type[T]
     func: ConvertDefinition[T]
 
     def __init__(
@@ -75,13 +76,16 @@ class CreatorDecorator(tp.Generic[T]):
         typ: object,
         assume_unchanged_converted=True,
     ):
-        if not isinstance(typ, Type):
-            typ = Type.create(typ)
-        self.typ = typ
+        self.original = typ
         self.register = register
         self.assume_unchanged_converted = assume_unchanged_converted
 
     def __call__(self, func: ConvertDefinition[T] | None = None) -> ConvertDefinition[T]:
+        if not isinstance(self.original, Type):
+            self.typ = Type.create(self.original)
+        else:
+            self.typ = self.original
+
         wrapped, func = self.wrap(func)
         self.register[self.typ] = wrapped
         return func

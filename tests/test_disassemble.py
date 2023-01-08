@@ -27,7 +27,7 @@ U = tp.TypeVar("U")
 describe "Type":
     it "works on simple type":
         provided = int
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=int)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int
@@ -51,7 +51,7 @@ describe "Type":
 
     it "works on a union":
         provided = int | str
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=types.UnionType)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int | str
@@ -77,7 +77,7 @@ describe "Type":
 
     it "works on a complicated union":
         provided = tp.Union[tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, "hello"]]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=types.UnionType)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == provided
@@ -110,7 +110,7 @@ describe "Type":
 
     it "works on a typing union":
         provided = tp.Union[int, str]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=types.UnionType)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int | str
@@ -136,7 +136,7 @@ describe "Type":
 
     it "works on an optional union":
         provided = int | str | None
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=types.UnionType)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.extracted == int | str
@@ -162,7 +162,7 @@ describe "Type":
 
     it "works on optional simple type":
         provided = int | None
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=int)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is True
@@ -189,7 +189,7 @@ describe "Type":
     it "works on annotated simple type":
         anno = "hello"
         provided = tp.Annotated[int, anno]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=int)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int
@@ -214,7 +214,7 @@ describe "Type":
     it "works on optional annotated simple type":
         anno = "hello"
         provided = tp.Annotated[tp.Optional[int], anno]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=int)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -240,7 +240,7 @@ describe "Type":
 
     it "works on builtin container to simple type":
         provided = list[int]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=list)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == list[int]
@@ -264,7 +264,7 @@ describe "Type":
 
     it "works on optional builtin container to simple type":
         provided = list[int] | None
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=list)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is True
@@ -290,7 +290,7 @@ describe "Type":
 
     it "works on builtin container to multiple simple types":
         provided = dict[str, int]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=dict)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == dict[str, int]
@@ -314,7 +314,7 @@ describe "Type":
 
     it "works on optional builtin container to multiple simple types":
         provided = tp.Optional[dict[str, int]]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=dict)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is True
@@ -341,7 +341,7 @@ describe "Type":
     it "works on annotated optional builtin container to multiple simple types":
         anno = "stuff"
         provided = tp.Annotated[tp.Optional[dict[str, int]], anno]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=dict)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -368,7 +368,7 @@ describe "Type":
     it "works on optional annotated builtin container to multiple simple types":
         anno = "stuff"
         provided = tp.Optional[tp.Annotated[dict[str, int], anno]]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=dict)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is True
@@ -400,7 +400,7 @@ describe "Type":
             two: str
 
         provided = Thing
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
@@ -441,7 +441,7 @@ describe "Type":
             two: str
 
         provided = Thing
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
@@ -482,7 +482,7 @@ describe "Type":
                 self.two = two
 
         provided = Thing
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
@@ -524,7 +524,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[Thing, anno]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
@@ -567,7 +567,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing], anno]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -612,7 +612,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -660,7 +660,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing], anno]
-        disassembled = Disassembled.create(provided)
+        disassembled = Disassembled.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -708,7 +708,7 @@ describe "getting fields":
 
         resolve_types(Thing, globals(), locals())
 
-        disassembled = Disassembled.create(Thing)
+        disassembled = Disassembled.create(Thing, expect=Thing)
         assert disassembled.fields == [Field(name="stuff", type=Stuff | None)]
 
     it "works on normal class":
@@ -717,7 +717,7 @@ describe "getting fields":
             def __init__(self, one: int, /, two: str, *, three: bool = False, **kwargs):
                 pass
 
-        disassembled = Disassembled.create(Thing)
+        disassembled = Disassembled.create(Thing, expect=Thing)
         assert disassembled.fields_getter is fields_from_class
         assert disassembled.fields_from is Thing
         assertParams(
@@ -743,7 +743,7 @@ describe "getting fields":
             two: str = "one"
             three: bool = attrs.field(kw_only=True, default=False)
 
-        disassembled = Disassembled.create(Thing)
+        disassembled = Disassembled.create(Thing, expect=Thing)
         assert disassembled.fields_getter is fields_from_attrs
         assert disassembled.fields_from is Thing
         assertParams(
@@ -773,7 +773,7 @@ describe "getting fields":
             two: str = "one"
             three: bool = dataclasses.field(kw_only=True, default=False)
 
-        disassembled = Disassembled.create(Thing)
+        disassembled = Disassembled.create(Thing, expect=Thing)
         assert disassembled.fields_getter is fields_from_dataclasses
         assert disassembled.fields_from is Thing
         assertParams(
@@ -797,7 +797,7 @@ describe "getting fields":
 
 describe "checkable":
     it "can find instances and subclasses of basic types":
-        db = Disassembled.create(int)
+        db = Disassembled.create(int, expect=int)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
         assert not isinstance("asdf", db.checkable)
@@ -839,7 +839,7 @@ describe "checkable":
         assert db.checkable.Meta.without_annotation == int
 
     it "can find instances and subclasses of union types":
-        db = Disassembled.create(int | str)
+        db = Disassembled.create(int | str, expect=types.UnionType)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
         assert isinstance("asdf", db.checkable)
@@ -890,7 +890,7 @@ describe "checkable":
 
     it "can find instances and subclasses of complicated union type":
         provided = tp.Union[tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, "hello"]]
-        db = Disassembled.create(provided)
+        db = Disassembled.create(provided, expect=types.UnionType)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
         assert isinstance("asdf", db.checkable)
@@ -940,7 +940,7 @@ describe "checkable":
         assert db.checkable.Meta.without_annotation == provided
 
     it "can find instances and subclasses of optional basic types":
-        db = Disassembled.create(int | None)
+        db = Disassembled.create(int | None, expect=int)
         assert isinstance(23, db.checkable)
         assert isinstance(None, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -979,7 +979,7 @@ describe "checkable":
         assert db.checkable.Meta.without_annotation == int | None
 
     it "can find instances and subclasses of annotated types":
-        db = Disassembled.create(tp.Annotated[int | None, "stuff"])
+        db = Disassembled.create(tp.Annotated[int | None, "stuff"], expect=int)
         assert isinstance(23, db.checkable)
         assert isinstance(None, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -1022,7 +1022,7 @@ describe "checkable":
         class Mine:
             pass
 
-        db = Disassembled.create(Mine)
+        db = Disassembled.create(Mine, expect=Mine)
         assert not isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
         assert not isinstance("asdf", db.checkable)
