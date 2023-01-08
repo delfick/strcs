@@ -1,13 +1,13 @@
+import collections.abc
 import fnmatch
 import inspect
 import typing as tp
-from collections.abc import Mapping
 
 import cattrs
 from attrs import define
 
 from . import errors
-from .disassemble import Type
+from .disassemble import Type, TypeCache
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
@@ -18,7 +18,9 @@ class Empty:
 
 
 class NarrowCB(tp.Protocol):
-    def __call__(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]:
+    def __call__(
+        self, *patterns: str, obj: collections.abc.Mapping | object = Empty
+    ) -> dict[str, object]:
         ...
 
 
@@ -59,12 +61,12 @@ class Narrower:
         patterns: list[str]
 
     class Progress:
-        def __init__(self, obj: Mapping | object):
+        def __init__(self, obj: collections.abc.Mapping | object):
             self.obj = obj
 
             self.further: dict[str, Narrower.Further] = {}
             self.collected: dict[str, object] = {}
-            self.obj_is_mapping = isinstance(self.obj, Mapping)
+            self.obj_is_mapping = isinstance(self.obj, collections.abc.Mapping)
 
         def collect(self, narrow: NarrowCB) -> dict[str, object]:
             for n, ft in self.further.items():
@@ -85,7 +87,7 @@ class Narrower:
                 patt = f"{n}{pattern[1:]}"
 
             is_nestable = not (
-                not isinstance(v, (Mapping, type))
+                not isinstance(v, (collections.abc.Mapping, type))
                 and v.__class__.__module__ in ("__builtin__", "builtins")
             )
 
@@ -96,16 +98,18 @@ class Narrower:
             elif fnmatch.fnmatch(n, patt):
                 self.collected[n] = v
 
-    def __init__(self, obj: Mapping | object):
+    def __init__(self, obj: collections.abc.Mapping | object):
         self.obj = obj
 
     def keys_from(self, options: object) -> tp.Iterable[str]:
-        if isinstance(options, (Mapping, tp.Iterable)):
+        if isinstance(options, (collections.abc.Mapping, tp.Iterable)):
             yield from iter(options)
         else:
             yield from [n for n in dir(options) if not n.startswith("_")]
 
-    def narrow(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]:
+    def narrow(
+        self, *patterns: str, obj: collections.abc.Mapping | object = Empty
+    ) -> dict[str, object]:
         if not patterns:
             return {}
 
@@ -118,7 +122,7 @@ class Narrower:
                 pattern = pattern[1:]
             for n in self.keys_from(obj):
                 if progress.obj_is_mapping:
-                    v = tp.cast(Mapping, obj)[n]
+                    v = tp.cast(collections.abc.Mapping, obj)[n]
                 else:
                     v = getattr(obj, n)
 
@@ -189,6 +193,7 @@ class Meta:
         data: tp.Mapping[str, object] | type[Empty] = Empty,
         *,
         remove_nones: bool = True,
+        type_cache: TypeCache | None,
     ) -> tuple[bool, dict[str, object]]:
         """
         Return (optional, found)
@@ -196,6 +201,9 @@ class Meta:
         Where optional is True if the type is a tp.Optional and found is a dictionary
         of names in Meta to the found data for that name, which matches the specified type
         """
+        if type_cache is None:
+            type_cache = TypeCache()
+
         if data is Empty:
             data = self.data
 
@@ -204,7 +212,7 @@ class Meta:
         if typ is object:
             return False, data
 
-        disassembled = Type.create(typ, expect=object)
+        disassembled = Type.create(typ, cache=type_cache, expect=object)
         optional = disassembled.optional
         typ = disassembled.checkable
         available: dict[str, object] = {n: v for n, v in data.items() if isinstance(v, typ)}
@@ -223,15 +231,19 @@ class Meta:
 
         return optional, available
 
-    def retrieve_patterns(self, typ: object, *patterns: str) -> dict[str, object]:
+    def retrieve_patterns(
+        self, typ: object, *patterns: str, type_cache: TypeCache | None
+    ) -> dict[str, object]:
         """
         Retrieve a dictionary of key to value for this patterns restrictions.
         """
+        if type_cache is None:
+            type_cache = TypeCache()
         data = self.data
         if patterns:
             data = Narrower(data).narrow(*patterns)
 
-        _, found = self.find_by_type(typ, data=data)
+        _, found = self.find_by_type(typ, data=data, type_cache=type_cache)
         return found
 
     @tp.overload
@@ -241,12 +253,18 @@ class Meta:
         *patterns: str,
         default: object = inspect._empty,
         refined_type: None = None,
+        type_cache: TypeCache | None,
     ) -> T:
         ...
 
     @tp.overload
     def retrieve_one(
-        self, typ: object, *patterns: str, default: object = inspect._empty, refined_type: T
+        self,
+        typ: object,
+        *patterns: str,
+        default: object = inspect._empty,
+        refined_type: T,
+        type_cache: TypeCache | None,
     ) -> T:
         ...
 
@@ -256,6 +274,7 @@ class Meta:
         *patterns: str,
         default: object = inspect._empty,
         refined_type: T | None = None,
+        type_cache: TypeCache | None,
     ) -> object:
         """
         Retrieve a single value for this type and patterns restrictions
@@ -267,6 +286,9 @@ class Meta:
 
         Raise an error if we can't find exactly one value
         """
+        if type_cache is None:
+            type_cache = TypeCache()
+
         data = self.data
         if patterns:
             with_patterns = Narrower(data).narrow(*patterns)
@@ -275,7 +297,7 @@ class Meta:
             elif default is not inspect._empty:
                 return tp.cast(T, default)
 
-        optional, found = self.find_by_type(typ, data=data)
+        optional, found = self.find_by_type(typ, data=data, type_cache=type_cache)
 
         if patterns and data and not found and not optional:
             raise errors.FoundWithWrongType(patterns=list(patterns), want=typ)

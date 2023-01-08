@@ -229,7 +229,7 @@ class InstanceCheck(abc.ABC):
 
 @define
 class Type(tp.Generic[T]):
-    _cache: collections.abc.MutableMapping[object, "Type"] = attrs.field(repr=False)
+    cache: "TypeCache" = attrs.field(repr=False)
 
     original: object
     extracted: T
@@ -244,24 +244,16 @@ class Type(tp.Generic[T]):
         typ: object,
         *,
         expect: type[U] | None = None,
-        _cache: collections.abc.MutableMapping[object, "Type"] | None = None,
+        cache: "TypeCache",
     ) -> "Type[U]":
-        if _cache is None:
-            _cache = {}
+        original = typ
 
         if isinstance(typ, cls):
             return tp.cast(Type[U], typ)
 
-        try:
-            hash(typ)
-            hashable = True
-        except TypeError:
-            hashable = False
+        if typ in cache:
+            return cache[original]
 
-        if hashable and typ in _cache:
-            return _cache[typ]
-
-        original = typ
         optional_inner = False
         optional_outer, typ = extract_optional(typ)
         extracted, annotated, annotation = extract_annotation(typ)
@@ -276,7 +268,7 @@ class Type(tp.Generic[T]):
         constructor = tp.cast(tp.Callable[..., Type[U]], cls)
 
         made = constructor(
-            cache=_cache,
+            cache=cache,
             original=original,
             extracted=extracted,
             optional_inner=optional_inner,
@@ -285,8 +277,7 @@ class Type(tp.Generic[T]):
             annotation=annotation,
         )
 
-        if hashable:
-            _cache[typ] = made
+        cache[original] = made
 
         return made
 
@@ -303,7 +294,7 @@ class Type(tp.Generic[T]):
         return o.original == self.original
 
     def disassemble(self, expect: type[U], typ: object) -> "Type[U]":
-        return Type.create(typ, expect=expect, _cache=self._cache)
+        return Type.create(typ, expect=expect, cache=self.cache)
 
     def reassemble(
         self, resolved: object, *, with_annotation: bool = True, with_optional: bool = True
@@ -431,7 +422,7 @@ class Type(tp.Generic[T]):
             if field.type is None:
                 res.append(field.with_replaced_type(field.type))
             else:
-                res.append(field.with_replaced_type(self.create(field.type)))
+                res.append(field.with_replaced_type(self.disassemble(field.type, field.type)))
         return res
 
     _typed_fields: list[Field] = attrs.field(init=False)
@@ -497,15 +488,15 @@ class Type(tp.Generic[T]):
         _resolved.add(self)
 
         if isinstance(self.original, type):
-            resolve_types(self.original)
+            resolve_types(self.original, type_cache=self.cache)
         if isinstance(self.extracted, type):
-            resolve_types(self.extracted)
+            resolve_types(self.extracted, type_cache=self.cache)
 
         args = getattr(self.extracted, "__args__", None)
         if args:
             for arg in args:
                 if isinstance(arg, type):
-                    resolve_types(arg)
+                    resolve_types(arg, type_cache=self.cache)
 
         for field in self.typed_fields:
             field.type.resolve_types(_resolved=_resolved)
@@ -724,3 +715,39 @@ class Type(tp.Generic[T]):
             Meta = M
 
         return Checker
+
+
+class TypeCache(collections.abc.MutableMapping[object, "Type"]):
+    def __init__(self):
+        self.cache = {}
+
+    def key(self, o: object) -> tuple[type, object]:
+        return (type(o), o)
+
+    def __getitem__(self, k: object) -> Type:
+        return self.cache[self.key(k)]
+
+    def __setitem__(self, k: object, v: Type) -> None:
+        try:
+            hash(k)
+        except TypeError:
+            return
+        else:
+            self.cache[self.key(k)] = v
+
+    def __delitem__(self, k: object) -> None:
+        del self.cache[self.key(k)]
+
+    def __contains__(self, k: object) -> bool:
+        try:
+            hash(k)
+        except TypeError:
+            return False
+        else:
+            return self.key(k) in self.cache
+
+    def __iter__(self) -> tp.Iterator[object]:
+        return iter(self.cache)
+
+    def __len__(self) -> int:
+        return len(self.cache)

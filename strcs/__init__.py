@@ -8,7 +8,7 @@ from .decorator import (
     CreateArgs,
     CreatorDecorator,
 )
-from .disassemble import Field, InstanceCheck, InstanceCheckMeta, Type
+from .disassemble import Field, InstanceCheck, InstanceCheckMeta, Type, TypeCache
 from .hints import resolve_types
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
@@ -25,6 +25,7 @@ __all__ = [
     "Creator",
     "AnnBase",
     "FromMeta",
+    "TypeCache",
     "Annotation",
     "CreateArgs",
     "Registerer",

@@ -161,5 +161,5 @@ object and this may be achieved via ``strcs.FromMeta``:
         magic: tp.Annotated[Magic, strcs.FromMeta("magic")]
 
 
-    wizard = reg.create(Wizard, meta=strcs.Meta({"magic": Magic()}))
+    wizard = reg.create(Wizard, meta=reg.meta({"magic": Magic()}))
     assert wizard.magic.incantation() == "abracadabra!"

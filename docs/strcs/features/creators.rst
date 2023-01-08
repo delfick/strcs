@@ -122,7 +122,7 @@ converter being used, and the register being used:
     # These don't need to be created if nothing is done with them
     # This example does so for demonstration below
     converter = cattrs.Converter()
-    meta = strcs.Meta(converter=converter)
+    meta = reg.meta(converter=converter)
 
 
     @define

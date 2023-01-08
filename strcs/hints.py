@@ -9,6 +9,10 @@ from dataclasses import is_dataclass
 from attrs import fields as attrs_fields
 from attrs import has as is_attrs
 
+if tp.TYPE_CHECKING:
+    from .disassemble import TypeCache
+    from .register import CreateRegister
+
 T = tp.TypeVar("T")
 C = tp.TypeVar("C", bound=type)
 
@@ -140,6 +144,8 @@ def resolve_types(
     cls: C,
     globalns: dict[str, object] | None = None,
     localns: dict[str, object] | None = None,
+    *,
+    type_cache: tp.Union["CreateRegister", "TypeCache"]
 ) -> C:
     """
     Resolve any strings and forward annotations in type annotations.
@@ -165,6 +171,11 @@ def resolve_types(
 
     This is equivalent to ``attrs.resolve_types`` except it doesn't erase Annotations.
     """
+    from .register import CreateRegister
+
+    if isinstance(type_cache, CreateRegister):
+        type_cache = type_cache.type_cache
+
     # Calling get_type_hints can be expensive so cache it like how attrs.resolve_types does
     if getattr(cls, "__strcs_types_resolved__", None) != cls:
         allfields: AnnotationUpdater
@@ -213,11 +224,14 @@ def resolve_types(
                 if name in allfields:
                     from .disassemble import Type
 
-                    disassembled = Type.create(value, expect=object)
+                    disassembled = Type.create(value, cache=type_cache, expect=object)
 
                     resolved = resolve_type(disassembled.extracted, base_globals, base_locals)
+                    if value != resolved and value in type_cache:
+                        del type_cache[value]
+
                     if isinstance(resolved, type):
-                        resolve_types(resolved, base_globals, base_locals)
+                        resolve_types(resolved, base_globals, base_locals, type_cache=type_cache)
 
                     allfields.update(name, disassembled.reassemble(resolved))
 

@@ -11,9 +11,17 @@ from attrs import define
 import strcs
 
 
-@pytest.fixture()
-def creg() -> strcs.CreateRegister:
-    return strcs.CreateRegister()
+@pytest.fixture(params=(True, False), ids=("with_cache", "without_cache"))
+def creg(request: pytest.FixtureRequest) -> strcs.CreateRegister:
+    if request.param:
+        return strcs.CreateRegister()
+    else:
+
+        class Cache(strcs.TypeCache):
+            def __setitem__(self, k: object, v: strcs.Type) -> None:
+                return
+
+        return strcs.CreateRegister(type_cache=Cache())
 
 
 @pytest.fixture()
@@ -77,7 +85,7 @@ describe "Register":
         assert Thing not in creg
         creg[Thing] = thing_maker
         assert Thing in creg
-        assert creg.register == {strcs.Type.create(Thing): thing_maker}
+        assert creg.register == {strcs.Type.create(Thing, cache=creg.type_cache): thing_maker}
 
         assert Stuff not in creg
         creg[Stuff] = stuff_maker
@@ -85,8 +93,8 @@ describe "Register":
         assert Thing in creg
 
         assert creg.register == {
-            strcs.Type.create(Thing): thing_maker,
-            strcs.Type.create(Stuff): stuff_maker,
+            strcs.Type.create(Thing, cache=creg.type_cache): thing_maker,
+            strcs.Type.create(Stuff, cache=creg.type_cache): stuff_maker,
         }
 
     describe "can use the converters":
@@ -103,7 +111,7 @@ describe "Register":
             thing_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     strcs.NotSpecified,
-                    strcs.Type.create(Thing),
+                    strcs.Type.create(Thing, cache=creg.type_cache),
                     IsMeta.test(),
                     IsConverter.test(),
                     creg,
@@ -120,7 +128,7 @@ describe "Register":
             stuff_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     strcs.NotSpecified,
-                    strcs.Type.create(Stuff),
+                    strcs.Type.create(Stuff, cache=creg.type_cache),
                     IsMeta.test(),
                     IsConverter.test(),
                     creg,
@@ -154,7 +162,11 @@ describe "Register":
             made = creg.create(Thing, value)
             thing_maker.assert_called_once_with(
                 strcs.CreateArgs(
-                    value, strcs.Type.create(Thing), IsMeta.test(), IsConverter.test(), creg
+                    value,
+                    strcs.Type.create(Thing, cache=creg.type_cache),
+                    IsMeta.test(),
+                    IsConverter.test(),
+                    creg,
                 )
             )
             assert isinstance(made, Thing)
@@ -188,7 +200,7 @@ describe "Register":
             stuff_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     {"one": 45, "two": 76},
-                    strcs.Type.create(Stuff),
+                    strcs.Type.create(Stuff, cache=creg.type_cache),
                     IsMeta.test(),
                     IsConverter.test(),
                     creg,
@@ -264,12 +276,13 @@ describe "Register":
                 one: int = 33
                 two: int = 22
 
-            meta = strcs.Meta()
+            meta = creg.meta()
             meta["three"] = 100
 
             shape_maker = mock.Mock(name="shape_maker")
             shape_maker.side_effect = lambda args: args.converter.structure_attrs_fromdict(
-                {"three": meta.retrieve_one(int, "three")}, args.want.extracted
+                {"three": meta.retrieve_one(int, "three", type_cache=creg.type_cache)},
+                args.want.extracted,
             )
             creg[Shape] = shape_maker
 
@@ -285,7 +298,11 @@ describe "Register":
             assert made.three == 100
             shape_maker.assert_called_once_with(
                 strcs.CreateArgs(
-                    strcs.NotSpecified, strcs.Type.create(Square), meta, IsConverter.test(), creg
+                    strcs.NotSpecified,
+                    strcs.Type.create(Square, cache=creg.type_cache),
+                    meta,
+                    IsConverter.test(),
+                    creg,
                 )
             )
             shape_maker.reset_mock()
@@ -297,7 +314,11 @@ describe "Register":
             assert tri.three == 100
             shape_maker.assert_called_once_with(
                 strcs.CreateArgs(
-                    strcs.NotSpecified, strcs.Type.create(Triangle), meta, IsConverter.test(), creg
+                    strcs.NotSpecified,
+                    strcs.Type.create(Triangle, cache=creg.type_cache),
+                    meta,
+                    IsConverter.test(),
+                    creg,
                 )
             )
             shape_maker.reset_mock()
@@ -309,7 +330,11 @@ describe "Register":
             assert shape.three == 100
             shape_maker.assert_called_once_with(
                 strcs.CreateArgs(
-                    strcs.NotSpecified, strcs.Type.create(Shape), meta, IsConverter.test(), creg
+                    strcs.NotSpecified,
+                    strcs.Type.create(Shape, cache=creg.type_cache),
+                    meta,
+                    IsConverter.test(),
+                    creg,
                 )
             )
             shape_maker.reset_mock()
@@ -482,7 +507,7 @@ describe "Creators":
                 called.append((value, want.extracted, number, specific))
                 return thing
 
-            meta = strcs.Meta()
+            meta = creg.meta()
             meta["one"] = 1
             meta["specific"] = thing
 
@@ -519,7 +544,7 @@ describe "Creators":
             ):
                 return {"val": f"{prefix}:{value}:{suffix}:{super_prefix}:{non_typed}"}
 
-            meta = strcs.Meta()
+            meta = creg.meta()
             meta["prefix"] = "pref"
             assert creg.create(Thing, "hello", meta=meta).val == "pref:hello:there:blah:meh"
             assert (
@@ -553,7 +578,7 @@ describe "Creators":
                     return None
                 return {"sentence": ann.prefix + value + suffix}
 
-            meta = strcs.Meta()
+            meta = creg.meta()
             meta["suffix"] = " mate"
             assert (
                 creg.create(Thing, {"one": " there"}, meta=meta).one.sentence == "hello there mate"
@@ -646,7 +671,9 @@ describe "Creators":
             class LottoAnnotation(strcs.Annotation):
                 numbers: tuple[int, int, int, int, int]
 
-                def adjusted_meta(self, meta: strcs.Meta, typ: type) -> strcs.Meta:
+                def adjusted_meta(
+                    self, meta: strcs.Meta, typ: type, type_cache: strcs.TypeCache
+                ) -> strcs.Meta:
                     return meta.clone({"powerball": self.numbers[-1], "numbers": self.numbers[:-1]})
 
             @define
@@ -755,8 +782,8 @@ describe "Creators":
             class Thing:
                 want: tp.Annotated[Other, strcs.FromMeta("other")]
 
-            assert creg.create(Thing, meta=strcs.Meta({"o": other})).want is other
-            assert creg.create(Thing, meta=strcs.Meta({"other": other})).want is other
+            assert creg.create(Thing, meta=creg.meta({"o": other})).want is other
+            assert creg.create(Thing, meta=creg.meta({"other": other})).want is other
 
             with pytest.raises(strcs.errors.NoDataByTypeName):
                 assert creg.create(Thing).want is other

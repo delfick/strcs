@@ -1,8 +1,10 @@
 import typing as tp
 
+import cattrs
+
 from .annotations import Ann, Annotation
 from .decorator import ConvertDefinition, ConvertFunction
-from .disassemble import Type
+from .disassemble import Type, TypeCache
 from .hooks import CreateStructureHook
 from .meta import Meta
 from .not_specified import NotSpecified
@@ -27,16 +29,28 @@ class CreateRegister:
         register: dict[Type, ConvertFunction[T]] | None = None,
         last_meta: Meta | None = None,
         last_type: Type[T] | None = None,
+        type_cache: TypeCache | None = None,
         skip_creator: ConvertDefinition[T] | None = None,
         auto_resolve_string_annotations: bool = True,
     ):
         if register is None:
             register = {}
+        if type_cache is None:
+            type_cache = TypeCache()
+
         self.register = register
         self.last_meta = last_meta
         self.last_type = last_type
+        self.type_cache = type_cache
         self.skip_creator = skip_creator
         self.auto_resolve_string_annotations = auto_resolve_string_annotations
+
+    def meta(
+        self,
+        data: dict[str, object] | None = None,
+        converter: cattrs.Converter | None = None,
+    ) -> Meta:
+        return Meta(data, converter)
 
     def clone(
         self, last_meta: Meta, last_type: Type[T], skip_creator: ConvertDefinition[T]
@@ -50,17 +64,25 @@ class CreateRegister:
         )
 
     def __setitem__(self, specification: type[T] | Type[T], creator: ConvertFunction[T]) -> None:
-        self.register[Type.create(specification)] = creator
+        self.register[Type.create(specification, cache=self.type_cache)] = creator
 
     def __contains__(self, typ: type | Type[T]) -> bool:
-        return Type.create(typ, expect=object).func_from(list(self.register.items())) is not None
+        return (
+            Type.create(typ, expect=object, cache=self.type_cache).func_from(
+                list(self.register.items())
+            )
+            is not None
+        )
 
     def make_decorator(self) -> Creator:
         def creator(typ: object, assume_unchanged_converted=True) -> Registerer[T]:
             from .decorator import CreatorDecorator
 
             return CreatorDecorator[T](
-                self, typ, assume_unchanged_converted=assume_unchanged_converted
+                self,
+                typ,
+                assume_unchanged_converted=assume_unchanged_converted,
+                type_cache=self.type_cache,
             )
 
         return creator
@@ -75,7 +97,7 @@ class CreateRegister:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type.create(typ)
+            want = Type.create(typ, cache=self.type_cache)
 
         return CreateStructureHook.structure(
             register=self,
@@ -85,6 +107,7 @@ class CreateRegister:
             creator=once_only_creator,
             last_meta=self.last_meta,
             last_type=self.last_type,
+            type_cache=self.type_cache,
             skip_creator=self.skip_creator,
         )
 
@@ -99,7 +122,7 @@ class CreateRegister:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type.create(tp.Annotated[typ, ann])
+            want = Type.create(tp.Annotated[typ, ann], cache=self.type_cache)
 
         return CreateStructureHook.structure(
             register=self,
@@ -109,5 +132,6 @@ class CreateRegister:
             creator=once_only_creator,
             last_meta=self.last_meta,
             last_type=self.last_type,
+            type_cache=self.type_cache,
             skip_creator=self.skip_creator,
         )

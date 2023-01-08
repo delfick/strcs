@@ -4,7 +4,7 @@ import cattrs
 
 from .annotations import Ann
 from .decorator import ConvertDefinition, ConvertFunction, CreateArgs
-from .disassemble import Type
+from .disassemble import Type, TypeCache
 from .meta import Meta
 from .not_specified import NotSpecified
 
@@ -30,6 +30,7 @@ class CreateStructureHook:
         *,
         register: "CreateRegister",
         typ: Type[T],
+        type_cache: TypeCache,
         value: object = NotSpecified,
         meta: Meta | None = None,
         creator: ConvertFunction[T] | None = None,
@@ -44,7 +45,7 @@ class CreateStructureHook:
             if last_meta is not None:
                 meta = last_meta.clone()
             else:
-                meta = Meta()
+                meta = register.meta()
 
         converter = meta.converter
         hooks = kls(
@@ -55,6 +56,7 @@ class CreateStructureHook:
             last_type=last_type,
             skip_creator=skip_creator,
             once_only_creator=creator,
+            type_cache=type_cache,
         )
 
         converter.register_structure_hook_func(_object_check, _passthrough)
@@ -77,6 +79,8 @@ class CreateStructureHook:
         register: "CreateRegister",
         converter: cattrs.Converter,
         meta: Meta,
+        *,
+        type_cache: TypeCache,
         once_only_creator: ConvertFunction[T] | None = None,
         last_meta: Meta | None = None,
         last_type: Type[T] | None = None,
@@ -88,6 +92,7 @@ class CreateStructureHook:
         self.last_meta = last_meta
         self.last_type = last_type
         self.converter = converter
+        self.type_cache = type_cache
         self.skip_creator = skip_creator
         self.once_only_creator = once_only_creator
 
@@ -95,7 +100,7 @@ class CreateStructureHook:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type.create(typ)
+            want = Type.create(typ, cache=self.type_cache)
 
         normal_creator = want.func_from(list(self.register.register.items()))
 
@@ -112,11 +117,15 @@ class CreateStructureHook:
             creator = normal_creator
 
         if isinstance(want.ann, Ann):
-            meta = want.ann.adjusted_meta(meta, want)
-            creator = want.ann.adjusted_creator(creator, self.register, want)
+            meta = want.ann.adjusted_meta(meta, want, self.type_cache)
+            creator = want.ann.adjusted_creator(creator, self.register, want, self.type_cache)
             if meta is not self.meta:
                 return self.register.create(
-                    Type.create(want.without_annotation, expect=type(want.extracted)),
+                    Type.create(
+                        want.without_annotation,
+                        expect=type(want.extracted),
+                        cache=self.type_cache,
+                    ),
                     value,
                     meta=meta,
                     once_only_creator=creator,

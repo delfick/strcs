@@ -7,7 +7,7 @@ from attrs import define
 
 from . import errors
 from .args_extractor import ArgsExtractor
-from .disassemble import Type
+from .disassemble import Type, TypeCache
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
 
@@ -80,14 +80,17 @@ class CreatorDecorator(tp.Generic[T]):
         register: "CreateRegister",
         typ: object,
         assume_unchanged_converted=True,
+        *,
+        type_cache: TypeCache,
     ):
         self.original = typ
         self.register = register
+        self.type_cache = type_cache
         self.assume_unchanged_converted = assume_unchanged_converted
 
     def __call__(self, func: ConvertDefinition[T] | None = None) -> ConvertDefinition[T]:
         if not isinstance(self.original, Type):
-            self.typ = Type.create(self.original)
+            self.typ = Type.create(self.original, cache=self.type_cache)
         else:
             self.typ = self.original
 
@@ -168,11 +171,11 @@ class CreatorDecorator(tp.Generic[T]):
                 return tp.cast(T, value)
             else:
                 if not isinstance(res, collections.abc.Mapping) and issubclass(
-                    want.checkable, Type.create(type(res)).checkable
+                    want.checkable, Type.create(type(res), cache=self.type_cache).checkable
                 ):
                     raise errors.SupertypeNotValid(
                         want=want.checkable,
-                        got=Type.create(type(res)).checkable,
+                        got=Type.create(type(res), cache=self.type_cache).checkable,
                         reason="A Super type is not a valid value to convert",
                     )
 

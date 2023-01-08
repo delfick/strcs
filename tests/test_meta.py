@@ -10,6 +10,19 @@ import strcs
 from strcs.meta import Meta, Narrower
 
 
+@pytest.fixture(params=(True, False), ids=("with_cache", "without_cache"))
+def type_cache(request: pytest.FixtureRequest) -> strcs.TypeCache:
+    if request.param:
+        return strcs.TypeCache()
+    else:
+
+        class Cache(strcs.TypeCache):
+            def __setitem__(self, k: object, v: strcs.Type) -> None:
+                return
+
+        return Cache()
+
+
 class IsConverter:
     def __eq__(self, other):
         self.given = other
@@ -261,25 +274,34 @@ describe "Meta":
             assert meta.data == {"a": 1, "b": 2, "c": 3, "d": 4}
 
     describe "find_by_type":
-        it "can return everything if type is object":
+        it "can return everything if type is object", type_cache: strcs.TypeCache:
             meta = Meta()
             meta.update({"a": 1, "b": 2})
             meta["c"] = 3
 
-            assert meta.find_by_type(object) == (False, {"a": 1, "b": 2, "c": 3})
-            assert meta.find_by_type(tp.Optional[object]) == (True, {"a": 1, "b": 2, "c": 3})
-
-        it "can be given the data to operate on":
-            meta = Meta()
-            data = {"a": 1, "b": 2, "c": 3}
-
-            assert meta.find_by_type(object, data=data) == (False, {"a": 1, "b": 2, "c": 3})
-            assert meta.find_by_type(tp.Optional[object], data=data) == (
+            assert meta.find_by_type(object, type_cache=type_cache) == (
+                False,
+                {"a": 1, "b": 2, "c": 3},
+            )
+            assert meta.find_by_type(tp.Optional[object], type_cache=type_cache) == (
                 True,
                 {"a": 1, "b": 2, "c": 3},
             )
 
-        it "can find the correct type in meta":
+        it "can be given the data to operate on", type_cache: strcs.TypeCache:
+            meta = Meta()
+            data = {"a": 1, "b": 2, "c": 3}
+
+            assert meta.find_by_type(object, data=data, type_cache=type_cache) == (
+                False,
+                {"a": 1, "b": 2, "c": 3},
+            )
+            assert meta.find_by_type(tp.Optional[object], data=data, type_cache=type_cache) == (
+                True,
+                {"a": 1, "b": 2, "c": 3},
+            )
+
+        it "can find the correct type in meta", type_cache: strcs.TypeCache:
             meta = Meta()
 
             class Shape:
@@ -291,85 +313,112 @@ describe "Meta":
             square = Square()
             meta.update({"a": 1, "b": True, "c": 2.0, "d": "asdf", "e": square, "f": 20})
 
-            assert meta.find_by_type(int) == (False, {"a": 1, "f": 20})
-            assert meta.find_by_type(bool) == (False, {"b": True})
-            assert meta.find_by_type(tp.Optional[bool]) == (True, {"b": True})
-            assert meta.find_by_type(str) == (False, {"d": "asdf"})
-            assert meta.find_by_type(Shape) == (False, {"e": square})
-            assert meta.find_by_type(tp.Optional[Shape]) == (True, {"e": square})
-            assert meta.find_by_type(tp.Union[int, float]) == (False, {"a": 1, "c": 2.0, "f": 20})
-            assert meta.find_by_type(tp.Union[int, bool, float]) == (
+            assert meta.find_by_type(int, type_cache=type_cache) == (False, {"a": 1, "f": 20})
+            assert meta.find_by_type(bool, type_cache=type_cache) == (False, {"b": True})
+            assert meta.find_by_type(tp.Optional[bool], type_cache=type_cache) == (
+                True,
+                {"b": True},
+            )
+            assert meta.find_by_type(str, type_cache=type_cache) == (False, {"d": "asdf"})
+            assert meta.find_by_type(Shape, type_cache=type_cache) == (False, {"e": square})
+            assert meta.find_by_type(tp.Optional[Shape], type_cache=type_cache) == (
+                True,
+                {"e": square},
+            )
+            assert meta.find_by_type(tp.Union[int, float], type_cache=type_cache) == (
+                False,
+                {"a": 1, "c": 2.0, "f": 20},
+            )
+            assert meta.find_by_type(tp.Union[int, bool, float], type_cache=type_cache) == (
                 False,
                 {"a": 1, "b": True, "c": 2.0, "f": 20},
             )
-            assert meta.find_by_type(tp.Optional[tp.Union[str, float]]) == (
+            assert meta.find_by_type(tp.Optional[tp.Union[str, float]], type_cache=type_cache) == (
                 True,
                 {"d": "asdf", "c": 2.0},
             )
 
-        it "can not find anything":
+        it "can not find anything", type_cache: strcs.TypeCache:
             meta = Meta()
             meta["nup"] = None
 
             class Shape:
                 pass
 
-            assert meta.find_by_type(int) == (False, {})
-            assert meta.find_by_type(bool) == (False, {})
-            assert meta.find_by_type(tp.Optional[bool]) == (True, {})
-            assert meta.find_by_type(str) == (False, {})
-            assert meta.find_by_type(Shape) == (False, {})
-            assert meta.find_by_type(tp.Optional[Shape]) == (True, {})
-            assert meta.find_by_type(tp.Union[int, float]) == (False, {})
-            assert meta.find_by_type(tp.Union[int, bool, float]) == (False, {})
-            assert meta.find_by_type(tp.Optional[tp.Union[str, float]]) == (True, {})
+            assert meta.find_by_type(int, type_cache=type_cache) == (False, {})
+            assert meta.find_by_type(bool, type_cache=type_cache) == (False, {})
+            assert meta.find_by_type(tp.Optional[bool], type_cache=type_cache) == (True, {})
+            assert meta.find_by_type(str, type_cache=type_cache) == (False, {})
+            assert meta.find_by_type(Shape, type_cache=type_cache) == (False, {})
+            assert meta.find_by_type(tp.Optional[Shape], type_cache=type_cache) == (True, {})
+            assert meta.find_by_type(tp.Union[int, float], type_cache=type_cache) == (False, {})
+            assert meta.find_by_type(tp.Union[int, bool, float], type_cache=type_cache) == (
+                False,
+                {},
+            )
+            assert meta.find_by_type(tp.Optional[tp.Union[str, float]], type_cache=type_cache) == (
+                True,
+                {},
+            )
 
     describe "retrieve pattern":
-        it "can retrieve based off patterns":
+        it "can retrieve based off patterns", type_cache: strcs.TypeCache:
             meta = strcs.Meta({"a": {"b": {"d": 4, "e": 5}}, "a.b": {"f": 6}, "a.bc": True})
 
-            assert meta.retrieve_patterns(object, "a.b") == {"a.b": {"f": 6}}
-            assert meta.retrieve_patterns(int, "a.b.d", "a.b.e") == {"a.b.d": 4, "a.b.e": 5}
-            assert meta.retrieve_patterns(object, "a.b.*") == {"a.b.d": 4, "a.b.e": 5, "a.b.f": 6}
-            assert meta.retrieve_patterns(object, "a.b*") == {"a.b": {"f": 6}, "a.bc": True}
-            assert meta.retrieve_patterns(bool, "a.b*") == {"a.bc": True}
-            assert meta.retrieve_patterns(object) == meta.data
-            assert meta.retrieve_patterns(object, "d") == {}
+            assert meta.retrieve_patterns(object, "a.b", type_cache=type_cache) == {"a.b": {"f": 6}}
+            assert meta.retrieve_patterns(int, "a.b.d", "a.b.e", type_cache=type_cache) == {
+                "a.b.d": 4,
+                "a.b.e": 5,
+            }
+            assert meta.retrieve_patterns(object, "a.b.*", type_cache=type_cache) == {
+                "a.b.d": 4,
+                "a.b.e": 5,
+                "a.b.f": 6,
+            }
+            assert meta.retrieve_patterns(object, "a.b*", type_cache=type_cache) == {
+                "a.b": {"f": 6},
+                "a.bc": True,
+            }
+            assert meta.retrieve_patterns(bool, "a.b*", type_cache=type_cache) == {"a.bc": True}
+            assert meta.retrieve_patterns(object, type_cache=type_cache) == meta.data
+            assert meta.retrieve_patterns(object, "d", type_cache=type_cache) == {}
 
     describe "retrieve one":
-        it "can retrieve the one matching value":
+        it "can retrieve the one matching value", type_cache: strcs.TypeCache:
             meta = Meta()
             meta.update({"a": 1, "b": 2.0})
 
-            assert meta.retrieve_one(int) == 1
-            assert meta.retrieve_one(float) == 2.0
+            assert meta.retrieve_one(int, type_cache=type_cache) == 1
+            assert meta.retrieve_one(float, type_cache=type_cache) == 2.0
 
-        it "can optionally retrieve the one value":
+        it "can optionally retrieve the one value", type_cache: strcs.TypeCache:
             meta = Meta()
             meta["nup"] = "hello"
 
-            assert meta.retrieve_one(tp.Optional[int], refined_type=int) is None
+            assert (
+                meta.retrieve_one(tp.Optional[int], refined_type=int, type_cache=type_cache) is None
+            )
 
-        it "can complain if there are 0 found values":
+        it "can complain if there are 0 found values", type_cache: strcs.TypeCache:
             meta = Meta()
             meta["nup"] = None
 
             with pytest.raises(strcs.errors.NoDataByTypeName):
-                meta.retrieve_one(int)
+                meta.retrieve_one(int, type_cache=type_cache)
 
-        it "can complain if there are more than 1 found values":
+        it "can complain if there are more than 1 found values", type_cache: strcs.TypeCache:
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
             with pytest.raises(strcs.errors.MultipleNamesForType):
-                meta.retrieve_one(int)
+                meta.retrieve_one(int, type_cache=type_cache)
 
-        def test_it_can_get_the_one_value_based_on_patterns_too(self) -> None:
+        it "can get the one value based on patterns too", type_cache: strcs.TypeCache:
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
-            assert meta.retrieve_one(int, "a") == 1
-            assert meta.retrieve_one(int, "b") == 2
+            assert meta.retrieve_one(int, "a", type_cache=type_cache) == 1
+            assert meta.retrieve_one(int, "b", type_cache=type_cache) == 2
 
             class Blah:
                 pass
@@ -382,34 +431,34 @@ describe "Meta":
             meta["d"] = Thing()
 
             with pytest.raises(strcs.errors.NoDataByTypeName):
-                assert meta.retrieve_one(Blah)
+                assert meta.retrieve_one(Blah, type_cache=type_cache)
 
-            assert meta.retrieve_one(Blah, "d.e") is blah
+            assert meta.retrieve_one(Blah, "d.e", type_cache=type_cache) is blah
 
-        it "can still find based just on type if patterns don't match":
+        it "can still find based just on type if patterns don't match", type_cache: strcs.TypeCache:
             meta = Meta()
             meta.update({"a": 1, "b": "asdf"})
 
-            assert meta.retrieve_one(int, "c") == 1
-            assert meta.retrieve_one(int, "d") == 1
+            assert meta.retrieve_one(int, "c", type_cache=type_cache) == 1
+            assert meta.retrieve_one(int, "d", type_cache=type_cache) == 1
 
-        it "uses default if provided and found type but not name":
+        it "uses default if provided and found type but not name", type_cache: strcs.TypeCache:
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
-            assert meta.retrieve_one(int, "a", default=30) == 1
-            assert meta.retrieve_one(int, "d", default=40) == 40
+            assert meta.retrieve_one(int, "a", default=30, type_cache=type_cache) == 1
+            assert meta.retrieve_one(int, "d", default=40, type_cache=type_cache) == 40
 
-        it "uses default if provided and found nothing":
+        it "uses default if provided and found nothing", type_cache: strcs.TypeCache:
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
-            assert meta.retrieve_one(float, "c", default=30) == 30
-            assert meta.retrieve_one(float, "d", default=40) == 40
+            assert meta.retrieve_one(float, "c", default=30, type_cache=type_cache) == 30
+            assert meta.retrieve_one(float, "d", default=40, type_cache=type_cache) == 40
 
-        it "complains if found name but type is wrong":
+        it "complains if found name but type is wrong", type_cache: strcs.TypeCache:
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
             with pytest.raises(strcs.errors.FoundWithWrongType):
-                meta.retrieve_one(float, "a", default=30)
+                meta.retrieve_one(float, "a", default=30, type_cache=type_cache)

@@ -54,7 +54,7 @@ describe "Fails to create if the types are strings":
         ):
             reg.create(Other, 3)
 
-        strcs.resolve_types(SubOther)
+        strcs.resolve_types(SubOther, type_cache=reg)
 
         other = reg.create(Other, 3)
         assert isinstance(other, Other)

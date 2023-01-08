@@ -71,10 +71,22 @@ class ArgsExtractor(tp.Generic[T]):
                     )
                 )
             elif param.annotation in (inspect._empty, object):
-                use.append(self.meta.retrieve_one(object, param.name, default=param.default))
+                use.append(
+                    self.meta.retrieve_one(
+                        object,
+                        param.name,
+                        default=param.default,
+                        type_cache=self.register.type_cache,
+                    )
+                )
             else:
                 use.append(
-                    self.meta.retrieve_one(param.annotation, param.name, default=param.default)
+                    self.meta.retrieve_one(
+                        param.annotation,
+                        param.name,
+                        default=param.default,
+                        type_cache=self.register.type_cache,
+                    )
                 )
 
         return use

@@ -29,7 +29,7 @@ describe "resolve_types":
     it "just returns the object if it's not an attrs/dataclass/class":
         thing: object
         for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
-            assert strcs.resolve_types(tp.cast(type, thing)) is thing
+            assert strcs.resolve_types(tp.cast(type, thing), type_cache=strcs.TypeCache()) is thing
 
     it "works on normal classes":
 
@@ -89,7 +89,7 @@ describe "resolve_types":
             == tp.Annotated[dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None, 56]
         )
 
-        strcs.resolve_types(decorated_One)
+        strcs.resolve_types(decorated_One, type_cache=strcs.TypeCache())
 
         fields = {field.name: field.type for field in get_fields(decorated_One)}
         assert fields["one"] == int
@@ -116,7 +116,7 @@ describe "resolve_types":
         else:
             decorated_Thing = Thing
 
-        resolved_Thing = strcs.resolve_types(decorated_Thing)
+        resolved_Thing = strcs.resolve_types(decorated_Thing, type_cache=strcs.TypeCache())
 
         fields = {field.name: field.type for field in get_fields(resolved_Thing)}
         assert fields["one"] is int
@@ -142,7 +142,7 @@ describe "resolve_types":
         assert fields["two"] == tp.Optional["str"]
         assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
 
-        strcs.resolve_types(Holder, globals(), locals())
+        strcs.resolve_types(Holder, globals(), locals(), type_cache=strcs.TypeCache())
 
         fields = {field.name: field.type for field in attrs_fields(Holder)}
         assert fields["one"] is One
@@ -172,7 +172,7 @@ describe "resolve_types":
         assert fields["two"] == tp.Optional["str"]
         assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
 
-        strcs.resolve_types(Holder, globals(), locals())
+        strcs.resolve_types(Holder, globals(), locals(), type_cache=strcs.TypeCache())
 
         fields = {field.name: field.type for field in attrs_fields(Holder)}
         assert fields["one"] == One | None
@@ -227,7 +227,7 @@ describe "resolve_types":
         fields = {field.name: field.type for field in attrs_fields(Four)}
         assert fields["one"] == "bool"
 
-        strcs.resolve_types(Holder, globals(), locals())
+        strcs.resolve_types(Holder, globals(), locals(), type_cache=strcs.TypeCache())
 
         fields = {field.name: field.type for field in attrs_fields(Holder)}
         assert fields["one"] == One | None
