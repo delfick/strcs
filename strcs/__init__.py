@@ -1,5 +1,5 @@
 from . import errors
-from .annotations import AnnBase, Annotation, FromMeta, MergedAnnotation
+from .annotations import Ann, AnnBase, Annotation, FromMeta, MergedAnnotation
 from .args_extractor import ArgsExtractor
 from .decorator import (
     ConvertDefinition,
@@ -8,12 +8,11 @@ from .decorator import (
     CreateArgs,
     CreatorDecorator,
 )
-from .disassemble import Disassembled, Field, InstanceCheck, InstanceCheckMeta
+from .disassemble import Field, InstanceCheck, InstanceCheckMeta, Type
 from .hints import resolve_types
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
 from .register import CreateRegister, Creator, Registerer
-from .types import Ann, Type
 from .version import VERSION
 
 __all__ = [
@@ -29,7 +28,6 @@ __all__ = [
     "Annotation",
     "CreateArgs",
     "Registerer",
-    "Disassembled",
     "NotSpecified",
     "InstanceCheck",
     "resolve_types",

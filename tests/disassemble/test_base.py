@@ -10,7 +10,8 @@ import pytest
 from attrs import define
 from attrs import has as attrs_has
 
-from strcs import Disassembled, InstanceCheck, InstanceCheckMeta, resolve_types
+import strcs
+from strcs import InstanceCheck, InstanceCheckMeta, Type, resolve_types
 from strcs.disassemble import (
     Default,
     Field,
@@ -19,7 +20,7 @@ from strcs.disassemble import (
     fields_from_dataclasses,
 )
 
-from .test_disassemble_helpers import assertParams
+from .test_helpers import assertParams
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
@@ -27,7 +28,7 @@ U = tp.TypeVar("U")
 describe "Type":
     it "works on simple type":
         provided = int
-        disassembled = Disassembled.create(provided, expect=int)
+        disassembled = Type.create(provided, expect=int)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int
@@ -51,7 +52,7 @@ describe "Type":
 
     it "works on a union":
         provided = int | str
-        disassembled = Disassembled.create(provided, expect=types.UnionType)
+        disassembled = Type.create(provided, expect=types.UnionType)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int | str
@@ -77,7 +78,7 @@ describe "Type":
 
     it "works on a complicated union":
         provided = tp.Union[tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, "hello"]]
-        disassembled = Disassembled.create(provided, expect=types.UnionType)
+        disassembled = Type.create(provided, expect=types.UnionType)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == provided
@@ -110,7 +111,7 @@ describe "Type":
 
     it "works on a typing union":
         provided = tp.Union[int, str]
-        disassembled = Disassembled.create(provided, expect=types.UnionType)
+        disassembled = Type.create(provided, expect=types.UnionType)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int | str
@@ -136,7 +137,7 @@ describe "Type":
 
     it "works on an optional union":
         provided = int | str | None
-        disassembled = Disassembled.create(provided, expect=types.UnionType)
+        disassembled = Type.create(provided, expect=types.UnionType)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.extracted == int | str
@@ -162,7 +163,7 @@ describe "Type":
 
     it "works on optional simple type":
         provided = int | None
-        disassembled = Disassembled.create(provided, expect=int)
+        disassembled = Type.create(provided, expect=int)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is True
@@ -189,7 +190,7 @@ describe "Type":
     it "works on annotated simple type":
         anno = "hello"
         provided = tp.Annotated[int, anno]
-        disassembled = Disassembled.create(provided, expect=int)
+        disassembled = Type.create(provided, expect=int)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int
@@ -214,7 +215,7 @@ describe "Type":
     it "works on optional annotated simple type":
         anno = "hello"
         provided = tp.Annotated[tp.Optional[int], anno]
-        disassembled = Disassembled.create(provided, expect=int)
+        disassembled = Type.create(provided, expect=int)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -240,7 +241,7 @@ describe "Type":
 
     it "works on builtin container to simple type":
         provided = list[int]
-        disassembled = Disassembled.create(provided, expect=list)
+        disassembled = Type.create(provided, expect=list)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == list[int]
@@ -264,7 +265,7 @@ describe "Type":
 
     it "works on optional builtin container to simple type":
         provided = list[int] | None
-        disassembled = Disassembled.create(provided, expect=list)
+        disassembled = Type.create(provided, expect=list)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is True
@@ -290,7 +291,7 @@ describe "Type":
 
     it "works on builtin container to multiple simple types":
         provided = dict[str, int]
-        disassembled = Disassembled.create(provided, expect=dict)
+        disassembled = Type.create(provided, expect=dict)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == dict[str, int]
@@ -314,7 +315,7 @@ describe "Type":
 
     it "works on optional builtin container to multiple simple types":
         provided = tp.Optional[dict[str, int]]
-        disassembled = Disassembled.create(provided, expect=dict)
+        disassembled = Type.create(provided, expect=dict)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is True
@@ -341,7 +342,7 @@ describe "Type":
     it "works on annotated optional builtin container to multiple simple types":
         anno = "stuff"
         provided = tp.Annotated[tp.Optional[dict[str, int]], anno]
-        disassembled = Disassembled.create(provided, expect=dict)
+        disassembled = Type.create(provided, expect=dict)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -368,7 +369,7 @@ describe "Type":
     it "works on optional annotated builtin container to multiple simple types":
         anno = "stuff"
         provided = tp.Optional[tp.Annotated[dict[str, int], anno]]
-        disassembled = Disassembled.create(provided, expect=dict)
+        disassembled = Type.create(provided, expect=dict)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is True
@@ -400,7 +401,7 @@ describe "Type":
             two: str
 
         provided = Thing
-        disassembled = Disassembled.create(provided, expect=Thing)
+        disassembled = Type.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
@@ -431,7 +432,7 @@ describe "Type":
 
         assert disassembled.is_type_for(Child(one=1, two="two"))
         assert disassembled.is_equivalent_type_for(Child(one=1, two="two"))
-        assert not Disassembled.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
+        assert not Type.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
 
     it "works on an dataclasses class":
 
@@ -441,7 +442,7 @@ describe "Type":
             two: str
 
         provided = Thing
-        disassembled = Disassembled.create(provided, expect=Thing)
+        disassembled = Type.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
@@ -472,7 +473,7 @@ describe "Type":
 
         assert disassembled.is_type_for(Child(one=1, two="two"))
         assert disassembled.is_equivalent_type_for(Child(one=1, two="two"))
-        assert not Disassembled.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
+        assert not Type.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
 
     it "works on a normal class":
 
@@ -482,7 +483,7 @@ describe "Type":
                 self.two = two
 
         provided = Thing
-        disassembled = Disassembled.create(provided, expect=Thing)
+        disassembled = Type.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
@@ -512,7 +513,7 @@ describe "Type":
 
         assert disassembled.is_type_for(Child(one=1, two="two"))
         assert disassembled.is_equivalent_type_for(Child(one=1, two="two"))
-        assert not Disassembled.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
+        assert not Type.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
 
     it "works on an annotated class":
 
@@ -524,7 +525,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[Thing, anno]
-        disassembled = Disassembled.create(provided, expect=Thing)
+        disassembled = Type.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
@@ -555,7 +556,7 @@ describe "Type":
 
         assert disassembled.is_type_for(Child(one=1, two="two"))
         assert disassembled.is_equivalent_type_for(Child(one=1, two="two"))
-        assert not Disassembled.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
+        assert not Type.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
 
     it "works on an optional annotated class":
 
@@ -567,7 +568,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing], anno]
-        disassembled = Disassembled.create(provided, expect=Thing)
+        disassembled = Type.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -600,7 +601,7 @@ describe "Type":
 
         assert disassembled.is_type_for(Child(one=1, two="two"))
         assert disassembled.is_equivalent_type_for(Child(one=1, two="two"))
-        assert not Disassembled.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
+        assert not Type.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
 
     it "works on an optional annotated generic class":
 
@@ -612,7 +613,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
-        disassembled = Disassembled.create(provided, expect=Thing)
+        disassembled = Type.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -648,7 +649,7 @@ describe "Type":
 
         assert disassembled.is_type_for(Child(one=1, two="two"))
         assert disassembled.is_equivalent_type_for(Child(one=1, two="two"))
-        assert not Disassembled.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
+        assert not Type.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
 
     it "works on an optional annotated generic class without concrete types":
 
@@ -660,7 +661,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing], anno]
-        disassembled = Disassembled.create(provided, expect=Thing)
+        disassembled = Type.create(provided, expect=Thing)
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.optional_outer is False
@@ -693,7 +694,7 @@ describe "Type":
 
         assert disassembled.is_type_for(Child(one=1, two="two"))
         assert disassembled.is_equivalent_type_for(Child(one=1, two="two"))
-        assert not Disassembled.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
+        assert not Type.create(Child).is_equivalent_type_for(Thing(one=1, two="two"))
 
 describe "getting fields":
     it "works when there is a chain":
@@ -708,7 +709,7 @@ describe "getting fields":
 
         resolve_types(Thing, globals(), locals())
 
-        disassembled = Disassembled.create(Thing, expect=Thing)
+        disassembled = Type.create(Thing, expect=Thing)
         assert disassembled.fields == [Field(name="stuff", type=Stuff | None)]
 
     it "works on normal class":
@@ -717,7 +718,7 @@ describe "getting fields":
             def __init__(self, one: int, /, two: str, *, three: bool = False, **kwargs):
                 pass
 
-        disassembled = Disassembled.create(Thing, expect=Thing)
+        disassembled = Type.create(Thing, expect=Thing)
         assert disassembled.fields_getter is fields_from_class
         assert disassembled.fields_from is Thing
         assertParams(
@@ -743,7 +744,7 @@ describe "getting fields":
             two: str = "one"
             three: bool = attrs.field(kw_only=True, default=False)
 
-        disassembled = Disassembled.create(Thing, expect=Thing)
+        disassembled = Type.create(Thing, expect=Thing)
         assert disassembled.fields_getter is fields_from_attrs
         assert disassembled.fields_from is Thing
         assertParams(
@@ -773,7 +774,7 @@ describe "getting fields":
             two: str = "one"
             three: bool = dataclasses.field(kw_only=True, default=False)
 
-        disassembled = Disassembled.create(Thing, expect=Thing)
+        disassembled = Type.create(Thing, expect=Thing)
         assert disassembled.fields_getter is fields_from_dataclasses
         assert disassembled.fields_from is Thing
         assertParams(
@@ -797,7 +798,7 @@ describe "getting fields":
 
 describe "checkable":
     it "can find instances and subclasses of basic types":
-        db = Disassembled.create(int, expect=int)
+        db = Type.create(int, expect=int)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
         assert not isinstance("asdf", db.checkable)
@@ -808,29 +809,29 @@ describe "checkable":
 
         assert issubclass(int, db.checkable)
         assert issubclass(MyInt, db.checkable)
-        assert issubclass(Disassembled.create(MyInt).checkable, db.checkable)
+        assert issubclass(Type.create(MyInt).checkable, db.checkable)
 
         class NotMyInt:
             pass
 
         assert not issubclass(NotMyInt, db.checkable)
-        assert not issubclass(Disassembled.create(NotMyInt).checkable, db.checkable)
+        assert not issubclass(Type.create(NotMyInt).checkable, db.checkable)
         assert not issubclass(float, db.checkable)
         assert not issubclass(dict, db.checkable)
 
         assert isinstance(db.checkable, InstanceCheckMeta)
         assert isinstance(db.checkable, type)
-        assert isinstance(db.checkable, Disassembled.create(type).checkable)
+        assert isinstance(db.checkable, Type.create(type).checkable)
 
         assert issubclass(db.checkable, InstanceCheck)
         assert not issubclass(db.checkable, type)
         assert not issubclass(type, db.checkable)
-        assert not issubclass(Disassembled.create(type).checkable, db.checkable)
-        assert not issubclass(db.checkable, Disassembled.create(type).checkable)
+        assert not issubclass(Type.create(type).checkable, db.checkable)
+        assert not issubclass(db.checkable, Type.create(type).checkable)
         assert not isinstance(db.checkable, int)
-        assert not isinstance(db.checkable, Disassembled.create(int).checkable)
+        assert not isinstance(db.checkable, Type.create(int).checkable)
         assert not issubclass(db.checkable, NotMyInt)
-        assert not issubclass(db.checkable, Disassembled.create(NotMyInt).checkable)
+        assert not issubclass(db.checkable, Type.create(NotMyInt).checkable)
 
         assert db.checkable.Meta.typ == int
         assert db.checkable.Meta.original == int
@@ -839,7 +840,7 @@ describe "checkable":
         assert db.checkable.Meta.without_annotation == int
 
     it "can find instances and subclasses of union types":
-        db = Disassembled.create(int | str, expect=types.UnionType)
+        db = Type.create(int | str, expect=types.UnionType)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
         assert isinstance("asdf", db.checkable)
@@ -850,37 +851,37 @@ describe "checkable":
 
         assert issubclass(MyInt, db.checkable)
         assert issubclass(int, db.checkable)
-        assert issubclass(Disassembled.create(MyInt).checkable, db.checkable)
+        assert issubclass(Type.create(MyInt).checkable, db.checkable)
 
         class MyString(str):
             pass
 
         assert issubclass(str, db.checkable)
         assert issubclass(MyString, db.checkable)
-        assert issubclass(Disassembled.create(MyString).checkable, db.checkable)
+        assert issubclass(Type.create(MyString).checkable, db.checkable)
 
         class NotMyInt:
             pass
 
         assert not issubclass(NotMyInt, db.checkable)
-        assert not issubclass(Disassembled.create(NotMyInt).checkable, db.checkable)
+        assert not issubclass(Type.create(NotMyInt).checkable, db.checkable)
         assert not issubclass(float, db.checkable)
         assert not issubclass(dict, db.checkable)
 
         assert isinstance(db.checkable, InstanceCheckMeta)
         assert isinstance(db.checkable, type)
-        assert isinstance(db.checkable, Disassembled.create(type).checkable)
+        assert isinstance(db.checkable, Type.create(type).checkable)
 
         assert issubclass(db.checkable, InstanceCheck)
         assert not issubclass(db.checkable, type)
         assert not issubclass(type, db.checkable)
-        assert not issubclass(Disassembled.create(type).checkable, db.checkable)
-        assert not issubclass(db.checkable, Disassembled.create(type).checkable)
+        assert not issubclass(Type.create(type).checkable, db.checkable)
+        assert not issubclass(db.checkable, Type.create(type).checkable)
         assert not isinstance(db.checkable, int)
-        assert not isinstance(db.checkable, Disassembled.create(int).checkable)
+        assert not isinstance(db.checkable, Type.create(int).checkable)
         assert not issubclass(db.checkable, NotMyInt)
         assert not issubclass(db.checkable, str)
-        assert not issubclass(db.checkable, Disassembled.create(NotMyInt).checkable)
+        assert not issubclass(db.checkable, Type.create(NotMyInt).checkable)
 
         assert db.checkable.Meta.typ == int | str
         assert db.checkable.Meta.original == int | str
@@ -890,7 +891,7 @@ describe "checkable":
 
     it "can find instances and subclasses of complicated union type":
         provided = tp.Union[tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, "hello"]]
-        db = Disassembled.create(provided, expect=types.UnionType)
+        db = Type.create(provided, expect=types.UnionType)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
         assert isinstance("asdf", db.checkable)
@@ -901,37 +902,37 @@ describe "checkable":
 
         assert issubclass(MyInt, db.checkable)
         assert issubclass(int, db.checkable)
-        assert issubclass(Disassembled.create(MyInt).checkable, db.checkable)
+        assert issubclass(Type.create(MyInt).checkable, db.checkable)
 
         class MyString(str):
             pass
 
         assert issubclass(str, db.checkable)
         assert issubclass(MyString, db.checkable)
-        assert issubclass(Disassembled.create(MyString).checkable, db.checkable)
+        assert issubclass(Type.create(MyString).checkable, db.checkable)
 
         class NotMyInt:
             pass
 
         assert not issubclass(NotMyInt, db.checkable)
-        assert not issubclass(Disassembled.create(NotMyInt).checkable, db.checkable)
+        assert not issubclass(Type.create(NotMyInt).checkable, db.checkable)
         assert not issubclass(float, db.checkable)
         assert not issubclass(dict, db.checkable)
 
         assert isinstance(db.checkable, InstanceCheckMeta)
         assert isinstance(db.checkable, type)
-        assert isinstance(db.checkable, Disassembled.create(type).checkable)
+        assert isinstance(db.checkable, Type.create(type).checkable)
 
         assert issubclass(db.checkable, InstanceCheck)
         assert not issubclass(db.checkable, type)
         assert not issubclass(type, db.checkable)
-        assert not issubclass(Disassembled.create(type).checkable, db.checkable)
-        assert not issubclass(db.checkable, Disassembled.create(type).checkable)
+        assert not issubclass(Type.create(type).checkable, db.checkable)
+        assert not issubclass(db.checkable, Type.create(type).checkable)
         assert not isinstance(db.checkable, int)
-        assert not isinstance(db.checkable, Disassembled.create(int).checkable)
+        assert not isinstance(db.checkable, Type.create(int).checkable)
         assert not issubclass(db.checkable, NotMyInt)
         assert not issubclass(db.checkable, str)
-        assert not issubclass(db.checkable, Disassembled.create(NotMyInt).checkable)
+        assert not issubclass(db.checkable, Type.create(NotMyInt).checkable)
 
         assert db.checkable.Meta.typ == provided
         assert db.checkable.Meta.original == provided
@@ -940,7 +941,7 @@ describe "checkable":
         assert db.checkable.Meta.without_annotation == provided
 
     it "can find instances and subclasses of optional basic types":
-        db = Disassembled.create(int | None, expect=int)
+        db = Type.create(int | None, expect=int)
         assert isinstance(23, db.checkable)
         assert isinstance(None, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -950,27 +951,27 @@ describe "checkable":
             pass
 
         assert issubclass(MyInt, db.checkable)
-        assert issubclass(Disassembled.create(MyInt).checkable, db.checkable)
+        assert issubclass(Type.create(MyInt).checkable, db.checkable)
 
         class NotMyInt:
             pass
 
         assert not issubclass(NotMyInt, db.checkable)
-        assert not issubclass(Disassembled.create(NotMyInt).checkable, db.checkable)
+        assert not issubclass(Type.create(NotMyInt).checkable, db.checkable)
 
         assert isinstance(db.checkable, InstanceCheckMeta)
         assert isinstance(db.checkable, type)
-        assert isinstance(db.checkable, Disassembled.create(type).checkable)
+        assert isinstance(db.checkable, Type.create(type).checkable)
 
         assert issubclass(db.checkable, InstanceCheck)
         assert not issubclass(db.checkable, type)
         assert not issubclass(type, db.checkable)
-        assert not issubclass(Disassembled.create(type).checkable, db.checkable)
-        assert not issubclass(db.checkable, Disassembled.create(type).checkable)
+        assert not issubclass(Type.create(type).checkable, db.checkable)
+        assert not issubclass(db.checkable, Type.create(type).checkable)
         assert not isinstance(db.checkable, int)
-        assert not isinstance(db.checkable, Disassembled.create(int).checkable)
+        assert not isinstance(db.checkable, Type.create(int).checkable)
         assert not issubclass(db.checkable, NotMyInt)
-        assert not issubclass(db.checkable, Disassembled.create(NotMyInt).checkable)
+        assert not issubclass(db.checkable, Type.create(NotMyInt).checkable)
 
         assert db.checkable.Meta.typ == int
         assert db.checkable.Meta.original == int | None
@@ -979,7 +980,7 @@ describe "checkable":
         assert db.checkable.Meta.without_annotation == int | None
 
     it "can find instances and subclasses of annotated types":
-        db = Disassembled.create(tp.Annotated[int | None, "stuff"], expect=int)
+        db = Type.create(tp.Annotated[int | None, "stuff"], expect=int)
         assert isinstance(23, db.checkable)
         assert isinstance(None, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -989,27 +990,27 @@ describe "checkable":
             pass
 
         assert issubclass(MyInt, db.checkable)
-        assert issubclass(Disassembled.create(MyInt).checkable, db.checkable)
+        assert issubclass(Type.create(MyInt).checkable, db.checkable)
 
         class NotMyInt:
             pass
 
         assert not issubclass(NotMyInt, db.checkable)
-        assert not issubclass(Disassembled.create(NotMyInt).checkable, db.checkable)
+        assert not issubclass(Type.create(NotMyInt).checkable, db.checkable)
 
         assert isinstance(db.checkable, InstanceCheckMeta)
         assert isinstance(db.checkable, type)
-        assert isinstance(db.checkable, Disassembled.create(type).checkable)
+        assert isinstance(db.checkable, Type.create(type).checkable)
 
         assert issubclass(db.checkable, InstanceCheck)
         assert not issubclass(db.checkable, type)
         assert not issubclass(type, db.checkable)
-        assert not issubclass(Disassembled.create(type).checkable, db.checkable)
-        assert not issubclass(db.checkable, Disassembled.create(type).checkable)
+        assert not issubclass(Type.create(type).checkable, db.checkable)
+        assert not issubclass(db.checkable, Type.create(type).checkable)
         assert not isinstance(db.checkable, int)
-        assert not isinstance(db.checkable, Disassembled.create(int).checkable)
+        assert not isinstance(db.checkable, Type.create(int).checkable)
         assert not issubclass(db.checkable, NotMyInt)
-        assert not issubclass(db.checkable, Disassembled.create(NotMyInt).checkable)
+        assert not issubclass(db.checkable, Type.create(NotMyInt).checkable)
 
         assert db.checkable.Meta.typ == int
         assert db.checkable.Meta.original == tp.Annotated[int | None, "stuff"]
@@ -1022,7 +1023,7 @@ describe "checkable":
         class Mine:
             pass
 
-        db = Disassembled.create(Mine, expect=Mine)
+        db = Type.create(Mine, expect=Mine)
         assert not isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
         assert not isinstance("asdf", db.checkable)
@@ -1047,17 +1048,17 @@ describe "checkable":
 
         assert isinstance(db.checkable, InstanceCheckMeta)
         assert isinstance(db.checkable, type)
-        assert isinstance(db.checkable, Disassembled.create(type).checkable)
+        assert isinstance(db.checkable, Type.create(type).checkable)
 
         assert issubclass(db.checkable, InstanceCheck)
         assert not issubclass(db.checkable, type)
         assert not issubclass(type, db.checkable)
-        assert not issubclass(Disassembled.create(type).checkable, db.checkable)
-        assert not issubclass(db.checkable, Disassembled.create(type).checkable)
+        assert not issubclass(Type.create(type).checkable, db.checkable)
+        assert not issubclass(db.checkable, Type.create(type).checkable)
         assert not isinstance(db.checkable, int)
-        assert not isinstance(db.checkable, Disassembled.create(int).checkable)
+        assert not isinstance(db.checkable, Type.create(int).checkable)
         assert not issubclass(db.checkable, Other)
-        assert not issubclass(db.checkable, Disassembled.create(Other).checkable)
+        assert not issubclass(db.checkable, Type.create(Other).checkable)
 
         assert db.checkable.Meta.typ == Mine
         assert db.checkable.Meta.original == Mine
@@ -1066,7 +1067,7 @@ describe "checkable":
         assert db.checkable.Meta.without_annotation == Mine
 
     it "can instantiate the provided type":
-        checkable = Disassembled.create(dict[str, bool]).checkable
+        checkable = Type.create(dict[str, bool]).checkable
         made = tp.cast(tp.Callable, checkable)([("1", True), ("2", False)])
         assert made == {"1": True, "2": False}
 
@@ -1080,7 +1081,7 @@ describe "checkable":
             def __init__(self, one: int):
                 self.one = one
 
-        checkable = Disassembled.create(Thing).checkable
+        checkable = Type.create(Thing).checkable
         made = tp.cast(tp.Callable, checkable)(one=1)
         assert isinstance(made, Thing)
         assert made.one == 1
@@ -1091,49 +1092,148 @@ describe "checkable":
         assert checkable.Meta.without_optional == Thing
         assert checkable.Meta.without_annotation == Thing
 
-        constructor: tp.Callable = Disassembled.create(int | str).checkable
+        constructor: tp.Callable = Type.create(int | str).checkable
         with pytest.raises(ValueError, match="Cannot instantiate a union type"):
             constructor(1)
 
     it "can get typing origin":
 
-        assert tp.get_origin(Disassembled.create(str | int).checkable) == types.UnionType
-        assert tp.get_origin(Disassembled.create(dict[str, int]).checkable) == dict
-        assert tp.get_origin(Disassembled.create(dict[str, int] | None).checkable) == dict
+        assert tp.get_origin(Type.create(str | int).checkable) == types.UnionType
+        assert tp.get_origin(Type.create(dict[str, int]).checkable) == dict
+        assert tp.get_origin(Type.create(dict[str, int] | None).checkable) == dict
         assert (
-            tp.get_origin(Disassembled.create(tp.Annotated[dict[str, int] | None, "hi"]).checkable)
-            == dict
+            tp.get_origin(Type.create(tp.Annotated[dict[str, int] | None, "hi"]).checkable) == dict
         )
 
-        assert tp.get_origin(Disassembled.create(dict).checkable) is None
-        assert tp.get_origin(Disassembled.create(dict | None).checkable) is None
-        assert tp.get_origin(Disassembled.create(tp.Annotated[dict | None, "hi"]).checkable) is None
+        assert tp.get_origin(Type.create(dict).checkable) is None
+        assert tp.get_origin(Type.create(dict | None).checkable) is None
+        assert tp.get_origin(Type.create(tp.Annotated[dict | None, "hi"]).checkable) is None
 
-        assert tp.get_origin(Disassembled.create(dict | str).checkable) is types.UnionType
+        assert tp.get_origin(Type.create(dict | str).checkable) is types.UnionType
 
         class Thing(tp.Generic[T]):
             pass
 
-        assert tp.get_origin(Disassembled.create(Thing).checkable) is None
-        assert tp.get_origin(Disassembled.create(Thing[int]).checkable) is Thing
+        assert tp.get_origin(Type.create(Thing).checkable) is None
+        assert tp.get_origin(Type.create(Thing[int]).checkable) is Thing
 
     it "can get typing args":
 
-        assert tp.get_args(Disassembled.create(str | int).checkable) == (str, int)
-        assert tp.get_args(Disassembled.create(dict[str, int]).checkable) == (str, int)
-        assert tp.get_args(Disassembled.create(dict[str, int] | None).checkable) == (str, int)
-        assert tp.get_args(
-            Disassembled.create(tp.Annotated[dict[str, int] | None, "hi"]).checkable
-        ) == (str, int)
+        assert tp.get_args(Type.create(str | int).checkable) == (str, int)
+        assert tp.get_args(Type.create(dict[str, int]).checkable) == (str, int)
+        assert tp.get_args(Type.create(dict[str, int] | None).checkable) == (str, int)
+        assert tp.get_args(Type.create(tp.Annotated[dict[str, int] | None, "hi"]).checkable) == (
+            str,
+            int,
+        )
 
-        assert tp.get_args(Disassembled.create(dict).checkable) == ()
-        assert tp.get_args(Disassembled.create(dict | None).checkable) == ()
-        assert tp.get_args(Disassembled.create(tp.Annotated[dict | None, "hi"]).checkable) == ()
+        assert tp.get_args(Type.create(dict).checkable) == ()
+        assert tp.get_args(Type.create(dict | None).checkable) == ()
+        assert tp.get_args(Type.create(tp.Annotated[dict | None, "hi"]).checkable) == ()
 
-        assert tp.get_args(Disassembled.create(dict | str).checkable) == (dict, str)
+        assert tp.get_args(Type.create(dict | str).checkable) == (dict, str)
 
         class Thing(tp.Generic[T]):
             pass
 
-        assert tp.get_args(Disassembled.create(Thing).checkable) == ()
-        assert tp.get_args(Disassembled.create(Thing[int]).checkable) == (int,)
+        assert tp.get_args(Type.create(Thing).checkable) == ()
+        assert tp.get_args(Type.create(Thing[int]).checkable) == (int,)
+
+describe "annotations":
+    it "can return no annotation":
+        assert Type.create(int).ann is None
+        assert Type.create(int | None).ann is None
+        assert Type.create(int | str).ann is None
+        assert Type.create(int | str | None).ann is None
+        assert Type.create(list[int]).ann is None
+        assert Type.create(list[int] | None).ann is None
+
+        class Thing:
+            pass
+
+        assert Type.create(Thing).ann is None
+
+    it "can return an annotation with new creator":
+
+        def creator(value: object, /, _meta: strcs.Meta):
+            ...
+
+        ann = Type.create(tp.Annotated[int, creator], expect=int).ann
+        assert isinstance(ann, strcs.AnnBase)
+        assert ann.creator is creator
+
+    it "can return an annotation with new adjustable meta":
+
+        class AdjustMeta:
+            @classmethod
+            def adjusted_meta(cls, meta: strcs.Meta, typ: strcs.Type) -> strcs.Meta:
+                return meta.clone({"one": 1})
+
+        ann = Type.create(tp.Annotated[int, AdjustMeta], expect=int).ann
+        assert isinstance(ann, strcs.AnnBase), ann
+        assert ann.creator is None
+        assert ann.meta is AdjustMeta
+
+        meta = strcs.Meta({"two": 2})
+        m = ann.adjusted_meta(meta, Type.create(int))
+        assert m.data == {"one": 1, "two": 2}
+        assert meta.data == {"two": 2}
+
+    it "can return an annotation with new Annotation":
+
+        @define
+        class Info(strcs.Annotation):
+            three: str
+
+        info = Info(three="three")
+        ann = Type.create(tp.Annotated[int, info], expect=int).ann
+        assert isinstance(ann, strcs.AnnBase), ann
+        assert ann.creator is None
+        assert ann.meta is info
+
+        meta = strcs.Meta({"two": 2})
+        m = ann.adjusted_meta(meta, Type.create(int))
+        assert m.data == {"__call_defined_annotation__": info, "two": 2}
+        assert meta.data == {"two": 2}
+
+    it "can return an annotation with new MergedAnnotation":
+
+        @define
+        class Info(strcs.MergedAnnotation):
+            three: str
+
+        info = Info(three="three")
+        ann = Type.create(tp.Annotated[int, info], expect=int).ann
+        assert isinstance(ann, strcs.AnnBase), ann
+        assert ann.creator is None
+        assert ann.meta is info
+
+        meta = strcs.Meta({"two": 2})
+        m = ann.adjusted_meta(meta, Type.create(int))
+        assert m.data == {"three": "three", "two": 2}
+        assert meta.data == {"two": 2}
+
+    it "can return an annotation with new Ann":
+
+        def creator1(args: strcs.CreateArgs[int]) -> int:
+            return 2
+
+        def creator2(value: object) -> strcs.ConvertResponse[int]:
+            ...
+
+        class A(strcs.AnnBase[int]):
+            def adjusted_meta(self, meta: strcs.Meta, typ: strcs.Type[int]) -> strcs.Meta:
+                return meta.clone({"one": 1})
+
+        a = A(creator=creator2)
+        ann = Type.create(tp.Annotated[int, a], expect=int).ann
+        assert isinstance(ann, strcs.AnnBase), ann
+        assert ann is a
+
+        meta = strcs.Meta({"two": 2})
+        m = ann.adjusted_meta(meta, Type.create(int))
+        assert m.data == {"one": 1, "two": 2}
+        assert meta.data == {"two": 2}
+
+        reg = strcs.CreateRegister()
+        assert ann.adjusted_creator(creator1, reg, Type.create(int)) == creator2

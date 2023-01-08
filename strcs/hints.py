@@ -9,8 +9,6 @@ from dataclasses import is_dataclass
 from attrs import fields as attrs_fields
 from attrs import has as is_attrs
 
-from .disassemble import Disassembled
-
 T = tp.TypeVar("T")
 C = tp.TypeVar("C", bound=type)
 
@@ -213,7 +211,9 @@ def resolve_types(
                     value = tp.ForwardRef(value, is_argument=False, is_class=True)
 
                 if name in allfields:
-                    disassembled = Disassembled.create(value, expect=object)
+                    from .disassemble import Type
+
+                    disassembled = Type.create(value, expect=object)
 
                     resolved = resolve_type(disassembled.extracted, base_globals, base_locals)
                     if isinstance(resolved, type):

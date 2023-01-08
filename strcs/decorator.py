@@ -7,9 +7,9 @@ from attrs import define
 
 from . import errors
 from .args_extractor import ArgsExtractor
+from .disassemble import Type
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
-from .types import Type
 
 if tp.TYPE_CHECKING:
     from .register import CreateRegister
@@ -42,7 +42,7 @@ ConvertDefinitionValueAndType: tp.TypeAlias = tp.Callable[[object, Type], Conver
 # But python typing is restrictive and you can't express that
 
 ConvertDefinition: tp.TypeAlias = tp.Callable[..., ConvertResponse[T]]
-ConvertFunction: tp.TypeAlias = tp.Callable[[CreateArgs], T]
+ConvertFunction: tp.TypeAlias = tp.Callable[[CreateArgs[T]], T]
 
 
 def take_or_make(value: object, typ: Type[T], /) -> ConvertResponse[T]:
@@ -58,6 +58,11 @@ class WrappedCreator(tp.Generic[T]):
     def __init__(self, wrapped: tp.Callable[[CreateArgs], T], func: ConvertDefinition[T]):
         self.func = func
         self.wrapped = wrapped
+
+    def __eq__(self, o: object) -> bool:
+        return o == self.func or (
+            isinstance(o, WrappedCreator) and o.func == self.func and o.wrapped == self.wrapped
+        )
 
     def __call__(self, create_args: "CreateArgs") -> T:
         return self.wrapped(create_args)
@@ -87,6 +92,7 @@ class CreatorDecorator(tp.Generic[T]):
             self.typ = self.original
 
         wrapped, func = self.wrap(func)
+        self.func = func
         self.register[self.typ] = wrapped
         return func
 

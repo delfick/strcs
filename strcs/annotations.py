@@ -9,14 +9,37 @@ from .decorator import (
     ConvertResponse,
     CreatorDecorator,
 )
-from .disassemble import Disassembled
+from .disassemble import Type
 from .meta import Meta
-from .register import CreateRegister
-from .types import AdjustableMeta, Annotation, Type
+
+if tp.TYPE_CHECKING:
+    from .register import CreateRegister
 
 T = tp.TypeVar("T")
 
-Annotation = Annotation
+
+@define
+class Annotation:
+    @property
+    def merge_meta(self) -> bool:
+        return False
+
+
+@tp.runtime_checkable
+class Ann(tp.Protocol[T]):
+    def adjusted_meta(self, meta: Meta, typ: Type[T]) -> Meta:
+        ...
+
+    def adjusted_creator(
+        self, creator: ConvertFunction[T] | None, register: "CreateRegister", typ: Type[T]
+    ) -> ConvertFunction[T] | None:
+        ...
+
+
+@tp.runtime_checkable
+class AdjustableMeta(tp.Protocol[T]):
+    def adjusted_meta(self, meta: Meta, typ: "Type[T]") -> Meta:
+        ...
 
 
 class AnnBase(tp.Generic[T]):
@@ -41,7 +64,7 @@ class AnnBase(tp.Generic[T]):
             clone = meta.clone()
             for field in attrs.fields(self.meta.__class__):  # type:ignore
                 if not field.name.startswith("_"):
-                    optional = Disassembled.create(field.type).optional
+                    optional = Type.create(field.type).optional
                     val = getattr(self.meta, field.name)
                     if not optional or val is not None:
                         clone[field.name] = val
@@ -50,7 +73,7 @@ class AnnBase(tp.Generic[T]):
             return meta.clone({"__call_defined_annotation__": self.meta})
 
     def adjusted_creator(
-        self, creator: ConvertFunction[T] | None, register: CreateRegister, typ: Type[T]
+        self, creator: ConvertFunction[T] | None, register: "CreateRegister", typ: Type[T]
     ) -> ConvertFunction[T] | None:
         if self.creator is None:
             return creator

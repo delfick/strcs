@@ -1,5 +1,6 @@
 import abc
 import builtins
+import collections
 import collections.abc
 import functools
 import inspect
@@ -13,12 +14,19 @@ from dataclasses import fields as dataclass_fields
 from dataclasses import is_dataclass
 
 import attrs
+import cattrs
 from attrs import NOTHING, Attribute, define
 from attrs import fields as attrs_fields
 from attrs import has as attrs_has
 
+from .hints import resolve_types
 from .memoized_property import memoized_property
-from .not_specified import NotSpecifiedMeta
+from .not_specified import NotSpecified, NotSpecifiedMeta
+
+if tp.TYPE_CHECKING:
+    from .annotations import Ann
+    from .decorator import ConvertFunction
+
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
@@ -220,8 +228,8 @@ class InstanceCheck(abc.ABC):
 
 
 @define
-class Disassembled(tp.Generic[T]):
-    _cache: collections.abc.MutableMapping[object, "Disassembled"] = attrs.field(repr=False)
+class Type(tp.Generic[T]):
+    _cache: collections.abc.MutableMapping[object, "Type"] = attrs.field(repr=False)
 
     original: object
     extracted: T
@@ -236,13 +244,13 @@ class Disassembled(tp.Generic[T]):
         typ: object,
         *,
         expect: type[U] | None = None,
-        _cache: collections.abc.MutableMapping[object, "Disassembled"] | None = None,
-    ) -> "Disassembled[U]":
+        _cache: collections.abc.MutableMapping[object, "Type"] | None = None,
+    ) -> "Type[U]":
         if _cache is None:
             _cache = {}
 
         if isinstance(typ, cls):
-            return tp.cast(Disassembled[U], typ)
+            return tp.cast(Type[U], typ)
 
         try:
             hash(typ)
@@ -265,7 +273,7 @@ class Disassembled(tp.Generic[T]):
         if annotation is None and optional_outer:
             extracted, annotated, annotation = extract_annotation(typ)
 
-        constructor = tp.cast(tp.Callable[..., Disassembled[U]], cls)
+        constructor = tp.cast(tp.Callable[..., Type[U]], cls)
 
         made = constructor(
             cache=_cache,
@@ -285,14 +293,17 @@ class Disassembled(tp.Generic[T]):
     def __hash__(self) -> int:
         return hash(self.original)
 
-    def __eq__(self, o: object) -> tp.TypeGuard["Disassembled"]:
-        if not isinstance(o, Disassembled):
+    def __repr__(self) -> str:
+        return repr(self.original)
+
+    def __eq__(self, o: object) -> tp.TypeGuard["Type"]:
+        if not isinstance(o, Type):
             return False
 
         return o.original == self.original
 
-    def disassemble(self, expect: type[U], typ: object) -> "Disassembled[U]":
-        return Disassembled.create(typ, expect=expect, _cache=self._cache)
+    def disassemble(self, expect: type[U], typ: object) -> "Type[U]":
+        return Type.create(typ, expect=expect, _cache=self._cache)
 
     def reassemble(
         self, resolved: object, *, with_annotation: bool = True, with_optional: bool = True
@@ -413,6 +424,18 @@ class Disassembled(tp.Generic[T]):
 
     _fields: list[Field] = attrs.field(init=False)
 
+    @memoized_property
+    def typed_fields(self) -> list[Field]:
+        res: list[Field] = []
+        for field in self.fields:
+            if field.type is None:
+                res.append(field.with_replaced_type(field.type))
+            else:
+                res.append(field.with_replaced_type(self.create(field.type)))
+        return res
+
+    _typed_fields: list[Field] = attrs.field(init=False)
+
     def find_generic_subtype(self, *want: type) -> list[type]:
         result: list[type] = []
         typevar_map, typevars = self.generics
@@ -445,13 +468,122 @@ class Disassembled(tp.Generic[T]):
         subclass_of = self.disassemble(object, type(value)).checkable
         return issubclass(subclass_of, self.checkable)
 
+    @memoized_property
+    def ann(self) -> tp.Optional["Ann[T]"]:
+        from .annotations import AdjustableMeta, Ann, AnnBase, Annotation
+
+        ann: Ann[T] | None = None
+        if self.annotation is not None and (
+            isinstance(self.annotation, (Ann, Annotation)) or callable(self.annotation)
+        ):
+
+            if isinstance(self.annotation, Ann):
+                ann = self.annotation
+            elif isinstance(self.annotation, (Annotation, AdjustableMeta)):
+                ann = AnnBase[T](self.annotation)
+            elif callable(self.annotation):
+                ann = AnnBase[T](creator=self.annotation)
+
+        return ann
+
+    _ann: object | None = attrs.field(init=False)
+
+    def resolve_types(self, *, _resolved: set["Type"] | None = None):
+        if _resolved is None:
+            _resolved = set()
+
+        if self in _resolved:
+            return
+        _resolved.add(self)
+
+        if isinstance(self.original, type):
+            resolve_types(self.original)
+        if isinstance(self.extracted, type):
+            resolve_types(self.extracted)
+
+        args = getattr(self.extracted, "__args__", None)
+        if args:
+            for arg in args:
+                if isinstance(arg, type):
+                    resolve_types(arg)
+
+        for field in self.typed_fields:
+            field.type.resolve_types(_resolved=_resolved)
+
+    def func_from(
+        self, options: list[tuple["Type", "ConvertFunction"]]
+    ) -> tp.Optional["ConvertFunction"]:
+        for want, func in options:
+            if want in (self.original, self.extracted) or want == self:
+                return func
+
+        for want, func in options:
+            if issubclass(self.checkable, want.checkable):
+                return func
+
+        if not isinstance(self.origin, type):
+            return None
+
+        for want, func in options:
+            if want is self.origin:
+                return func
+
+        for want, func in options:
+            if issubclass(self.origin, want.checkable):
+                return func
+
+        return None
+
+    def fill(self, res: object) -> tp.Mapping[str, object]:
+        if res is NotSpecified:
+            res = {}
+
+        if not isinstance(res, collections.abc.Mapping):
+            raise ValueError(f"Can only fill mappings, got {type(res)}")
+
+        if isinstance(res, dict):
+            for field in self.typed_fields:
+                if field.type is not None and field.name not in res:
+                    if field.type.is_annotated or field.type.has_fields:
+                        res[field.name] = NotSpecified
+
+        return res
+
+    def convert(self, res: object, converter: cattrs.Converter) -> T:
+        if self.optional and res is None:
+            return tp.cast(T, None)
+
+        if not callable(self.extracted):
+            raise TypeError(f"Unsure how to instantiate a {type(self.extracted)}: {self.extracted}")
+
+        res = self.fill(res)
+
+        conv_obj: dict[str, object] = {}
+        for field in self.typed_fields:
+            name = field.name
+
+            if name not in res:
+                continue
+
+            val = res[name]
+            if name.startswith("_"):
+                name = name[1:]
+
+            attribute = tp.cast(
+                attrs.Attribute,
+                Field(name=field.name, type=tp.cast(type, field.type.original)),
+            )
+            conv_obj[name] = converter._structure_attribute(attribute, val)
+
+        return self.extracted(**conv_obj)
+
     @property
     def checkable_as_type(self) -> type[T]:
         return tp.cast(type[T], self.checkable)
 
     @memoized_property
     def checkable(self) -> type[InstanceCheck]:
-        disassembled: Disassembled = self
+        disassembled: Type = self
         extracted = disassembled.extracted
         origin = tp.get_origin(extracted)
 

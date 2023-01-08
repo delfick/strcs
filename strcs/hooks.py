@@ -2,10 +2,11 @@ import typing as tp
 
 import cattrs
 
+from .annotations import Ann
 from .decorator import ConvertDefinition, ConvertFunction, CreateArgs
+from .disassemble import Type
 from .meta import Meta
 from .not_specified import NotSpecified
-from .types import Ann, Type
 
 if tp.TYPE_CHECKING:
     from .register import CreateRegister
@@ -115,7 +116,7 @@ class CreateStructureHook:
             creator = want.ann.adjusted_creator(creator, self.register, want)
             if meta is not self.meta:
                 return self.register.create(
-                    Type.create(want.without_annotation),
+                    Type.create(want.without_annotation, expect=type(want.extracted)),
                     value,
                     meta=meta,
                     once_only_creator=creator,

@@ -3,8 +3,8 @@ import typing as tp
 
 import cattrs
 
+from .disassemble import Type
 from .meta import Meta
-from .types import Type
 
 if tp.TYPE_CHECKING:
     from .decorator import ConvertDefinition

@@ -1,10 +1,11 @@
 import typing as tp
 
+from .annotations import Ann, Annotation
 from .decorator import ConvertDefinition, ConvertFunction
+from .disassemble import Type
 from .hooks import CreateStructureHook
 from .meta import Meta
 from .not_specified import NotSpecified
-from .types import Ann, Annotation, Type
 
 T = tp.TypeVar("T")
 
