@@ -93,9 +93,16 @@ class App:
             args.pop(0)
             run(bin_dir / "dmypy", "stop")
 
-        args = ["run", *args]
+        args: list[str | Path] = ["run", *args]
         if "--" not in args:
             args.extend(["--", "."])
+
+        if "--show-column-numbers" not in args:
+            args.append("--show-column-numbers")
+
+        if "--config" not in args:
+            args.append("--config-file")
+            args.append(Path("pyproject.toml").absolute())
 
         run(bin_dir / "dmypy", *args)
 
