@@ -1,4 +1,6 @@
 # coding: spec
+import attrs
+import pytest
 
 from strcs.memoized_property import memoized_property
 
@@ -7,6 +9,11 @@ describe "memoized_property":
         called: list[int] = []
 
         class Thing:
+            _memoized_cache: dict[str, object]
+
+            def __init__(self):
+                self._memoized_cache = {}
+
             @memoized_property
             def blah(self) -> str:
                 called.append(1)
@@ -20,28 +27,53 @@ describe "memoized_property":
         assert thing.blah == "stuff"
         assert called == [1]
 
-    it "allows setting the value":
+    it "works on an attrs class":
+        called: list[int] = []
+
+        @attrs.define
+        class Thing:
+            _memoized_cache: dict[str, object] = attrs.field(init=False, factory=lambda: {})
+
+            @memoized_property
+            def blah(self) -> str:
+                called.append(1)
+                return "stuff"
+
+        thing = Thing()
+        assert thing.blah == "stuff"
+        assert called == [1]
+        assert thing.blah == "stuff"
+        assert called == [1]
+        assert thing.blah == "stuff"
+        assert called == [1]
+
+    it "does not allow setting the value":
         called: list[int] = []
 
         class Thing:
+            _memoized_cache: dict[str, object]
+
+            def __init__(self):
+                self._memoized_cache = {}
+
             @memoized_property
             def blah(self) -> str:
                 called.append(1)
                 return "stuff"
 
         thing = Thing()
-        assert thing.blah == "stuff"
-        assert called == [1]
-        thing.blah = "other"
-        assert thing.blah == "other"
-        assert called == [1]
-        assert thing.blah == "other"
-        assert called == [1]
+        with pytest.raises(AttributeError):
+            thing.blah = "other"
 
     it "allows deleting the value":
         called: list[int] = []
 
         class Thing:
+            _memoized_cache: dict[str, object]
+
+            def __init__(self):
+                self._memoized_cache = {}
+
             @memoized_property
             def blah(self) -> str:
                 called.append(1)
@@ -59,6 +91,11 @@ describe "memoized_property":
     it "keeps the type annotation":
 
         class Thing:
+            _memoized_cache: dict[str, object]
+
+            def __init__(self):
+                self._memoized_cache = {}
+
             @memoized_property
             def blah(self) -> str:
                 return "stuff"

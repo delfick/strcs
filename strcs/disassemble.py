@@ -231,6 +231,10 @@ class InstanceCheck(abc.ABC):
 class Type(tp.Generic[T]):
     cache: "TypeCache" = attrs.field(repr=False)
 
+    _memoized_cache: dict[str, object] = attrs.field(
+        init=False, factory=lambda: {}, repr=False, order=False, hash=False
+    )
+
     original: object
     extracted: T
     optional_inner: bool
@@ -321,8 +325,6 @@ class Type(tp.Generic[T]):
     def origin(self) -> object | None:
         return tp.get_origin(self.extracted)
 
-    _origin: object | None = attrs.field(init=False)
-
     @memoized_property
     def origin_or_type(self) -> object:
         orig = tp.get_origin(self.extracted)
@@ -331,19 +333,13 @@ class Type(tp.Generic[T]):
         else:
             return orig
 
-    _origin_or_type: object = attrs.field(init=False)
-
     @memoized_property
     def without_optional(self) -> object:
         return self.reassemble(self.extracted, with_optional=False)
 
-    _without_optional: object = attrs.field(init=False)
-
     @memoized_property
     def without_annotation(self) -> object:
         return self.reassemble(self.extracted, with_annotation=False)
-
-    _without_annotation: object = attrs.field(init=False)
 
     @memoized_property
     def generics(self) -> tuple[dict[tp.TypeVar, type], list[tp.TypeVar]]:
@@ -357,8 +353,6 @@ class Type(tp.Generic[T]):
             typevar_map[tv] = ag
 
         return typevar_map, typevars
-
-    _generics: tuple[dict[tp.TypeVar, type], list[tp.TypeVar]] = attrs.field(init=False)
 
     @property
     def has_fields(self) -> bool:
@@ -377,8 +371,6 @@ class Type(tp.Generic[T]):
 
         return self.extracted
 
-    _fields_from: object = attrs.field(init=False)
-
     @memoized_property
     def fields_getter(self) -> tp.Callable[..., tp.Sequence[Field]] | None:
         if isinstance(self.fields_from, type) and attrs_has(self.fields_from):
@@ -394,8 +386,6 @@ class Type(tp.Generic[T]):
             return fields_from_class
 
         return None
-
-    _fields_getter: tp.Callable[..., tp.Sequence[Field]] | None = attrs.field(init=False)
 
     @memoized_property
     def fields(self) -> list[Field]:
@@ -413,8 +403,6 @@ class Type(tp.Generic[T]):
 
         return fields
 
-    _fields: list[Field] = attrs.field(init=False)
-
     @memoized_property
     def typed_fields(self) -> list[Field]:
         res: list[Field] = []
@@ -424,8 +412,6 @@ class Type(tp.Generic[T]):
             else:
                 res.append(field.with_replaced_type(self.disassemble(field.type, field.type)))
         return res
-
-    _typed_fields: list[Field] = attrs.field(init=False)
 
     def find_generic_subtype(self, *want: type) -> list[type]:
         result: list[type] = []
@@ -476,8 +462,6 @@ class Type(tp.Generic[T]):
                 ann = AnnBase[T](creator=self.annotation)
 
         return ann
-
-    _ann: object | None = attrs.field(init=False)
 
     def resolve_types(self, *, _resolved: set["Type"] | None = None):
         if _resolved is None:
