@@ -31,6 +31,21 @@ if tp.TYPE_CHECKING:
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
 builtin_types = [v for v in vars(builtins).values() if isinstance(v, type)]
+union_types: list[object] = [type(tp.Union[str, int]), type(str | int), types.UnionType, tp.Union]
+
+
+def _get_generic_super() -> type:
+    class _G(tp.Generic[T]):
+        one: T
+
+    bases = getattr(_G, "__orig_bases__", None)
+    assert isinstance(bases, tuple) and len(bases) > 0
+    ret = tp.get_origin(bases[0])
+    assert isinstance(ret, type)
+    return ret
+
+
+generic_super = _get_generic_super()
 
 
 @define
@@ -194,7 +209,7 @@ class IsAnnotated(tp.Protocol):
 
 def extract_optional(typ: T) -> tuple[bool, T]:
     optional = False
-    if tp.get_origin(typ) in (types.UnionType, tp.Union):
+    if tp.get_origin(typ) in union_types:
         if type(None) in tp.get_args(typ):
             optional = True
 
@@ -366,7 +381,7 @@ class Type(tp.Generic[T]):
             or (not attrs_has(self.extracted) and not is_dataclass(self.extracted))
             and origin
         ):
-            if origin not in (types.UnionType, tp.Union):
+            if origin not in union_types:
                 return origin
 
         return self.extracted
@@ -569,7 +584,7 @@ class Type(tp.Generic[T]):
             without_optional = disassembled.without_optional
             without_annotation = disassembled.without_annotation
 
-        if origin is not None and origin in (types.UnionType, tp.Union):
+        if origin is not None and origin in union_types:
             check_against = tuple(
                 self.disassemble(object, a).checkable for a in tp.get_args(extracted)
             )
