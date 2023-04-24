@@ -67,6 +67,9 @@ class CreateRegister:
         self.register[Type.create(specification, cache=self.type_cache)] = creator
 
     def __contains__(self, typ: type | Type[T]) -> bool:
+        if not isinstance(typ, (type, Type)):
+            raise ValueError("Can only check against types or Type instances")
+
         return (
             Type.create(typ, expect=object, cache=self.type_cache).func_from(
                 list(self.register.items())

@@ -339,18 +339,20 @@ describe "Register":
             )
             shape_maker.reset_mock()
 
-        it "doesn't fail on checking against a not type in the register", creg: strcs.CreateRegister:
+        it "fails on checking against a not type in the register", creg: strcs.CreateRegister:
 
             @define
             class Thing:
                 pass
 
             assert Thing not in creg
-            assert tp.cast(type, Thing()) not in creg
+            with pytest.raises(ValueError, match="Can only check against types or Type instances"):
+                assert tp.cast(type, Thing()) not in creg
 
             creg[Thing] = tp.cast(strcs.ConvertFunction, mock.Mock(name="creator"))
             assert Thing in creg
-            assert tp.cast(type, Thing()) not in creg
+            with pytest.raises(ValueError, match="Can only check against types or Type instances"):
+                assert tp.cast(type, Thing()) not in creg
 
 describe "Creators":
     it "stores the type and the register", creator: strcs.Creator, creg: strcs.CreateRegister:
