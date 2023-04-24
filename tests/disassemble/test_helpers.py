@@ -134,6 +134,12 @@ describe "fields_from_class":
             ],
         )
 
+    it "doesn't fail on builtin functions":
+        with pytest.raises(ValueError):
+            inspect.signature(str)
+
+        assert fields_from_class(str) == []
+
 describe "fields_from_attrs":
 
     it "finds no fields on class with no fields":

@@ -107,7 +107,11 @@ class Field(tp.Generic[T]):
 
 def fields_from_class(typ: type) -> tp.Sequence[Field]:
     result: list[Field] = []
-    signature = inspect.signature(typ)
+    try:
+        signature = inspect.signature(typ)
+    except ValueError:
+        return result
+
     for name, param in list(signature.parameters.items()):
         field_type = param.annotation
         if param.annotation is inspect.Parameter.empty:
