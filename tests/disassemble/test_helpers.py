@@ -54,11 +54,16 @@ describe "fields_from_class":
         assertParams(
             fields_from_class(Thing),
             [
-                Field(name="blah", type=int, kind=inspect.Parameter.POSITIONAL_ONLY),
-                Field(name="stuff", type=str, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD),
-                Field(name="", type=str, kind=inspect.Parameter.VAR_POSITIONAL),
-                Field(name="items", type=t, kind=inspect.Parameter.KEYWORD_ONLY),
-                Field(name="", type=bool, kind=inspect.Parameter.VAR_KEYWORD),
+                Field(name="blah", owner=Thing, type=int, kind=inspect.Parameter.POSITIONAL_ONLY),
+                Field(
+                    name="stuff",
+                    owner=Thing,
+                    type=str,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                ),
+                Field(name="", type=str, owner=Thing, kind=inspect.Parameter.VAR_POSITIONAL),
+                Field(name="items", type=t, owner=Thing, kind=inspect.Parameter.KEYWORD_ONLY),
+                Field(name="", type=bool, owner=Thing, kind=inspect.Parameter.VAR_KEYWORD),
             ],
         )
 
@@ -71,11 +76,18 @@ describe "fields_from_class":
         assertParams(
             fields_from_class(Thing),
             [
-                Field(name="blah", type=object, kind=inspect.Parameter.POSITIONAL_ONLY),
-                Field(name="stuff", type=object, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD),
-                Field(name="", type=object, kind=inspect.Parameter.VAR_POSITIONAL),
-                Field(name="items", type=object, kind=inspect.Parameter.KEYWORD_ONLY),
-                Field(name="", type=object, kind=inspect.Parameter.VAR_KEYWORD),
+                Field(
+                    name="blah", type=object, owner=Thing, kind=inspect.Parameter.POSITIONAL_ONLY
+                ),
+                Field(
+                    name="stuff",
+                    type=object,
+                    owner=Thing,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                ),
+                Field(name="", type=object, owner=Thing, kind=inspect.Parameter.VAR_POSITIONAL),
+                Field(name="items", type=object, owner=Thing, kind=inspect.Parameter.KEYWORD_ONLY),
+                Field(name="", type=object, owner=Thing, kind=inspect.Parameter.VAR_KEYWORD),
             ],
         )
 
@@ -99,23 +111,26 @@ describe "fields_from_class":
                 Field(
                     name="blah",
                     type=int,
+                    owner=Thing,
                     default=Default(1),
                     kind=inspect.Parameter.POSITIONAL_ONLY,
                 ),
                 Field(
                     name="stuff",
+                    owner=Thing,
                     type=str,
                     default=Default("asdf"),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(name="", type=str, kind=inspect.Parameter.VAR_POSITIONAL),
+                Field(name="", owner=Thing, type=str, kind=inspect.Parameter.VAR_POSITIONAL),
                 Field(
                     name="items",
+                    owner=Thing,
                     type=int | None,
                     default=Default(None),
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
-                Field(name="", type=int, kind=inspect.Parameter.VAR_KEYWORD),
+                Field(name="", owner=Thing, type=int, kind=inspect.Parameter.VAR_KEYWORD),
             ],
         )
 
@@ -140,8 +155,10 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(Thing),
             [
-                Field(name="items", type=t, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD),
-                Field(name="stuff", type=bool, kind=inspect.Parameter.KEYWORD_ONLY),
+                Field(
+                    name="items", owner=Thing, type=t, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD
+                ),
+                Field(name="stuff", owner=Thing, type=bool, kind=inspect.Parameter.KEYWORD_ONLY),
             ],
         )
 
@@ -159,12 +176,14 @@ describe "fields_from_attrs":
                 Field(
                     name="items",
                     type=t,
+                    owner=Thing,
                     default=Default((1, "asdf")),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="stuff",
                     type=bool,
+                    owner=Thing,
                     default=Default(True),
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
@@ -188,12 +207,14 @@ describe "fields_from_attrs":
                 Field(
                     name="items",
                     type=t,
+                    owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="stuff",
                     type=bool,
+                    owner=Thing,
                     default=factory_two,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
@@ -218,12 +239,14 @@ describe "fields_from_attrs":
                 Field(
                     name="items",
                     type=t,
+                    owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="stuff",
                     type=bool,
+                    owner=Thing,
                     default=factory_two,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
@@ -243,11 +266,13 @@ describe "fields_from_attrs":
                 Field(
                     name="thing",
                     type=str,
+                    owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="other",
                     type=int,
+                    owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
             ],
@@ -273,16 +298,19 @@ describe "fields_from_attrs":
                 Field(
                     name="stuff",
                     type=str,
+                    owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="wat",
                     type=str,
+                    owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="blah",
                     type=int,
+                    owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
             ],
@@ -311,12 +339,14 @@ describe "fields_from_attrs":
                 Field(
                     name="items",
                     type=t,
+                    owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="stuff",
                     type=bool,
+                    owner=Thing,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
             ],
@@ -332,8 +362,18 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(Thing),
             [
-                Field(name="blah", type=object, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD),
-                Field(name="stuff", type=object, kind=inspect.Parameter.KEYWORD_ONLY),
+                Field(
+                    name="blah",
+                    type=object,
+                    owner=Thing,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                ),
+                Field(
+                    name="stuff",
+                    type=object,
+                    owner=Thing,
+                    kind=inspect.Parameter.KEYWORD_ONLY,
+                ),
             ],
         )
 
@@ -358,8 +398,10 @@ describe "fields_from_dataclasses":
         assertParams(
             fields_from_dataclasses(Thing),
             [
-                Field(name="items", type=t, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD),
-                Field(name="stuff", type=bool, kind=inspect.Parameter.KEYWORD_ONLY),
+                Field(
+                    name="items", owner=Thing, type=t, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD
+                ),
+                Field(name="stuff", owner=Thing, type=bool, kind=inspect.Parameter.KEYWORD_ONLY),
             ],
         )
 
@@ -377,12 +419,14 @@ describe "fields_from_dataclasses":
                 Field(
                     name="items",
                     type=t,
+                    owner=Thing,
                     default=Default((1, "asdf")),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="stuff",
                     type=bool,
+                    owner=Thing,
                     default=Default(True),
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
@@ -406,12 +450,14 @@ describe "fields_from_dataclasses":
                 Field(
                     name="items",
                     type=t,
+                    owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="stuff",
                     type=bool,
+                    owner=Thing,
                     default=factory_two,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
@@ -436,12 +482,14 @@ describe "fields_from_dataclasses":
                 Field(
                     name="items",
                     type=t,
+                    owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="stuff",
                     type=bool,
+                    owner=Thing,
                     default=factory_two,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
@@ -461,11 +509,13 @@ describe "fields_from_dataclasses":
                 Field(
                     name="_thing",
                     type=str,
+                    owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 Field(
                     name="other",
                     type=int,
+                    owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
             ],

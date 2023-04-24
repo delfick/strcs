@@ -421,8 +421,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
         assert disassembled.fields == [
-            Field(name="one", type=int),
-            Field(name="two", type=str),
+            Field(name="one", owner=Thing, type=int),
+            Field(name="two", owner=Thing, type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_attrs
@@ -464,8 +464,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
         assert disassembled.fields == [
-            Field(name="one", type=int),
-            Field(name="two", type=str),
+            Field(name="one", owner=Thing, type=int),
+            Field(name="two", owner=Thing, type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_dataclasses
@@ -507,8 +507,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
         assert disassembled.fields == [
-            Field(name="one", type=int),
-            Field(name="two", type=str),
+            Field(name="one", owner=Thing, type=int),
+            Field(name="two", owner=Thing, type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter is fields_from_class
@@ -551,8 +551,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.fields == [
-            Field(name="one", type=int),
-            Field(name="two", type=str),
+            Field(name="one", owner=Thing, type=int),
+            Field(name="two", owner=Thing, type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_attrs
@@ -598,8 +598,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing | None
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.fields == [
-            Field(name="one", type=int),
-            Field(name="two", type=str),
+            Field(name="one", owner=Thing, type=int),
+            Field(name="two", owner=Thing, type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_dataclasses
@@ -648,8 +648,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing[int, str] | None
         assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
         assert disassembled.fields == [
-            Field(name="one", type=int),
-            Field(name="two", type=str),
+            Field(name="one", owner=Thing, type=int),
+            Field(name="two", owner=Thing, type=str),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_dataclasses
@@ -695,8 +695,8 @@ describe "Type":
         assert disassembled.without_annotation == Thing | None
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.fields == [
-            Field(name="one", type=object),
-            Field(name="two", type=object),
+            Field(name="one", owner=Thing, type=object),
+            Field(name="two", owner=Thing, type=object),
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == fields_from_attrs
@@ -730,7 +730,7 @@ describe "getting fields":
         resolve_types(Thing, globals(), locals(), type_cache=type_cache)
 
         disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
-        assert disassembled.fields == [Field(name="stuff", type=Stuff | None)]
+        assert disassembled.fields == [Field(name="stuff", owner=Thing, type=Stuff | None)]
 
     it "works on normal class", type_cache: strcs.TypeCache:
 
@@ -744,15 +744,18 @@ describe "getting fields":
         assertParams(
             disassembled.fields,
             [
-                Field(name="one", kind=inspect.Parameter.POSITIONAL_ONLY, type=int),
-                Field(name="two", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=str),
+                Field(name="one", owner=Thing, kind=inspect.Parameter.POSITIONAL_ONLY, type=int),
+                Field(
+                    name="two", owner=Thing, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=str
+                ),
                 Field(
                     name="three",
+                    owner=Thing,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                     type=bool,
                     default=Default(False),
                 ),
-                Field(name="", kind=inspect.Parameter.VAR_KEYWORD, type=object),
+                Field(name="", owner=Thing, kind=inspect.Parameter.VAR_KEYWORD, type=object),
             ],
         )
 
@@ -770,9 +773,12 @@ describe "getting fields":
         assertParams(
             disassembled.fields,
             [
-                Field(name="one", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int),
+                Field(
+                    name="one", owner=Thing, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int
+                ),
                 Field(
                     name="two",
+                    owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     type=str,
                     default=Default("one"),
@@ -780,6 +786,7 @@ describe "getting fields":
                 Field(
                     name="three",
                     kind=inspect.Parameter.KEYWORD_ONLY,
+                    owner=Thing,
                     type=bool,
                     default=Default(False),
                 ),
@@ -800,8 +807,11 @@ describe "getting fields":
         assertParams(
             disassembled.fields,
             [
-                Field(name="one", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int),
                 Field(
+                    name="one", owner=Thing, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int
+                ),
+                Field(
+                    owner=Thing,
                     name="two",
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     type=str,
@@ -809,6 +819,7 @@ describe "getting fields":
                 ),
                 Field(
                     name="three",
+                    owner=Thing,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                     type=bool,
                     default=Default(False),

@@ -76,12 +76,15 @@ def kind_name(kind: int) -> str:
 @define
 class Field(tp.Generic[T]):
     name: str
+    owner: object
     type: T
     kind: int = attrs.field(default=inspect.Parameter.POSITIONAL_OR_KEYWORD.value, repr=kind_name)
     default: tp.Callable[[], object | None] | None = attrs.field(default=None)
 
     def with_replaced_type(self, typ: U) -> "Field[U]":
-        return Field[U](name=self.name, type=typ, kind=self.kind, default=self.default)
+        return Field[U](
+            name=self.name, owner=self.owner, type=typ, kind=self.kind, default=self.default
+        )
 
     def clone(self) -> "Field[T]":
         return self.with_replaced_type(self.type)
@@ -116,7 +119,9 @@ def fields_from_class(typ: type) -> tp.Sequence[Field]:
         dflt: tp.Callable[[], object | None] | None = None
         if param.default is not inspect.Parameter.empty:
             dflt = Default(param.default)
-        result.append(Field(name=name, default=dflt, kind=param.kind.value, type=field_type))
+        result.append(
+            Field(name=name, owner=typ, default=dflt, kind=param.kind.value, type=field_type)
+        )
 
     return result
 
@@ -156,6 +161,7 @@ def fields_from_attrs(typ: type) -> tp.Sequence[Field]:
         result.append(
             Field(
                 name=name,
+                owner=typ,
                 default=dflt,
                 kind=kind,
                 type=field_type,
@@ -187,7 +193,7 @@ def fields_from_dataclasses(typ: type) -> tp.Sequence[Field]:
             dflt = field.default_factory
 
         name = field.name
-        result.append(Field(name=name, default=dflt, kind=kind, type=field_type))
+        result.append(Field(name=name, owner=typ, default=dflt, kind=kind, type=field_type))
     return result
 
 
@@ -561,7 +567,7 @@ class Type(tp.Generic[T]):
 
             attribute = tp.cast(
                 attrs.Attribute,
-                Field(name=field.name, type=tp.cast(type, field.type.original)),
+                Field(name=field.name, owner=field.owner, type=tp.cast(type, field.type.original)),
             )
             conv_obj[name] = converter._structure_attribute(attribute, val)
 
