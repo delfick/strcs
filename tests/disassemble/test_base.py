@@ -38,7 +38,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int
-        assert disassembled.origin_or_type == int
+        assert disassembled.origin == int
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -62,7 +62,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int | str
-        assert disassembled.origin_or_type == types.UnionType
+        assert disassembled.origin == types.UnionType
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -88,7 +88,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == provided
-        assert disassembled.origin_or_type == tp.Union
+        assert disassembled.origin == type(provided)
 
         checkable = disassembled.checkable
         assert (
@@ -121,7 +121,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int | str
-        assert disassembled.origin_or_type == tp.Union
+        assert disassembled.origin == type(provided)
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -147,7 +147,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is True
         assert disassembled.extracted == int | str
-        assert disassembled.origin_or_type == types.UnionType
+        assert disassembled.origin == types.UnionType
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -175,7 +175,7 @@ describe "Type":
         assert disassembled.optional_outer is True
         assert disassembled.optional_inner is False
         assert disassembled.extracted == int
-        assert disassembled.origin_or_type == int
+        assert disassembled.origin == int
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -200,7 +200,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == int
-        assert disassembled.origin_or_type == int
+        assert disassembled.origin == int
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -227,7 +227,7 @@ describe "Type":
         assert disassembled.optional_outer is False
         assert disassembled.optional_inner is True
         assert disassembled.extracted == int
-        assert disassembled.origin_or_type == int
+        assert disassembled.origin == int
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -251,7 +251,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == list[int]
-        assert disassembled.origin_or_type == list
+        assert disassembled.origin == list
         assert disassembled.checkable == list and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -277,7 +277,7 @@ describe "Type":
         assert disassembled.optional_outer is True
         assert disassembled.optional_inner is False
         assert disassembled.extracted == list[int]
-        assert disassembled.origin_or_type == list
+        assert disassembled.origin == list
         assert disassembled.checkable == list and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -301,7 +301,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == dict[str, int]
-        assert disassembled.origin_or_type == dict
+        assert disassembled.origin == dict
         assert disassembled.checkable == dict and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -327,7 +327,7 @@ describe "Type":
         assert disassembled.optional_outer is True
         assert disassembled.optional_inner is False
         assert disassembled.extracted == dict[str, int]
-        assert disassembled.origin_or_type == dict
+        assert disassembled.origin == dict
         assert disassembled.checkable == dict and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -354,7 +354,7 @@ describe "Type":
         assert disassembled.optional_outer is False
         assert disassembled.optional_inner is True
         assert disassembled.extracted == dict[str, int]
-        assert disassembled.origin_or_type == dict
+        assert disassembled.origin == dict
         assert disassembled.checkable == dict and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -381,7 +381,7 @@ describe "Type":
         assert disassembled.optional_outer is True
         assert disassembled.optional_inner is False
         assert disassembled.extracted == dict[str, int]
-        assert disassembled.origin_or_type == dict
+        assert disassembled.origin == dict
         assert disassembled.checkable == dict and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -411,7 +411,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
-        assert disassembled.origin_or_type == Thing
+        assert disassembled.origin == Thing
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -454,7 +454,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
-        assert disassembled.origin_or_type == Thing
+        assert disassembled.origin == Thing
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -497,7 +497,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
-        assert disassembled.origin_or_type == Thing
+        assert disassembled.origin == Thing
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -541,7 +541,7 @@ describe "Type":
         assert disassembled.original is provided
         assert disassembled.optional is False
         assert disassembled.extracted == Thing
-        assert disassembled.origin_or_type == Thing
+        assert disassembled.origin == Thing
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -588,7 +588,7 @@ describe "Type":
         assert disassembled.optional_outer is False
         assert disassembled.optional_inner is True
         assert disassembled.extracted == Thing
-        assert disassembled.origin_or_type == Thing
+        assert disassembled.origin == Thing
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -635,7 +635,7 @@ describe "Type":
         assert disassembled.optional_outer is False
         assert disassembled.optional_inner is True
         assert disassembled.extracted == Thing[int, str]
-        assert disassembled.origin_or_type == Thing
+        assert disassembled.origin == Thing
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
@@ -685,7 +685,7 @@ describe "Type":
         assert disassembled.optional_outer is False
         assert disassembled.optional_inner is True
         assert disassembled.extracted == Thing
-        assert disassembled.origin_or_type == Thing
+        assert disassembled.origin == Thing
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )

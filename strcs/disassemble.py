@@ -347,16 +347,19 @@ class Type(tp.Generic[T]):
         return self.optional_inner or self.optional_outer
 
     @memoized_property
-    def origin(self) -> object | None:
-        return tp.get_origin(self.extracted)
+    def origin(self) -> type:
+        origin = tp.get_origin(self.extracted)
+        if isinstance(origin, type):
+            return origin
+
+        if isinstance(self.extracted, type):
+            return self.extracted
+
+        return type(self.extracted)
 
     @memoized_property
-    def origin_or_type(self) -> object:
-        orig = tp.get_origin(self.extracted)
-        if not isinstance(orig, type) and orig not in (types.UnionType, tp.Union):
-            return self.extracted
-        else:
-            return orig
+    def is_union(self) -> bool:
+        return tp.get_origin(self.extracted) in union_types
 
     @memoized_property
     def without_optional(self) -> object:
@@ -371,7 +374,7 @@ class Type(tp.Generic[T]):
         typevar_map: dict[tp.TypeVar, type] = {}
         typevars: list[tp.TypeVar] = []
 
-        for base in getattr(self.origin_or_type, "__orig_bases__", ()):
+        for base in getattr(self.origin, "__orig_bases__", ()):
             typevars.extend(tp.get_args(base))
 
         for tv, ag in zip(typevars, tp.get_args(self.extracted)):
@@ -385,7 +388,10 @@ class Type(tp.Generic[T]):
 
     @memoized_property
     def fields_from(self) -> object:
-        origin = self.origin_or_type
+        if self.is_union:
+            return self.extracted
+
+        origin = self.origin
         if (
             not isinstance(self.extracted, type)
             or (not attrs_has(self.extracted) and not is_dataclass(self.extracted))
@@ -588,20 +594,20 @@ class Type(tp.Generic[T]):
         origin = tp.get_origin(extracted)
 
         class Meta(InstanceCheck.Meta):
-            typ = disassembled.origin_or_type
+            typ = disassembled.origin
             original = disassembled.original
             optional = disassembled.optional
             without_optional = disassembled.without_optional
             without_annotation = disassembled.without_annotation
 
-        if origin is not None and origin in union_types:
+        if origin in union_types:
             check_against = tuple(
                 self.disassemble(object, a).checkable for a in tp.get_args(extracted)
             )
             Meta.typ = extracted
             Checker = self._checker_union(extracted, origin, check_against, Meta)
         else:
-            Checker = self._checker_single(extracted, origin, disassembled.origin_or_type, Meta)
+            Checker = self._checker_single(extracted, origin, disassembled.origin, Meta)
 
         if hasattr(extracted, "__args__"):
             Checker.__args__ = extracted.__args__  # type: ignore
