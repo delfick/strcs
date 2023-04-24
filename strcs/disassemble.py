@@ -248,6 +248,8 @@ class InstanceCheck(abc.ABC):
         typ: object
         original: object
         optional: bool
+        union_types: tuple[type["InstanceCheck"]] | None
+        disassembled: "Type"
         without_optional: object
         without_annotation: object
 
@@ -603,13 +605,17 @@ class Type(tp.Generic[T]):
             without_optional = disassembled.without_optional
             without_annotation = disassembled.without_annotation
 
+        Meta.disassembled = self
+
         if origin in union_types:
             check_against = tuple(
                 self.disassemble(object, a).checkable for a in tp.get_args(extracted)
             )
             Meta.typ = extracted
+            Meta.union_types = tp.cast(tuple[type[InstanceCheck]], check_against)
             Checker = self._checker_union(extracted, origin, check_against, Meta)
         else:
+            Meta.union_types = None
             Checker = self._checker_single(extracted, origin, disassembled.origin, Meta)
 
         if hasattr(extracted, "__args__"):
@@ -634,7 +640,7 @@ class Type(tp.Generic[T]):
     ) -> type[InstanceCheck]:
         disassembled = self
 
-        reprstr = repr(functools.reduce(operator.or_, check_against))
+        reprstr = " | ".join(repr(c) for c in check_against)
 
         class CheckerMeta(InstanceCheckMeta):
             def __repr__(self) -> str:
