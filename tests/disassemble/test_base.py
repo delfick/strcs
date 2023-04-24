@@ -32,6 +32,55 @@ T = tp.TypeVar("T")
 U = tp.TypeVar("U")
 
 describe "Type":
+    it "works on None", type_cache: strcs.TypeCache:
+        provided = None
+        disassembled = Type.create(provided, expect=type(None), cache=type_cache)
+        assert disassembled.original is provided
+        assert disassembled.optional is False
+        assert disassembled.extracted is None
+        assert disassembled.origin == type(None)
+        nun = None
+        assert disassembled.checkable == nun and isinstance(
+            disassembled.checkable, InstanceCheckMeta
+        )
+        assert disassembled.annotation is None
+        assert disassembled.annotated is None
+        assert not disassembled.is_annotated
+        assert disassembled.without_annotation is None
+        assert disassembled.without_optional is None
+        assert disassembled.fields == []
+        assert disassembled.fields_from == type(None)
+        assert disassembled.fields_getter is None
+        assert not attrs_has(disassembled.checkable)
+        assert not is_dataclass(disassembled.checkable)
+        assert disassembled.is_type_for(None)
+        assert not disassembled.is_type_for(1)
+        assert disassembled.is_equivalent_type_for(None)
+
+    it "doesn't overcome python limitations with annotating None and thinks we annotated type of None", type_cache: strcs.TypeCache:
+        provided = tp.Annotated[None, 1]
+        disassembled = Type.create(provided, expect=type(None), cache=type_cache)
+        assert disassembled.original is provided
+        assert disassembled.optional is False
+        assert disassembled.extracted == type(None)
+        assert disassembled.origin == type(None)
+        assert disassembled.checkable == type(None) and isinstance(
+            disassembled.checkable, InstanceCheckMeta
+        )
+        assert disassembled.annotation == 1
+        assert disassembled.annotated is provided
+        assert disassembled.is_annotated
+        assert disassembled.without_annotation == type(None)
+        assert disassembled.without_optional == provided
+        assert disassembled.fields == []
+        assert disassembled.fields_from == type(None)
+        assert disassembled.fields_getter is fields_from_class
+        assert not attrs_has(disassembled.checkable)
+        assert not is_dataclass(disassembled.checkable)
+        assert disassembled.is_type_for(None)
+        assert not disassembled.is_type_for(1)
+        assert disassembled.is_equivalent_type_for(None)
+
     it "works on simple type", type_cache: strcs.TypeCache:
         provided = int
         disassembled = Type.create(provided, expect=int, cache=type_cache)
@@ -1289,3 +1338,89 @@ describe "annotations":
             ann.adjusted_creator(creator1, reg, Type.create(int, cache=type_cache), type_cache)
             == creator2
         )
+
+describe "equality":
+    it "matches any Type against Type.Missing", type_cache: strcs.TypeCache:
+        typ = strcs.Type.create(int, expect=object, cache=type_cache)
+        assert typ == strcs.Type.Missing
+
+        typ2 = strcs.Type.create(tp.Annotated[None, 1], expect=object, cache=type_cache)
+        assert typ2 == strcs.Type.Missing
+
+        class Thing:
+            pass
+
+        typ3 = strcs.Type.create(Thing | None, expect=object, cache=type_cache)
+        assert typ3 == strcs.Type.Missing
+
+    it "matches against checkable instances and original type", type_cache: strcs.TypeCache:
+        typ = strcs.Type.create(int, expect=object, cache=type_cache)
+        assert typ == int
+        assert typ == typ.checkable
+
+        typ2 = strcs.Type.create(int, expect=object, cache=type_cache)
+        assert typ2 == int
+        assert typ2 == typ.checkable
+
+        class Thing:
+            pass
+
+        typ3 = strcs.Type.create(tp.Annotated[Thing, 1], expect=object, cache=type_cache)
+        assert typ3 == Thing
+        assert typ3 == typ3.checkable
+        assert typ3 != typ2.checkable
+        assert typ2 != typ3.checkable
+
+    it "matches against optionals", type_cache: strcs.TypeCache:
+        typ = strcs.Type.create(int, expect=object, cache=type_cache)
+        nun = None
+        assert typ != nun
+        assert typ == int
+        assert typ == typ.checkable
+
+        typ2 = strcs.Type.create(int | None, expect=object, cache=type_cache)
+        assert typ2 == nun
+        assert typ2 == int
+        assert typ2 == typ.checkable
+
+        class Thing:
+            pass
+
+        typ3 = strcs.Type.create(tp.Annotated[Thing | None, 1], expect=object, cache=type_cache)
+        assert typ3 == Thing
+        assert typ3 == nun
+        assert typ3 == typ3.checkable
+        assert typ3 != typ2.checkable
+        assert typ2 != typ3.checkable
+
+    it "matches against unions and partial unions", type_cache: strcs.TypeCache:
+        typ = strcs.Type.create(int, expect=object, cache=type_cache)
+        nun = None
+        assert typ != nun
+        assert typ == int
+        assert typ != str
+        assert typ == typ.checkable
+
+        typ2 = strcs.Type.create(int | bool | str | None, expect=object, cache=type_cache)
+        assert typ2 == nun
+        assert typ2 == int
+        assert typ2 == str
+        assert typ2 == int | str
+        assert typ2 == bool | str
+        assert typ2 == int | None
+        assert typ2 == typ.checkable
+
+        class Thing:
+            pass
+
+        typ3 = strcs.Type.create(
+            tp.Annotated[Thing | bool | None, 1], expect=object, cache=type_cache
+        )
+        assert typ3 == Thing
+        assert typ3 == nun
+        assert typ3 != str
+        assert typ3 == bool
+        assert typ3 == typ3.checkable
+        # Typ2 has things not in this union
+        assert typ3 != typ2.checkable
+        assert typ2 != typ3.checkable

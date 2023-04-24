@@ -256,6 +256,9 @@ class InstanceCheck(abc.ABC):
 
 @define
 class Type(tp.Generic[T]):
+    class Missing:
+        pass
+
     cache: "TypeCache" = attrs.field(repr=False)
 
     _memoized_cache: dict[str, object] = attrs.field(
@@ -319,10 +322,26 @@ class Type(tp.Generic[T]):
         return repr(self.original)
 
     def __eq__(self, o: object) -> tp.TypeGuard["Type"]:
-        if not isinstance(o, Type):
-            return False
+        if o is Type.Missing:
+            return True
 
-        return o.original == self.original
+        if isinstance(o, InstanceCheck) and hasattr(o, "Meta"):
+            o = o.Meta.disassembled
+
+        if isinstance(o, Type):
+            o = o.original
+
+        if (
+            o == self.original
+            or (self.is_annotated and o == self.extracted)
+            or (self.optional and o is None)
+        ):
+            return True
+
+        if type(o) in union_types:
+            return len(set(tp.get_args(o)) - set(self.relevant_types)) == 0
+        else:
+            return o in self.relevant_types
 
     def disassemble(self, expect: type[U], typ: object) -> "Type[U]":
         return Type.create(typ, expect=expect, cache=self.cache)
@@ -370,6 +389,19 @@ class Type(tp.Generic[T]):
     @memoized_property
     def without_annotation(self) -> object:
         return self.reassemble(self.extracted, with_annotation=False)
+
+    @memoized_property
+    def relevant_types(self) -> tp.Sequence[type]:
+        relevant: list[type] = []
+        if self.optional:
+            relevant.append(type(None))
+
+        if self.is_union:
+            relevant.extend(tp.get_args(self.extracted))
+        elif isinstance(self.extracted, type):
+            relevant.append(self.extracted)
+
+        return relevant
 
     @memoized_property
     def generics(self) -> tuple[dict[tp.TypeVar, type], list[tp.TypeVar]]:
@@ -616,7 +648,10 @@ class Type(tp.Generic[T]):
             Checker = self._checker_union(extracted, origin, check_against, Meta)
         else:
             Meta.union_types = None
-            Checker = self._checker_single(extracted, origin, disassembled.origin, Meta)
+            check_against_single: type | None = disassembled.origin
+            if extracted is None:
+                check_against_single = None
+            Checker = self._checker_single(extracted, origin, check_against_single, Meta)
 
         if hasattr(extracted, "__args__"):
             Checker.__args__ = extracted.__args__  # type: ignore
@@ -689,7 +724,7 @@ class Type(tp.Generic[T]):
         self,
         extracted: object,
         origin: object,
-        check_against: object,
+        check_against: object | None,
         M: type[InstanceCheck.Meta],
     ) -> type[InstanceCheck]:
         disassembled = self
@@ -699,6 +734,9 @@ class Type(tp.Generic[T]):
                 return repr(check_against)
 
             def __instancecheck__(self, obj: object) -> bool:
+                if check_against is None:
+                    return obj is None
+
                 return (obj is None and disassembled.optional) or isinstance(
                     obj, tp.cast(type, check_against)
                 )
