@@ -76,10 +76,11 @@ def create_container(
         return None
 
     (expected,) = want.find_generic_subtype(Item)
+    assert expected is not None
     if "category" not in item:
         return None
     using = categories.get(item["category"])
-    assert using is expected
+    assert expected.is_equivalent_type_for(using), f"Expected {using} to be an {expected}"
 
     item["item"] = _register.create(using, item.get("item", strcs.NotSpecified))
     return item
@@ -176,8 +177,9 @@ describe "Making the projects":
         with pytest.raises(strcs.errors.UnableToConvert) as e:
             reg.create(Container[ItemOne], {"category": "two"})
 
-        assert str(e.value.error) == (
-            "assert <class 'tests.scenarios.test_scenario1.ItemTwo'> is <class 'tests.scenarios.test_scenario1.ItemOne'>"
+        assert (
+            str(e.value.error).split("\n")[0]
+            == "Expected <class 'tests.scenarios.test_scenario1.ItemTwo'> to be an <class 'tests.scenarios.test_scenario1.ItemOne'>"
         )
 
     it "can complain about not asking for a subtype":

@@ -444,7 +444,7 @@ class Type(tp.Generic[T]):
                 res.append(field.with_replaced_type(self.disassemble(field.type, field.type)))
         return res
 
-    def find_generic_subtype(self, *want: type) -> list[type]:
+    def find_generic_subtype(self, *want: type) -> list["Type"]:
         result: list[type] = []
         typevar_map, typevars = self.generics
 
@@ -464,7 +464,7 @@ class Type(tp.Generic[T]):
 
             result.append(typ)
 
-        return result
+        return [self.disassemble(object, typ) for typ in result]
 
     def is_type_for(self, instance: object) -> tp.TypeGuard[T]:
         return isinstance(instance, self.checkable)
@@ -473,7 +473,10 @@ class Type(tp.Generic[T]):
         if self.is_type_for(value):
             return True
 
-        subclass_of = self.disassemble(object, type(value)).checkable
+        if isinstance(value, type):
+            subclass_of = value
+        else:
+            subclass_of = self.disassemble(object, type(value)).checkable
         return issubclass(subclass_of, self.checkable)
 
     @memoized_property
