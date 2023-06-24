@@ -13,10 +13,12 @@ from .hints import resolve_types
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
 from .register import CreateRegister, Creator, Registerer
+from .type_tree import MRO
 from .version import VERSION
 
 __all__ = [
     "Ann",
+    "MRO",
     "Type",
     "Meta",
     "Field",

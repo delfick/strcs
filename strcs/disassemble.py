@@ -26,6 +26,7 @@ from .not_specified import NotSpecified, NotSpecifiedMeta
 if tp.TYPE_CHECKING:
     from .annotations import Ann
     from .decorator import ConvertFunction
+    from .type_tree import MRO
 
 
 T = tp.TypeVar("T")
@@ -366,6 +367,12 @@ class Type(tp.Generic[T]):
     @property
     def optional(self) -> bool:
         return self.optional_inner or self.optional_outer
+
+    @memoized_property
+    def mro(self) -> "MRO":
+        from .type_tree import MRO
+
+        return MRO.create(self.extracted, type_cache=self.cache)
 
     @memoized_property
     def origin(self) -> type:
