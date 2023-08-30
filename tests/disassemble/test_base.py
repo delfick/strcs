@@ -3,6 +3,7 @@ import dataclasses
 import inspect
 import types
 import typing as tp
+from collections import OrderedDict
 from dataclasses import dataclass, is_dataclass
 
 import attrs
@@ -117,6 +118,7 @@ describe "Type":
         )
         assert disassembled.annotation is None
         assert disassembled.annotated is None
+        assert disassembled.mro.all_vars == ()
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == int | str
         assert disassembled.without_optional == int | str
@@ -307,6 +309,7 @@ describe "Type":
         assert disassembled.annotation is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
+        assert disassembled.mro.all_vars == (int,)
         assert disassembled.without_annotation == list[int]
         assert disassembled.without_optional == list[int]
         assert disassembled.fields == []
@@ -333,6 +336,7 @@ describe "Type":
         assert disassembled.annotation is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
+        assert disassembled.mro.all_vars == (int,)
         assert disassembled.without_annotation == list[int] | None
         assert disassembled.without_optional == list[int]
         assert disassembled.fields == []
@@ -357,6 +361,7 @@ describe "Type":
         assert disassembled.annotation is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
+        assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int]
         assert disassembled.without_optional == dict[str, int]
         assert disassembled.fields == []
@@ -383,6 +388,7 @@ describe "Type":
         assert disassembled.annotation is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
+        assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int] | None
         assert disassembled.without_optional == dict[str, int]
         assert disassembled.fields == []
@@ -410,6 +416,7 @@ describe "Type":
         assert disassembled.annotation is anno
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
+        assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int] | None
         assert disassembled.without_optional == tp.Annotated[dict[str, int], anno]
         assert disassembled.fields == []
@@ -437,6 +444,7 @@ describe "Type":
         assert disassembled.annotation is anno
         assert disassembled.is_annotated
         assert disassembled.annotated is tp.Annotated[dict[str, int], anno]
+        assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int] | None
         assert disassembled.without_optional == tp.Annotated[dict[str, int], anno]
         assert disassembled.fields == []
@@ -576,6 +584,92 @@ describe "Type":
             Thing(one=1, two="two")
         )
 
+    it "works on inherited generic container", type_cache: strcs.TypeCache:
+
+        class D(dict[str, int]):
+            pass
+
+        provided = D
+        disassembled = Type.create(provided, expect=D, cache=type_cache)
+        assert disassembled.original is provided
+        assert disassembled.optional is False
+        assert disassembled.extracted == D
+        assert disassembled.origin == D
+        assert disassembled.checkable == D and isinstance(disassembled.checkable, InstanceCheckMeta)
+        assert disassembled.annotation is None
+        assert not disassembled.is_annotated
+        assert disassembled.annotated is None
+        assert disassembled.mro.all_vars == (str, int)
+        assert disassembled.without_annotation == D
+        assert disassembled.without_optional == D
+        assert disassembled.fields == []
+        assert disassembled.fields_from == D
+        assert disassembled.fields_getter == fields_from_class
+        assert not attrs_has(disassembled.checkable)
+        assert not is_dataclass(disassembled.checkable)
+        assert disassembled.is_type_for(D())
+        assert not disassembled.is_type_for(None)
+        assert disassembled.is_equivalent_type_for(D())
+
+    it "works on class with complicated hierarchy", type_cache: strcs.TypeCache:
+
+        class Thing(tp.Generic[T, U]):
+            def __init__(self, one: int, two: str):
+                self.one = one
+                self.two = two
+
+        class Stuff(tp.Generic[T], Thing[int, T]):
+            def __init__(self, one: int, two: str, three: bool):
+                super().__init__(one, two)
+                self.three = three
+
+        class Blah(tp.Generic[U], Stuff[str]):
+            pass
+
+        class Meh(Blah[bool]):
+            pass
+
+        class Tree(Meh):
+            def __init__(self, four: str):
+                super().__init__(1, "two", True)
+                self.four = four
+
+        provided = Tree
+        disassembled = Type.create(provided, expect=Tree, cache=type_cache)
+        assert disassembled.original is provided
+        assert disassembled.optional is False
+        assert disassembled.extracted == Tree
+        assert disassembled.origin == Tree
+        assert disassembled.checkable == Tree and isinstance(
+            disassembled.checkable, InstanceCheckMeta
+        )
+        assert disassembled.annotation is None
+        assert not disassembled.is_annotated
+        assert disassembled.annotated is None
+        assert disassembled.mro.typevars == OrderedDict(
+            [
+                ((Blah, U), bool),
+                ((Stuff, T), str),
+                ((Thing, T), int),
+                ((Thing, U), strcs.MRO.Referal(owner=Stuff, typevar=T, value=str)),
+            ]
+        )
+        assert disassembled.mro.all_vars == (bool, int, str)
+
+        assert disassembled.without_annotation == Tree
+        assert disassembled.without_optional == Tree
+        # The class has one, two, three, four on it, but only four is part of initialisation
+        assert disassembled.fields == [
+            Field(name="four", owner=Tree, type=str),
+        ]
+        assert disassembled.fields_from == Tree
+        assert disassembled.fields_getter == fields_from_class
+        assert not attrs_has(disassembled.checkable)
+        assert not is_dataclass(disassembled.checkable)
+        assert disassembled.is_type_for(Tree(four="asdf"))
+        assert not disassembled.is_type_for(None)
+        assert disassembled.is_equivalent_type_for(Tree(four="asdf"))
+
     it "works on an annotated class", type_cache: strcs.TypeCache:
 
         @define
@@ -691,9 +785,7 @@ describe "Type":
         assert disassembled.annotation is anno
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
-        typevar_map, typevars = disassembled.generics
-        assert typevars == [T, U]
-        assert typevar_map == {T: int, U: str}
+        assert disassembled.mro.all_vars == (int, str)
         assert disassembled.without_annotation == Thing[int, str] | None
         assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
         assert disassembled.fields == [
@@ -741,6 +833,7 @@ describe "Type":
         assert disassembled.annotation is anno
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
+        assert disassembled.mro.all_vars == (strcs.Type.Missing, strcs.Type.Missing)
         assert disassembled.without_annotation == Thing | None
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.fields == [

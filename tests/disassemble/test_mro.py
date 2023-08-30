@@ -442,3 +442,40 @@ describe "MRO":
                 ((One, T), MRO.Referal(owner=Two, typevar=U, value=str | int)),
             ]
         )
+
+    it "can get vars from container", type_cache: strcs.TypeCache:
+
+        start = dict[int, str]
+
+        mro = MRO.create(start, type_cache=type_cache)
+        assert mro.start is start
+        assert mro.args == (int, str)
+        assert mro.origin == dict
+        assert mro.mro == (dict, object)
+        assert mro.bases == [object]
+        assert mro.typevars == OrderedDict(
+            [
+                ((dict, 1), int),
+                ((dict, 2), str),
+            ]
+        )
+        assert mro.all_vars == (int, str)
+
+    it "can get vars when inheriting from container", type_cache: strcs.TypeCache:
+
+        class One(dict[int, str]):
+            pass
+
+        mro = MRO.create(One, type_cache=type_cache)
+        assert mro.start is One
+        assert mro.args == ()
+        assert mro.origin == One
+        assert mro.mro == (One, dict, object)
+        assert mro.bases == [dict[int, str]]
+        assert mro.typevars == OrderedDict(
+            [
+                ((dict, 1), int),
+                ((dict, 2), str),
+            ]
+        )
+        assert mro.all_vars == (int, str)

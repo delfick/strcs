@@ -4,7 +4,7 @@ import typing as tp
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 
-from .disassemble import Type, TypeCache
+from .disassemble import Type, TypeCache, union_types
 from .memoized_property import memoized_property
 
 
@@ -22,6 +22,9 @@ class MRO:
 
     Using this class it is possible to figure out the MRO of the underlying classes and
     the typevars for this object and all objects in it's hierarchy.
+
+    As well as match the class against fields and determine closest type match for
+    typevars.
     """
 
     _memoized_cache: dict[str, object]
@@ -181,3 +184,35 @@ class MRO:
                 val.value = value
 
         return values
+
+    @memoized_property
+    def all_vars(self) -> tuple[Type | type[Type.Missing], ...]:
+        if self.origin in union_types:
+            return ()
+
+        result: list[Type | type[Type.Missing]] = []
+        typevars = list(self.typevars.items())
+        if self.args and not typevars and self.origin not in union_types:
+            return tuple(Type.create(arg, cache=self.type_cache) for arg in self.args)
+
+        found: set[tuple[type, tp.TypeVar | int]] = set()
+
+        for key, value in reversed(typevars):
+            if isinstance(value, self.Referal):
+                key = (value.owner, value.typevar)
+                value = value.value
+
+            if key in found:
+                continue
+
+            found.add(key)
+
+            typed: Type | type[Type.Missing]
+            if value is not Type.Missing:
+                typed = Type.create(value, cache=self.type_cache)
+            else:
+                typed = Type.Missing
+
+            result.insert(0, typed)
+
+        return tuple(result)
