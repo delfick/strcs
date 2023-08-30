@@ -49,6 +49,7 @@ describe "Type":
         assert not disassembled.is_annotated
         assert disassembled.without_annotation is None
         assert disassembled.without_optional is None
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == type(None)
         assert disassembled.fields_getter is None
@@ -57,6 +58,8 @@ describe "Type":
         assert disassembled.is_type_for(None)
         assert not disassembled.is_type_for(1)
         assert disassembled.is_equivalent_type_for(None)
+
+        assert disassembled.for_display() == "None"
 
     it "doesn't overcome python limitations with annotating None and thinks we annotated type of None", type_cache: strcs.TypeCache:
         provided = tp.Annotated[None, 1]
@@ -73,6 +76,7 @@ describe "Type":
         assert disassembled.is_annotated
         assert disassembled.without_annotation == type(None)
         assert disassembled.without_optional == provided
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == type(None)
         assert disassembled.fields_getter is fields_from_class
@@ -81,6 +85,8 @@ describe "Type":
         assert disassembled.is_type_for(None)
         assert not disassembled.is_type_for(1)
         assert disassembled.is_equivalent_type_for(None)
+
+        assert disassembled.for_display() == "Annotated[NoneType, 1]"
 
     it "works on simple type", type_cache: strcs.TypeCache:
         provided = int
@@ -97,6 +103,7 @@ describe "Type":
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == int
         assert disassembled.without_optional == int
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == int
         assert disassembled.fields_getter is None
@@ -105,6 +112,8 @@ describe "Type":
         assert disassembled.is_type_for(1)
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
+
+        assert disassembled.for_display() == "int"
 
     it "works on a union", type_cache: strcs.TypeCache:
         provided = int | str
@@ -122,6 +131,7 @@ describe "Type":
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == int | str
         assert disassembled.without_optional == int | str
+        assert disassembled.nonoptional_union_types == (str, int)
         assert disassembled.fields == []
         assert disassembled.fields_from == int | str
         assert disassembled.fields_getter is None
@@ -133,8 +143,12 @@ describe "Type":
         assert disassembled.is_equivalent_type_for(3)
         assert disassembled.is_equivalent_type_for("asdf")
 
+        assert disassembled.for_display() == "str | int"
+
     it "works on a complicated union", type_cache: strcs.TypeCache:
-        provided = tp.Union[tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, "hello"]]
+        provided = tp.Union[
+            tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
+        ]
         disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is False
@@ -153,6 +167,10 @@ describe "Type":
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == provided
         assert disassembled.without_optional == provided
+        assert disassembled.nonoptional_union_types == (
+            tp.Annotated[list[int], "str"],
+            tp.Annotated[int | str | None, '"hello'],
+        )
         assert disassembled.fields == []
         assert disassembled.fields_from == provided
         assert disassembled.fields_getter is None
@@ -165,6 +183,11 @@ describe "Type":
         assert disassembled.is_equivalent_type_for(3)
         assert disassembled.is_equivalent_type_for("asdf")
         assert disassembled.is_equivalent_type_for([1, 2, 3])
+
+        assert (
+            disassembled.for_display()
+            == 'Annotated[list[int], "str"] | Annotated[str | int | None, "\\"hello"]'
+        )
 
     it "works on a typing union", type_cache: strcs.TypeCache:
         provided = tp.Union[int, str]
@@ -181,6 +204,7 @@ describe "Type":
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == int | str
         assert disassembled.without_optional == int | str
+        assert disassembled.nonoptional_union_types == (str, int)
         assert disassembled.fields == []
         assert disassembled.fields_from == int | str
         assert disassembled.fields_getter is None
@@ -191,6 +215,8 @@ describe "Type":
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
         assert disassembled.is_equivalent_type_for("asdf")
+
+        assert disassembled.for_display() == "str | int"
 
     it "works on an optional union", type_cache: strcs.TypeCache:
         provided = int | str | None
@@ -207,6 +233,7 @@ describe "Type":
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == int | str | None
         assert disassembled.without_optional == int | str
+        assert disassembled.nonoptional_union_types == (str, int)
         assert disassembled.fields == []
         assert disassembled.fields_from == int | str
         assert disassembled.fields_getter is None
@@ -217,6 +244,8 @@ describe "Type":
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
         assert disassembled.is_equivalent_type_for("asdf")
+
+        assert disassembled.for_display() == "str | int | None"
 
     it "works on optional simple type", type_cache: strcs.TypeCache:
         provided = int | None
@@ -235,6 +264,7 @@ describe "Type":
         assert disassembled.annotated is None
         assert disassembled.without_annotation == int | None
         assert disassembled.without_optional == int
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == int
         assert disassembled.fields_getter is None
@@ -243,6 +273,8 @@ describe "Type":
         assert disassembled.is_type_for(1)
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
+
+        assert disassembled.for_display() == "int | None"
 
     it "works on annotated simple type", type_cache: strcs.TypeCache:
         anno = "hello"
@@ -260,6 +292,7 @@ describe "Type":
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == int
         assert disassembled.without_optional == tp.Annotated[int, anno]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == int
         assert disassembled.fields_getter is None
@@ -268,6 +301,8 @@ describe "Type":
         assert disassembled.is_type_for(1)
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
+
+        assert disassembled.for_display() == 'Annotated[int, "hello"]'
 
     it "works on optional annotated simple type", type_cache: strcs.TypeCache:
         anno = "hello"
@@ -287,6 +322,7 @@ describe "Type":
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == int | None
         assert disassembled.without_optional == tp.Annotated[int, anno]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == int
         assert disassembled.fields_getter is None
@@ -295,6 +331,8 @@ describe "Type":
         assert disassembled.is_type_for(1)
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
+
+        assert disassembled.for_display() == 'Annotated[int | None, "hello"]'
 
     it "works on builtin container to simple type", type_cache: strcs.TypeCache:
         provided = list[int]
@@ -312,6 +350,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (int,)
         assert disassembled.without_annotation == list[int]
         assert disassembled.without_optional == list[int]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == list
         assert disassembled.fields_getter is None
@@ -320,6 +359,8 @@ describe "Type":
         assert disassembled.is_type_for([])
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for([1])
+
+        assert disassembled.for_display() == "list[int]"
 
     it "works on optional builtin container to simple type", type_cache: strcs.TypeCache:
         provided = list[int] | None
@@ -339,6 +380,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (int,)
         assert disassembled.without_annotation == list[int] | None
         assert disassembled.without_optional == list[int]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == list
         assert disassembled.fields_getter is None
@@ -347,6 +389,8 @@ describe "Type":
         assert disassembled.is_type_for([])
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for([12])
+
+        assert disassembled.for_display() == "list[int] | None"
 
     it "works on builtin container to multiple simple types", type_cache: strcs.TypeCache:
         provided = dict[str, int]
@@ -364,6 +408,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int]
         assert disassembled.without_optional == dict[str, int]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
         assert disassembled.fields_getter is None
@@ -372,6 +417,8 @@ describe "Type":
         assert disassembled.is_type_for({1: 2})
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for({3: 4})
+
+        assert disassembled.for_display() == "dict[str, int]"
 
     it "works on optional builtin container to multiple simple types", type_cache: strcs.TypeCache:
         provided = tp.Optional[dict[str, int]]
@@ -391,6 +438,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int] | None
         assert disassembled.without_optional == dict[str, int]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
         assert disassembled.fields_getter is None
@@ -399,6 +447,8 @@ describe "Type":
         assert disassembled.is_type_for({})
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for({})
+
+        assert disassembled.for_display() == "dict[str, int] | None"
 
     it "works on annotated optional builtin container to multiple simple types", type_cache: strcs.TypeCache:
         anno = "stuff"
@@ -419,6 +469,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int] | None
         assert disassembled.without_optional == tp.Annotated[dict[str, int], anno]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
         assert disassembled.fields_getter is None
@@ -427,6 +478,8 @@ describe "Type":
         assert disassembled.is_type_for({})
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for({})
+
+        assert disassembled.for_display() == 'Annotated[dict[str, int] | None, "stuff"]'
 
     it "works on optional annotated builtin container to multiple simple types", type_cache: strcs.TypeCache:
         anno = "stuff"
@@ -447,6 +500,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int] | None
         assert disassembled.without_optional == tp.Annotated[dict[str, int], anno]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
         assert disassembled.fields_getter is None
@@ -455,6 +509,8 @@ describe "Type":
         assert disassembled.is_type_for({})
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for({})
+
+        assert disassembled.for_display() == 'Annotated[dict[str, int], "stuff"] | None'
 
     it "works on an attrs class", type_cache: strcs.TypeCache:
 
@@ -477,6 +533,7 @@ describe "Type":
         assert disassembled.annotated is None
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, type=int),
             Field(name="two", owner=Thing, type=str),
@@ -499,6 +556,8 @@ describe "Type":
             Thing(one=1, two="two")
         )
 
+        assert disassembled.for_display() == "Thing"
+
     it "works on an dataclasses class", type_cache: strcs.TypeCache:
 
         @dataclass
@@ -520,6 +579,7 @@ describe "Type":
         assert disassembled.annotated is None
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, type=int),
             Field(name="two", owner=Thing, type=str),
@@ -542,6 +602,8 @@ describe "Type":
             Thing(one=1, two="two")
         )
 
+        assert disassembled.for_display() == "Thing"
+
     it "works on a normal class", type_cache: strcs.TypeCache:
 
         class Thing:
@@ -563,6 +625,7 @@ describe "Type":
         assert disassembled.annotated is None
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == Thing
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, type=int),
             Field(name="two", owner=Thing, type=str),
@@ -584,6 +647,8 @@ describe "Type":
             Thing(one=1, two="two")
         )
 
+        assert disassembled.for_display() == "Thing"
+
     it "works on inherited generic container", type_cache: strcs.TypeCache:
 
         class D(dict[str, int]):
@@ -602,6 +667,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == D
         assert disassembled.without_optional == D
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == D
         assert disassembled.fields_getter == fields_from_class
@@ -610,6 +676,8 @@ describe "Type":
         assert disassembled.is_type_for(D())
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(D())
+
+        assert disassembled.for_display() == "D"
 
     it "works on class with complicated hierarchy", type_cache: strcs.TypeCache:
 
@@ -658,6 +726,7 @@ describe "Type":
 
         assert disassembled.without_annotation == Tree
         assert disassembled.without_optional == Tree
+        assert disassembled.nonoptional_union_types == ()
         # The class has one, two, three, four on it, but only four is part of initialisation
         assert disassembled.fields == [
             Field(name="four", owner=Tree, type=str),
@@ -669,6 +738,8 @@ describe "Type":
         assert disassembled.is_type_for(Tree(four="asdf"))
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Tree(four="asdf"))
+
+        assert disassembled.for_display() == "Tree"
 
     it "works on an annotated class", type_cache: strcs.TypeCache:
 
@@ -693,6 +764,7 @@ describe "Type":
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == Thing
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, type=int),
             Field(name="two", owner=Thing, type=str),
@@ -714,6 +786,8 @@ describe "Type":
         assert not Type.create(Child, cache=type_cache).is_equivalent_type_for(
             Thing(one=1, two="two")
         )
+
+        assert disassembled.for_display() == 'Annotated[Thing, "blah"]'
 
     it "works on an optional annotated class", type_cache: strcs.TypeCache:
 
@@ -740,6 +814,7 @@ describe "Type":
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == Thing | None
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, type=int),
             Field(name="two", owner=Thing, type=str),
@@ -761,6 +836,8 @@ describe "Type":
         assert not Type.create(Child, cache=type_cache).is_equivalent_type_for(
             Thing(one=1, two="two")
         )
+
+        assert disassembled.for_display() == 'Annotated[Thing | None, "blah"]'
 
     it "works on an optional annotated generic class", type_cache: strcs.TypeCache:
 
@@ -788,6 +865,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (int, str)
         assert disassembled.without_annotation == Thing[int, str] | None
         assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, type=int),
             Field(name="two", owner=Thing, type=str),
@@ -809,6 +887,8 @@ describe "Type":
         assert not Type.create(Child, cache=type_cache).is_equivalent_type_for(
             Thing(one=1, two="two")
         )
+
+        assert disassembled.for_display() == 'Annotated[Thing[int, str] | None, "blah"]'
 
     it "works on an optional annotated generic class without concrete types", type_cache: strcs.TypeCache:
 
@@ -836,6 +916,7 @@ describe "Type":
         assert disassembled.mro.all_vars == (strcs.Type.Missing, strcs.Type.Missing)
         assert disassembled.without_annotation == Thing | None
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
+        assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, type=object),
             Field(name="two", owner=Thing, type=object),
@@ -857,6 +938,59 @@ describe "Type":
         assert not Type.create(Child, cache=type_cache).is_equivalent_type_for(
             Thing(one=1, two="two")
         )
+
+        assert disassembled.for_display() == 'Annotated[Thing[~T, ~U] | None, "blah"]'
+
+    it "works on an optional annotated generic class with concrete types", type_cache: strcs.TypeCache:
+
+        @define
+        class Thing(tp.Generic[T, U]):
+            one: T
+            two: U
+
+        anno = "blah"
+
+        provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
+        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        assert disassembled.original is provided
+        assert disassembled.optional is True
+        assert disassembled.optional_outer is False
+        assert disassembled.optional_inner is True
+        assert disassembled.extracted == Thing[int, str]
+        assert disassembled.origin == Thing
+        assert disassembled.checkable == Thing and isinstance(
+            disassembled.checkable, InstanceCheckMeta
+        )
+        assert disassembled.annotation is anno
+        assert disassembled.is_annotated
+        assert disassembled.annotated is provided
+        assert disassembled.mro.all_vars == (strcs.Type.Missing, strcs.Type.Missing)
+        assert disassembled.without_annotation == Thing[int, str] | None
+        assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
+        assert disassembled.nonoptional_union_types == ()
+        assert disassembled.fields == [
+            Field(name="one", owner=Thing, type=int),
+            Field(name="two", owner=Thing, type=str),
+        ]
+        assert disassembled.fields_from == Thing
+        assert disassembled.fields_getter == fields_from_attrs
+        assert attrs_has(disassembled.checkable)
+        assert not is_dataclass(disassembled.checkable)
+        assert disassembled.is_type_for(Thing(one=1, two="two"))
+        assert disassembled.is_type_for(None)
+        assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
+
+        @define
+        class Child(Thing):
+            pass
+
+        assert disassembled.is_type_for(Child(one=1, two="two"))
+        assert disassembled.is_equivalent_type_for(Child(one=1, two="two"))
+        assert not Type.create(Child, cache=type_cache).is_equivalent_type_for(
+            Thing(one=1, two="two")
+        )
+
+        assert disassembled.for_display() == 'Annotated[Thing[int, str] | None, "blah"]'
 
 describe "getting fields":
     it "works when there is a chain", type_cache: strcs.TypeCache:

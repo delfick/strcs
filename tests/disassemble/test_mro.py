@@ -74,6 +74,7 @@ describe "MRO":
         assert mro.mro == ()
         assert mro.bases == []
         assert mro.typevars == OrderedDict()
+        assert mro.signature_for_display == ""
 
     it "works for object", type_cache: strcs.TypeCache:
         mro = MRO.create(object, type_cache=type_cache)
@@ -83,6 +84,7 @@ describe "MRO":
         assert mro.mro == (object,)
         assert mro.bases == []
         assert mro.typevars == OrderedDict()
+        assert mro.signature_for_display == ""
 
     @pytest.mark.parametrize("start", (str, int))
     it "works for a builtin class", start: type, type_cache: strcs.TypeCache:
@@ -93,6 +95,7 @@ describe "MRO":
         assert mro.mro == (start, object)
         assert mro.bases == [object]
         assert mro.typevars == OrderedDict()
+        assert mro.signature_for_display == ""
 
     it "works for indexed builtins", type_cache: strcs.TypeCache:
         start = dict[str, int]
@@ -103,6 +106,7 @@ describe "MRO":
         assert mro.mro == (dict, object)
         assert mro.bases == [object]
         assert mro.typevars == OrderedDict([((dict, 1), str), ((dict, 2), int)])
+        assert mro.signature_for_display == "str, int"
 
     it "works for subclasses of indexed builtins", type_cache: strcs.TypeCache:
 
@@ -116,6 +120,7 @@ describe "MRO":
         assert mro.mro == (One, dict, object)
         assert mro.bases == [dict[str, int]]
         assert mro.typevars == OrderedDict([((dict, 1), str), ((dict, 2), int)])
+        assert mro.signature_for_display == ""
 
     it "works for subclasses of nested indexed builtins", type_cache: strcs.TypeCache:
 
@@ -129,6 +134,7 @@ describe "MRO":
         assert mro.mro == (One, dict, object)
         assert mro.bases == [dict[str, dict[bool, int]]]
         assert mro.typevars == OrderedDict([((dict, 1), str), ((dict, 2), dict[bool, int])])
+        assert mro.signature_for_display == ""
 
     it "does not duplicate when the same class appears multiple times with different typevars", type_cache: strcs.TypeCache:
 
@@ -158,6 +164,7 @@ describe "MRO":
         assert mro.mro == (One, object)
         assert mro.bases == [object]
         assert mro.typevars == OrderedDict()
+        assert mro.signature_for_display == ""
 
     it "works for a simple hierarchy", type_cache: strcs.TypeCache:
 
@@ -177,6 +184,7 @@ describe "MRO":
         assert mro.mro == (Three, Two, One, object)
         assert mro.bases == [Two, One, object]
         assert mro.typevars == OrderedDict()
+        assert mro.signature_for_display == ""
 
     it "works for multiple inheritance", type_cache: strcs.TypeCache:
 
@@ -208,6 +216,7 @@ describe "MRO":
         assert mro.mro == (G, C, A, B, F, D, E, object)
         assert mro.bases == [C, A, B, F, D, E, object]
         assert mro.typevars == OrderedDict()
+        assert mro.signature_for_display == ""
 
     it "works for simple generic", type_cache: strcs.TypeCache:
         T = tp.TypeVar("T")
@@ -222,6 +231,7 @@ describe "MRO":
         assert mro.mro == (One, tp.Generic, object)
         assert mro.bases == [tp.Generic[T]]
         assert mro.typevars == OrderedDict([((One, T), strcs.Type.Missing)])
+        assert mro.signature_for_display == "~T"
 
         mro = MRO.create(One[int], type_cache=type_cache)
         assert mro.start is One[int]
@@ -230,6 +240,7 @@ describe "MRO":
         assert mro.mro == (One, tp.Generic, object)
         assert mro.bases == [tp.Generic[T]]
         assert mro.typevars == OrderedDict([((One, T), int)])
+        assert mro.signature_for_display == "int"
 
     it "knows unfilled typevars of the parent", type_cache: strcs.TypeCache:
         T = tp.TypeVar("T")
@@ -250,6 +261,58 @@ describe "MRO":
         assert mro.mro == (Three, Two, One, tp.Generic, object)
         assert mro.bases == [Two, One, tp.Generic, object]
         assert mro.typevars == OrderedDict([((One, T), strcs.Type.Missing)])
+        assert mro.signature_for_display == "~T"
+
+    it "knows multiple unfilled typevars of the parent", type_cache: strcs.TypeCache:
+        T = tp.TypeVar("T")
+        U = tp.TypeVar("U")
+
+        class One(tp.Generic[T]):
+            pass
+
+        class Two(One, tp.Generic[U]):
+            pass
+
+        class Three(Two):
+            pass
+
+        mro = MRO.create(Three, type_cache=type_cache)
+        assert mro.start is Three
+        assert mro.args == ()
+        assert mro.origin == Three
+        assert mro.mro == (Three, Two, One, tp.Generic, object)
+        assert mro.bases == [Two, One, tp.Generic, object]
+        assert mro.typevars == OrderedDict(
+            [((Two, U), strcs.Type.Missing), ((One, T), strcs.Type.Missing)]
+        )
+        # Can't access T from the signature
+        assert mro.signature_for_display == "~U"
+
+        class Four(Two[int]):
+            pass
+
+        mro = MRO.create(Four, type_cache=type_cache)
+        assert mro.start is Four
+        assert mro.args == ()
+        assert mro.origin == Four
+        assert mro.mro == (Four, Two, One, tp.Generic, object)
+        assert mro.bases == [Two[int]]
+        assert mro.typevars == OrderedDict([((Two, U), int), ((One, T), strcs.Type.Missing)])
+        # Can't access T from the signature
+        assert mro.signature_for_display == ""
+
+    it "can't partially fill out type vars", type_cache: strcs.TypeCache:
+        # Sanity check for python error in version of python at time of writing
+        T = tp.TypeVar("T")
+        U = tp.TypeVar("U")
+
+        class One(tp.Generic[T, U]):
+            pass
+
+        with pytest.raises(TypeError, match="Too few arguments"):
+
+            class Two(One[int]):  # type: ignore[type-arg]
+                pass
 
     it "works for multiple generic hierarchy", type_cache: strcs.TypeCache:
         T = tp.TypeVar("T")
@@ -281,6 +344,7 @@ describe "MRO":
                 ((One, T), MRO.Referal(owner=Three, typevar=T, value=strcs.Type.Missing)),
             ]
         )
+        assert mro.signature_for_display == "~U, ~T"
 
         start = Three[str, int]
         mro = MRO.create(start, type_cache=type_cache)
@@ -297,6 +361,7 @@ describe "MRO":
                 ((One, T), MRO.Referal(owner=Three, typevar=T, value=int)),
             ]
         )
+        assert mro.signature_for_display == "str, int"
 
     it "works for partially filled generic hierarchy", type_cache: strcs.TypeCache:
         T = tp.TypeVar("T")
@@ -327,6 +392,7 @@ describe "MRO":
                 ((One, T), str),
             ]
         )
+        assert mro.signature_for_display == "~Z"
 
         start = Three[bool]
         mro = MRO.create(start, type_cache=type_cache)
@@ -342,6 +408,7 @@ describe "MRO":
                 ((One, T), str),
             ]
         )
+        assert mro.signature_for_display == "bool"
 
     it "works for fully filled generic hierarchy", type_cache: strcs.TypeCache:
         T = tp.TypeVar("T")
@@ -375,6 +442,7 @@ describe "MRO":
                 ((One, T), str),
             ]
         )
+        assert mro.signature_for_display == ""
 
     it "works for generics filled with other generics", type_cache: strcs.TypeCache:
         T = tp.TypeVar("T")
@@ -396,6 +464,7 @@ describe "MRO":
         assert mro.mro == (Three, Two, tp.Generic, object)
         assert mro.bases == [Two[One[str]]]
         assert mro.typevars == OrderedDict([((Two, U), One[str])])
+        assert mro.signature_for_display == ""
 
     it "works for generics filled multiple times", type_cache: strcs.TypeCache:
         T = tp.TypeVar("T")
@@ -442,6 +511,7 @@ describe "MRO":
                 ((One, T), MRO.Referal(owner=Two, typevar=U, value=str | int)),
             ]
         )
+        assert mro.signature_for_display == "~Z"
 
     it "can get vars from container", type_cache: strcs.TypeCache:
 
@@ -460,6 +530,7 @@ describe "MRO":
             ]
         )
         assert mro.all_vars == (int, str)
+        assert mro.signature_for_display == "int, str"
 
     it "can get vars when inheriting from container", type_cache: strcs.TypeCache:
 
@@ -479,3 +550,4 @@ describe "MRO":
             ]
         )
         assert mro.all_vars == (int, str)
+        assert mro.signature_for_display == ""

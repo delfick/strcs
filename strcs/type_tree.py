@@ -216,3 +216,28 @@ class MRO:
             result.insert(0, typed)
 
         return tuple(result)
+
+    @memoized_property
+    def signature_for_display(self) -> str:
+        found_with_missing: set[type] = set()
+        signature_typevars: list[tuple[tp.TypeVar | int, object]] = []
+        for (owner, tv), value in self.typevars.items():
+            if value is Type.Missing and owner in self.bases:
+                found_with_missing.add(owner)
+                if len(found_with_missing) > 1:
+                    continue
+                signature_typevars.append((tv, value))
+            elif owner is self.origin and not isinstance(value, self.Referal):
+                signature_typevars.append((tv, value))
+
+        if not signature_typevars:
+            return ""
+
+        result: list[str] = []
+        for tv, value in signature_typevars:
+            if value is Type.Missing:
+                result.append(repr(tv))
+            else:
+                result.append(Type.create(value, cache=self.type_cache).for_display())
+
+        return ", ".join(result)

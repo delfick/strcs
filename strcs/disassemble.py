@@ -5,6 +5,7 @@ import collections.abc
 import functools
 import inspect
 import itertools
+import json
 import operator
 import sys
 import types
@@ -344,6 +345,44 @@ class Type(tp.Generic[T]):
         else:
             return o in self.relevant_types
 
+    def for_display(self) -> str:
+        if self.is_union:
+            parts: list[str] = []
+            for part in self.nonoptional_union_types:
+                parts.append(part.for_display())
+            result = " | ".join(parts)
+        elif self.mro.typevars:
+            result = repr(self.extracted)
+            if hasattr(self.extracted, "__name__"):
+                result = self.extracted.__name__
+
+            if signature := self.mro.signature_for_display:
+                result = f"{result}[{signature}]"
+        else:
+            want: object = self.original
+            if self.annotated or self.optional:
+                want = self.extracted
+
+            if hasattr(want, "__name__"):
+                result = want.__name__
+            else:
+                result = repr(want)
+
+        if self.optional_inner:
+            result = f"{result} | None"
+
+        if self.annotated:
+            if isinstance(self.annotation, str):
+                annotation = json.dumps(self.annotation, default=repr)
+            else:
+                annotation = str(self.annotation)
+            result = f"Annotated[{result}, {annotation}]"
+
+        if self.optional_outer:
+            result = f"{result} | None"
+
+        return result
+
     def disassemble(self, expect: type[U], typ: object) -> "Type[U]":
         return Type.create(typ, expect=expect, cache=self.cache)
 
@@ -396,6 +435,22 @@ class Type(tp.Generic[T]):
     @memoized_property
     def without_annotation(self) -> object:
         return self.reassemble(self.extracted, with_annotation=False)
+
+    @memoized_property
+    def nonoptional_union_types(self) -> tuple["Type", ...]:
+        union: tuple["Type", ...] = ()
+        if self.is_union:
+            origins = tp.get_args(self.extracted)
+            ds: list["Type"] = []
+            for origin in origins:
+                if origin is None:
+                    continue
+                ds.append(self.disassemble(object, origin))
+
+            # TODO: order the types correctly
+            union = tuple(sorted(ds, key=lambda d: str(d), reverse=True))
+
+        return union
 
     @memoized_property
     def relevant_types(self) -> tp.Sequence[type]:
