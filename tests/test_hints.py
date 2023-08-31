@@ -31,6 +31,25 @@ describe "resolve_types":
         for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
             assert strcs.resolve_types(tp.cast(type, thing), type_cache=strcs.TypeCache()) is thing
 
+    it "clears the type cache":
+        type_cache = strcs.TypeCache()
+
+        class What:
+            pass
+
+        class Thing:
+            what: "What"
+
+        assert len(type_cache) == 0
+
+        strcs.Type.create(Thing, expect=object, cache=type_cache)
+
+        assert len(type_cache) > 0
+
+        strcs.resolve_types(Thing, type_cache=type_cache, globalns=locals(), localns=locals())
+
+        assert len(type_cache) == 0
+
     def assertWorks(
         self,
         decorator: tp.Callable[[type], type] | None,

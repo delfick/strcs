@@ -875,3 +875,6 @@ class TypeCache(collections.abc.MutableMapping[object, "Type"]):
 
     def __len__(self) -> int:
         return len(self.cache)
+
+    def clear(self) -> None:
+        self.cache.clear()

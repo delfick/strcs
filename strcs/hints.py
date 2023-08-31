@@ -235,4 +235,5 @@ def resolve_types(
 
                     allfields.update(name, disassembled.reassemble(resolved))
 
+    type_cache.clear()
     return cls
