@@ -295,3 +295,34 @@ class MRO:
             fields.append(field.with_replaced_type(field_type))
 
         return fields
+
+    def find_subtypes(self, *want: type) -> Sequence["Type"]:
+        typevars = self.typevars
+        result: list["Type"] = []
+
+        for tvrs, wa in itertools.zip_longest(self.typevars, want):
+            if tvrs is None:
+                owner, tv = None, None
+            else:
+                owner, tv = tvrs
+
+            if wa is None:
+                break
+            if tv is None or owner is None:
+                raise ValueError(
+                    f"The type has less typevars ({len(self.typevars)}) than wanted ({len(want)})"
+                )
+
+            typ = Type.create(typevars[(owner, tv)], expect=object, cache=self.type_cache)
+
+            if not issubclass(
+                typ.checkable,
+                Type.create(wa, cache=self.type_cache).checkable,
+            ):
+                raise ValueError(
+                    f"The concrete type {typ} is not a subclass of what was asked for {wa}"
+                )
+
+            result.append(typ)
+
+        return tuple(result)

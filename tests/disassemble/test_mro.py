@@ -1,4 +1,5 @@
 # coding: spec
+import re
 import typing as tp
 from collections import OrderedDict
 
@@ -624,3 +625,144 @@ describe "MRO":
                 name="two", owner=Four, original_owner=One, type=tp.Annotated[int, "hello"]
             ),
         ]
+
+    describe "Finding provided subtype":
+
+        it "can find the provided subtype", type_cache: strcs.TypeCache:
+
+            class Item:
+                pass
+
+            class ItemA(Item):
+                pass
+
+            class ItemB(Item):
+                pass
+
+            class ItemC(Item):
+                pass
+
+            I = tp.TypeVar("I", bound=Item)
+
+            class Container(tp.Generic[I]):
+                pass
+
+            container_a = strcs.MRO.create(Container[ItemA], type_cache=type_cache)
+            container_b = strcs.MRO.create(Container[ItemB], type_cache=type_cache)
+            container_c = strcs.MRO.create(Container[ItemC], type_cache=type_cache)
+
+            assert container_a.find_subtypes(Item) == (ItemA,)
+            assert container_b.find_subtypes(Item) == (ItemB,)
+            assert container_c.find_subtypes(Item) == (ItemC,)
+
+        it "can find multiple subtypes", type_cache: strcs.TypeCache:
+
+            class One:
+                pass
+
+            class Two:
+                pass
+
+            class OneA(One):
+                pass
+
+            class OneB(One):
+                pass
+
+            class TwoA(Two):
+                pass
+
+            class TwoB(Two):
+                pass
+
+            O = tp.TypeVar("O", bound=One)
+            T = tp.TypeVar("T", bound=Two)
+
+            class Container(tp.Generic[O, T]):
+                pass
+
+            container_a = strcs.MRO.create(Container[OneA, TwoB], type_cache=type_cache)
+            container_b = strcs.MRO.create(Container[OneB, TwoB], type_cache=type_cache)
+
+            assert container_a.find_subtypes(One, Two) == (OneA, TwoB)
+            assert container_b.find_subtypes(One, Two) == (OneB, TwoB)
+
+        it "can find a partial number of subtypes", type_cache: strcs.TypeCache:
+
+            class One:
+                pass
+
+            class Two:
+                pass
+
+            class OneA(One):
+                pass
+
+            class OneB(One):
+                pass
+
+            class TwoA(Two):
+                pass
+
+            class TwoB(Two):
+                pass
+
+            O = tp.TypeVar("O", bound=One)
+            T = tp.TypeVar("T", bound=Two)
+
+            class Container(tp.Generic[O, T]):
+                pass
+
+            container_a = strcs.MRO.create(Container[OneA, TwoA], type_cache=type_cache)
+            assert container_a.find_subtypes(One) == (OneA,)
+
+        it "complains if want too many types", type_cache: strcs.TypeCache:
+
+            class One:
+                pass
+
+            class Two:
+                pass
+
+            class OneA(One):
+                pass
+
+            class OneB(One):
+                pass
+
+            O = tp.TypeVar("O", bound=One)
+
+            class Container(tp.Generic[O]):
+                pass
+
+            container_a = strcs.MRO.create(Container[OneA], type_cache=type_cache)
+            with pytest.raises(
+                ValueError, match=re.escape("The type has less typevars (1) than wanted (2)")
+            ):
+                container_a.find_subtypes(One, Two)
+
+        it "complains if want wrong subtype", type_cache: strcs.TypeCache:
+
+            class One:
+                pass
+
+            class Two:
+                pass
+
+            class OneA(One):
+                pass
+
+            class OneB(One):
+                pass
+
+            O = tp.TypeVar("O", bound=One)
+
+            class Container(tp.Generic[O]):
+                pass
+
+            container_a = strcs.MRO.create(Container[OneA], type_cache=type_cache)
+            with pytest.raises(
+                ValueError,
+                match="The concrete type <class '[^']+'> is not a subclass of what was asked for <class '[^']+'>",
+            ):
+                container_a.find_subtypes(Two)

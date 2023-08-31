@@ -1,6 +1,7 @@
 # coding: spec
 import dataclasses
 import inspect
+import re
 import types
 import typing as tp
 from collections import OrderedDict
@@ -1653,3 +1654,144 @@ describe "equality":
         # Typ2 has things not in this union
         assert typ3 != typ2.checkable
         assert typ2 != typ3.checkable
+
+describe "Finding provided subtype":
+
+    it "can find the provided subtype", type_cache: strcs.TypeCache:
+
+        class Item:
+            pass
+
+        class ItemA(Item):
+            pass
+
+        class ItemB(Item):
+            pass
+
+        class ItemC(Item):
+            pass
+
+        I = tp.TypeVar("I", bound=Item)
+
+        class Container(tp.Generic[I]):
+            pass
+
+        container_a = strcs.Type.create(Container[ItemA], expect=object, cache=type_cache)
+        container_b = strcs.Type.create(Container[ItemB], expect=object, cache=type_cache)
+        container_c = strcs.Type.create(Container[ItemC], expect=object, cache=type_cache)
+
+        assert container_a.find_generic_subtype(Item) == (ItemA,)
+        assert container_b.find_generic_subtype(Item) == (ItemB,)
+        assert container_c.find_generic_subtype(Item) == (ItemC,)
+
+    it "can find multiple subtypes", type_cache: strcs.TypeCache:
+
+        class One:
+            pass
+
+        class Two:
+            pass
+
+        class OneA(One):
+            pass
+
+        class OneB(One):
+            pass
+
+        class TwoA(Two):
+            pass
+
+        class TwoB(Two):
+            pass
+
+        O = tp.TypeVar("O", bound=One)
+        T = tp.TypeVar("T", bound=Two)
+
+        class Container(tp.Generic[O, T]):
+            pass
+
+        container_a = strcs.Type.create(Container[OneA, TwoB], expect=object, cache=type_cache)
+        container_b = strcs.Type.create(Container[OneB, TwoB], expect=object, cache=type_cache)
+
+        assert container_a.find_generic_subtype(One, Two) == (OneA, TwoB)
+        assert container_b.find_generic_subtype(One, Two) == (OneB, TwoB)
+
+    it "can find a partial number of subtypes", type_cache: strcs.TypeCache:
+
+        class One:
+            pass
+
+        class Two:
+            pass
+
+        class OneA(One):
+            pass
+
+        class OneB(One):
+            pass
+
+        class TwoA(Two):
+            pass
+
+        class TwoB(Two):
+            pass
+
+        O = tp.TypeVar("O", bound=One)
+        T = tp.TypeVar("T", bound=Two)
+
+        class Container(tp.Generic[O, T]):
+            pass
+
+        container_a = strcs.Type.create(Container[OneA, TwoA], expect=object, cache=type_cache)
+        assert container_a.find_generic_subtype(One) == (OneA,)
+
+    it "complains if want too many types", type_cache: strcs.TypeCache:
+
+        class One:
+            pass
+
+        class Two:
+            pass
+
+        class OneA(One):
+            pass
+
+        class OneB(One):
+            pass
+
+        O = tp.TypeVar("O", bound=One)
+
+        class Container(tp.Generic[O]):
+            pass
+
+        container_a = strcs.Type.create(Container[OneA], expect=object, cache=type_cache)
+        with pytest.raises(
+            ValueError, match=re.escape("The type has less typevars (1) than wanted (2)")
+        ):
+            container_a.find_generic_subtype(One, Two)
+
+    it "complains if want wrong subtype", type_cache: strcs.TypeCache:
+
+        class One:
+            pass
+
+        class Two:
+            pass
+
+        class OneA(One):
+            pass
+
+        class OneB(One):
+            pass
+
+        O = tp.TypeVar("O", bound=One)
+
+        class Container(tp.Generic[O]):
+            pass
+
+        container_a = strcs.Type.create(Container[OneA], expect=object, cache=type_cache)
+        with pytest.raises(
+            ValueError,
+            match="The concrete type <class '[^']+'> is not a subclass of what was asked for <class '[^']+'>",
+        ):
+            container_a.find_generic_subtype(Two)

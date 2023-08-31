@@ -4,7 +4,6 @@ import collections
 import collections.abc
 import functools
 import inspect
-import itertools
 import json
 import operator
 import sys
@@ -471,19 +470,6 @@ class Type(tp.Generic[T]):
 
         return relevant
 
-    @memoized_property
-    def generics(self) -> tuple[dict[tp.TypeVar, type], list[tp.TypeVar]]:
-        typevar_map: dict[tp.TypeVar, type] = {}
-        typevars: list[tp.TypeVar] = []
-
-        for base in getattr(self.origin, "__orig_bases__", ()):
-            typevars.extend(tp.get_args(base))
-
-        for tv, ag in zip(typevars, tp.get_args(self.extracted)):
-            typevar_map[tv] = ag
-
-        return typevar_map, typevars
-
     @property
     def has_fields(self) -> bool:
         return self.fields_getter is not None
@@ -544,27 +530,8 @@ class Type(tp.Generic[T]):
                 res.append(field.with_replaced_type(self.disassemble(field.type, field.type)))
         return res
 
-    def find_generic_subtype(self, *want: type) -> list["Type"]:
-        result: list[type] = []
-        typevar_map, typevars = self.generics
-
-        for tv, wa in itertools.zip_longest(typevars, want):
-            if wa is None:
-                break
-            if tv is None:
-                raise ValueError(
-                    f"The type has less typevars ({len(typevars)}) than wanted ({len(want)})"
-                )
-
-            typ = typevar_map[tv]
-            if not issubclass(typ, want):
-                raise ValueError(
-                    f"The concrete type {typ} is not a subclass of what was asked for {wa}"
-                )
-
-            result.append(typ)
-
-        return [self.disassemble(object, typ) for typ in result]
+    def find_generic_subtype(self, *want: type) -> collections.abc.Sequence["Type"]:
+        return self.mro.find_subtypes(*want)
 
     def is_type_for(self, instance: object) -> tp.TypeGuard[T]:
         return isinstance(instance, self.checkable)
