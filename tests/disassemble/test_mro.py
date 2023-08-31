@@ -1,8 +1,8 @@
 # coding: spec
-
 import typing as tp
 from collections import OrderedDict
 
+import attrs
 import pytest
 
 import strcs
@@ -551,3 +551,76 @@ describe "MRO":
         )
         assert mro.all_vars == (int, str)
         assert mro.signature_for_display == ""
+
+    it "can get fields", type_cache: strcs.TypeCache:
+
+        T = tp.TypeVar("T")
+        U = tp.TypeVar("U")
+
+        class One(tp.Generic[T, U]):
+            def __init__(self, one: T, two: U):
+                self.one = one
+                self.two = two
+
+        class Two(One[str, int]):
+            pass
+
+        mro = MRO.create(Two, type_cache=type_cache)
+
+        assert mro.raw_fields == [
+            strcs.Field(name="one", owner=Two, original_owner=One, type=T),
+            strcs.Field(name="two", owner=Two, original_owner=One, type=U),
+        ]
+
+        assert mro.fields == [
+            strcs.Field(name="one", owner=Two, original_owner=One, type=str),
+            strcs.Field(name="two", owner=Two, original_owner=One, type=int),
+        ]
+
+    it "can get fields with modified types", type_cache: strcs.TypeCache:
+
+        T = tp.TypeVar("T")
+        U = tp.TypeVar("U")
+
+        @attrs.define
+        class One(tp.Generic[T, U]):
+            one: T | None
+            two: tp.Annotated[U, "hello"]
+
+        @attrs.define
+        class Two(One[str, int]):
+            pass
+
+        mro = MRO.create(Two, type_cache=type_cache)
+
+        assert mro.raw_fields == [
+            strcs.Field(name="one", owner=Two, original_owner=One, type=tp.Optional[T]),
+            strcs.Field(name="two", owner=Two, original_owner=One, type=tp.Annotated[U, "hello"]),
+        ]
+
+        assert mro.fields == [
+            strcs.Field(name="one", owner=Two, original_owner=One, type=tp.Optional[str]),
+            strcs.Field(name="two", owner=Two, original_owner=One, type=tp.Annotated[int, "hello"]),
+        ]
+
+        @attrs.define
+        class Three(tp.Generic[T, U], One[T, U]):
+            one: T
+
+        @attrs.define
+        class Four(Three[str, int]):
+            pass
+
+        mro = MRO.create(Four, type_cache=type_cache)
+
+        assert mro.raw_fields == [
+            strcs.Field(name="one", owner=Four, original_owner=Three, type=T),
+            strcs.Field(name="two", owner=Four, original_owner=One, type=tp.Annotated[U, "hello"]),
+        ]
+
+        assert mro.fields == [
+            strcs.Field(name="one", owner=Four, original_owner=Three, type=str),
+            strcs.Field(
+                name="two", owner=Four, original_owner=One, type=tp.Annotated[int, "hello"]
+            ),
+        ]

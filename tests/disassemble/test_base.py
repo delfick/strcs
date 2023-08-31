@@ -727,8 +727,10 @@ describe "Type":
         assert disassembled.without_annotation == Tree
         assert disassembled.without_optional == Tree
         assert disassembled.nonoptional_union_types == ()
-        # The class has one, two, three, four on it, but only four is part of initialisation
         assert disassembled.fields == [
+            Field(name="one", owner=Meh, original_owner=Thing, type=int),
+            Field(name="two", owner=Meh, original_owner=Thing, type=str),
+            Field(name="three", owner=Meh, original_owner=Stuff, type=bool),
             Field(name="four", owner=Tree, type=str),
         ]
         assert disassembled.fields_from == Tree

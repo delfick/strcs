@@ -82,10 +82,16 @@ class Field(tp.Generic[T]):
     type: T
     kind: int = attrs.field(default=inspect.Parameter.POSITIONAL_OR_KEYWORD.value, repr=kind_name)
     default: tp.Callable[[], object | None] | None = attrs.field(default=None)
+    original_owner: object = attrs.field(default=attrs.Factory(lambda s: s.owner, takes_self=True))
 
     def with_replaced_type(self, typ: U) -> "Field[U]":
         return Field[U](
-            name=self.name, owner=self.owner, type=typ, kind=self.kind, default=self.default
+            name=self.name,
+            owner=self.owner,
+            type=typ,
+            kind=self.kind,
+            default=self.default,
+            original_owner=self.original_owner,
         )
 
     def clone(self) -> "Field[T]":
@@ -515,20 +521,18 @@ class Type(tp.Generic[T]):
         return None
 
     @memoized_property
-    def fields(self) -> list[Field]:
+    def raw_fields(self) -> collections.abc.Sequence[Field]:
         if self.fields_getter is None:
             return []
 
-        fields: list[Field] = []
+        return self.fields_getter(self.fields_from)
 
-        typevar_map, typevars = self.generics
-        for field in self.fields_getter(self.fields_from):
-            field_type = field.type
-            if isinstance(field_type, tp.TypeVar):
-                field_type = typevar_map.get(field_type, object)
-            fields.append(field.with_replaced_type(field_type))
+    @property
+    def fields(self) -> collections.abc.Sequence[Field]:
+        if self.is_union:
+            return []
 
-        return fields
+        return self.mro.fields
 
     @memoized_property
     def typed_fields(self) -> list[Field]:

@@ -4,7 +4,7 @@ import typing as tp
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 
-from .disassemble import Type, TypeCache, union_types
+from .disassemble import Field, Type, TypeCache, union_types
 from .memoized_property import memoized_property
 
 
@@ -241,3 +241,57 @@ class MRO:
                 result.append(Type.create(value, cache=self.type_cache).for_display())
 
         return ", ".join(result)
+
+    @memoized_property
+    def raw_fields(self) -> tp.Sequence[Field]:
+        result: list[Field] = []
+        for cls in reversed(self.mro):
+            disassembled = Type.create(cls, expect=object, cache=self.type_cache)
+            fields = disassembled.raw_fields
+
+            for field in fields:
+                found: bool = False
+                for f in result:
+                    if f.name == field.name:
+                        if f.type != field.type:
+                            f.original_owner = cls
+
+                        f.default = field.default
+                        f.kind = field.kind
+                        f.type = field.type
+                        f.owner = cls
+                        found = True
+                        break
+                if not found:
+                    result.append(field.clone())
+
+        return result
+
+    @memoized_property
+    def fields(self) -> tp.Sequence[Field]:
+        typevars = self.typevars
+        fields: list[Field] = []
+
+        for field in self.raw_fields:
+            field_type = field.type
+            field_type_info = Type.create(field_type, expect=object, cache=self.type_cache)
+
+            extracted = field_type_info.extracted
+            if isinstance(extracted, tp.TypeVar):
+                field_type = extracted
+
+            if isinstance(field_type, tp.TypeVar):
+                replacement = typevars[
+                    (Type.create(field.original_owner, cache=self.type_cache).checkable, field_type)
+                ]
+                if isinstance(replacement, self.Referal):
+                    replacement = replacement.value
+                if replacement is not Type.Missing:
+                    field_type = replacement
+                else:
+                    field_type = object
+
+            field_type = field_type_info.reassemble(field_type)
+            fields.append(field.with_replaced_type(field_type))
+
+        return fields
