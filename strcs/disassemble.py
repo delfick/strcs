@@ -49,6 +49,65 @@ def _get_generic_super() -> type:
 generic_super = _get_generic_super()
 
 
+@define(order=True)
+class ScoreOrigin:
+    # The order of the fields matter
+    custom: bool = attrs.field(init=False)
+    package: str
+    module: str
+    name: str
+
+    def __attrs_post_init__(self) -> None:
+        self.custom = self.module != "builtins"
+
+    @classmethod
+    def create(self, typ: type) -> "ScoreOrigin":
+        return ScoreOrigin(
+            name=typ.__name__, module=typ.__module__, package=getattr(typ, "__package__", "")
+        )
+
+
+@define(order=True)
+class Score:
+    # The order of the fields matter
+    annotated_union: tuple["Score", ...] = attrs.field(init=False)
+    union_optional: bool = attrs.field(init=False)
+    union_length: int = attrs.field(init=False)
+    union: tuple["Score", ...]
+    annotated: bool
+    custom: bool = attrs.field(init=False)
+    optional: bool
+    mro_length: int = attrs.field(init=False)
+    typevars_length: int = attrs.field(init=False)
+    typevars_filled: tuple[bool, ...]
+    typevars: tuple["Score", ...]
+    origin_mro: tuple[ScoreOrigin, ...]
+
+    @classmethod
+    def create(cls, typ: "Type") -> "Score":
+        return cls(
+            union=tuple(ut.score for ut in typ.nonoptional_union_types),
+            typevars=tuple(tv.score for tv in typ.mro.all_vars),
+            typevars_filled=tuple(tv is not Type.Missing for tv in typ.mro.all_vars),
+            optional=typ.optional,
+            annotated=typ.is_annotated,
+            origin_mro=tuple(ScoreOrigin.create(t) for t in typ.origin.__mro__),
+        )
+
+    def __attrs_post_init__(self) -> None:
+        self.custom = False if not self.origin_mro else self.origin_mro[0].custom
+        self.union_length = len(self.union)
+        self.union_optional = bool(self.union) and self.optional
+        self.mro_length = len(self.origin_mro)
+        self.typevars_length = len(self.typevars)
+
+        if self.annotated and self.union:
+            self.annotated_union = self.union
+            self.union = ()
+        else:
+            self.annotated_union = ()
+
+
 @define
 class Default:
     value: object | None
@@ -263,8 +322,18 @@ class InstanceCheck(abc.ABC):
 
 @define
 class Type(tp.Generic[T]):
-    class Missing:
-        pass
+    class MissingType:
+        score: Score
+
+    class Missing(MissingType):
+        score = Score(
+            union=(),
+            annotated=False,
+            typevars=(),
+            typevars_filled=(),
+            optional=False,
+            origin_mro=(),
+        )
 
     cache: "TypeCache" = attrs.field(repr=False)
 
@@ -388,6 +457,30 @@ class Type(tp.Generic[T]):
 
         return result
 
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, Type):
+            return NotImplemented
+
+        return self.score < other.score
+
+    def __lte__(self, other: object) -> bool:
+        if not isinstance(other, Type):
+            return NotImplemented
+
+        return self.score <= other.score
+
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, Type):
+            return NotImplemented
+
+        return self.score > other.score
+
+    def __gte__(self, other: object) -> bool:
+        if not isinstance(other, Type):
+            return NotImplemented
+
+        return self.score >= other.score
+
     def disassemble(self, expect: type[U], typ: object) -> "Type[U]":
         return Type.create(typ, expect=expect, cache=self.cache)
 
@@ -452,10 +545,13 @@ class Type(tp.Generic[T]):
                     continue
                 ds.append(self.disassemble(object, origin))
 
-            # TODO: order the types correctly
-            union = tuple(sorted(ds, key=lambda d: str(d), reverse=True))
+            union = tuple(sorted(ds, key=lambda d: d.score, reverse=True))
 
         return union
+
+    @memoized_property
+    def score(self) -> Score:
+        return Score.create(self)
 
     @memoized_property
     def relevant_types(self) -> tp.Sequence[type]:

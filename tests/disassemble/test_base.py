@@ -169,8 +169,8 @@ describe "Type":
         assert disassembled.without_annotation == provided
         assert disassembled.without_optional == provided
         assert disassembled.nonoptional_union_types == (
-            tp.Annotated[list[int], "str"],
             tp.Annotated[int | str | None, '"hello'],
+            tp.Annotated[list[int], "str"],
         )
         assert disassembled.fields == []
         assert disassembled.fields_from == provided
@@ -187,7 +187,7 @@ describe "Type":
 
         assert (
             disassembled.for_display()
-            == 'Annotated[list[int], "str"] | Annotated[str | int | None, "\\"hello"]'
+            == 'Annotated[str | int | None, "\\"hello"] | Annotated[list[int], "str"]'
         )
 
     it "works on a typing union", type_cache: strcs.TypeCache:
