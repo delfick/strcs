@@ -31,19 +31,6 @@ describe "resolve_types":
         for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
             assert strcs.resolve_types(tp.cast(type, thing), type_cache=strcs.TypeCache()) is thing
 
-    it "works on normal classes":
-
-        def get_fields(cls: type) -> list[AnnotationField]:
-            return [AnnotationField(type=t, name=name) for name, t in cls.__annotations__.items()]
-
-        self.assertWorks(None, get_fields)
-
-    it "works on attrs classes":
-        self.assertWorks(define, attrs_fields)
-
-    it "works on dataclass classes":
-        self.assertWorks(dataclass, dataclass_fields)
-
     def assertWorks(
         self,
         decorator: tp.Callable[[type], type] | None,
@@ -121,6 +108,19 @@ describe "resolve_types":
         fields = {field.name: field.type for field in get_fields(resolved_Thing)}
         assert fields["one"] is int
         assert fields["two"] is str
+
+    it "works on normal classes":
+
+        def get_fields(cls: type) -> list[AnnotationField]:
+            return [AnnotationField(type=t, name=name) for name, t in cls.__annotations__.items()]
+
+        self.assertWorks(None, get_fields)
+
+    it "works on attrs classes":
+        self.assertWorks(define, attrs_fields)
+
+    it "works on dataclass classes":
+        self.assertWorks(dataclass, dataclass_fields)
 
     it "finds via properties":
 
