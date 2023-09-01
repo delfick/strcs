@@ -66,6 +66,23 @@ class ScoreOrigin:
             name=typ.__name__, module=typ.__module__, package=getattr(typ, "__package__", "")
         )
 
+    def for_display(self, indent="") -> str:
+        def with_space(o: object) -> str:
+            s = str(o)
+
+            if s:
+                return f" {s}"
+            else:
+                return ""
+
+        lines = [
+            f"custom:{with_space(self.custom)}",
+            f"name:{with_space(self.name)}",
+            f"module:{with_space(self.module)}",
+            f"package:{with_space(self.package)}",
+        ]
+        return "\n".join(f"{indent}{line}" for line in lines)
+
 
 @define(order=True)
 class Score:
@@ -106,6 +123,68 @@ class Score:
             self.union = ()
         else:
             self.annotated_union = ()
+
+    def for_display(self, indent="  ") -> str:
+        lines: list[str] = []
+
+        class WithDisplay(tp.Protocol):
+            def for_display(self, indent="") -> str:
+                ...
+
+        def extend(displayable: WithDisplay, extra: tp.Callable[[int], str]) -> None:
+            for i, line in enumerate(displayable.for_display(indent=indent).split("\n")):
+                lines.append(f"{extra(i)}{line}")
+
+        if self.annotated_union:
+            lines.append("✓ Annotated Union:")
+            for score in self.union or self.annotated_union:
+                extend(score, lambda i: "  *" if i == 0 else "   ")
+
+        if self.union_optional:
+            lines.append("✓ Union optional")
+        else:
+            lines.append("x Union optional")
+
+        if self.union_length:
+            lines.append(f"{self.union_length} Union length")
+
+        if self.union:
+            lines.append("✓ Union:")
+            for score in self.union or self.annotated_union:
+                extend(score, lambda i: "  *" if i == 0 else "   ")
+
+        if not self.annotated_union and not self.union:
+            lines.append("x Union")
+
+        if self.annotated:
+            lines.append("✓ Annotated")
+        else:
+            lines.append("x Annotated")
+
+        lines.append(f"{self.typevars_length} typevars {self.typevars_filled}")
+
+        if self.typevars:
+            lines.append("✓ Typevars:")
+            for score in self.typevars:
+                extend(score, lambda i: "  *" if i == 0 else "   ")
+        else:
+            lines.append("x Typevars")
+
+        if self.optional:
+            lines.append("✓ Optional")
+        else:
+            lines.append("x Optional")
+
+        lines.append(f"{self.mro_length} MRO length")
+
+        if self.origin_mro:
+            lines.append("✓ Origin MRO:")
+            for origin in self.origin_mro:
+                extend(origin, lambda i: "  *" if i == 0 else "   ")
+        else:
+            lines.append("x Origin MRO")
+
+        return "\n".join(f"{indent}{line}" for line in lines)
 
 
 @define
