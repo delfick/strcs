@@ -10,6 +10,7 @@ import typing as tp
 from dataclasses import MISSING
 from dataclasses import fields as dataclass_fields
 from dataclasses import is_dataclass
+from functools import partial
 
 import attrs
 import cattrs
@@ -214,23 +215,27 @@ def kind_name(kind: int) -> str:
 class Field(tp.Generic[T]):
     name: str
     owner: object
-    type: T
+    disassembled_type: "Type[T]"
     kind: int = attrs.field(default=inspect.Parameter.POSITIONAL_OR_KEYWORD.value, repr=kind_name)
     default: tp.Callable[[], object | None] | None = attrs.field(default=None)
     original_owner: object = attrs.field(default=attrs.Factory(lambda s: s.owner, takes_self=True))
 
-    def with_replaced_type(self, typ: U) -> "Field[U]":
+    def with_replaced_type(self, typ: "Type[U]") -> "Field[U]":
         return Field[U](
             name=self.name,
             owner=self.owner,
-            type=typ,
+            disassembled_type=typ,
             kind=self.kind,
             default=self.default,
             original_owner=self.original_owner,
         )
 
+    @property
+    def type(self) -> object:
+        return self.disassembled_type.original
+
     def clone(self) -> "Field[T]":
-        return self.with_replaced_type(self.type)
+        return self.with_replaced_type(self.disassembled_type)
 
     @kind.validator
     def check_kind(self, attribute: Attribute, value: object) -> None:
@@ -248,7 +253,7 @@ class Field(tp.Generic[T]):
             )
 
 
-def fields_from_class(typ: type) -> tp.Sequence[Field]:
+def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     result: list[Field] = []
     try:
         signature = inspect.signature(typ)
@@ -267,13 +272,19 @@ def fields_from_class(typ: type) -> tp.Sequence[Field]:
         if param.default is not inspect.Parameter.empty:
             dflt = Default(param.default)
         result.append(
-            Field(name=name, owner=typ, default=dflt, kind=param.kind.value, type=field_type)
+            Field(
+                name=name,
+                owner=typ,
+                default=dflt,
+                kind=param.kind.value,
+                disassembled_type=Type.create(field_type, cache=type_cache),
+            )
         )
 
     return result
 
 
-def fields_from_attrs(typ: type) -> tp.Sequence[Field]:
+def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     result: list[Field] = []
     for field in attrs_fields(typ):
         if not field.init:
@@ -311,14 +322,14 @@ def fields_from_attrs(typ: type) -> tp.Sequence[Field]:
                 owner=typ,
                 default=dflt,
                 kind=kind,
-                type=field_type,
+                disassembled_type=Type.create(field_type, cache=type_cache),
             )
         )
 
     return result
 
 
-def fields_from_dataclasses(typ: type) -> tp.Sequence[Field]:
+def fields_from_dataclasses(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     result: list[Field] = []
     for field in dataclass_fields(typ):
         if not field.init:
@@ -340,7 +351,15 @@ def fields_from_dataclasses(typ: type) -> tp.Sequence[Field]:
             dflt = field.default_factory
 
         name = field.name
-        result.append(Field(name=name, owner=typ, default=dflt, kind=kind, type=field_type))
+        result.append(
+            Field(
+                name=name,
+                owner=typ,
+                default=dflt,
+                kind=kind,
+                disassembled_type=Type.create(field_type, cache=type_cache),
+            )
+        )
     return result
 
 
@@ -651,16 +670,16 @@ class Type(tp.Generic[T]):
     @memoized_property
     def fields_getter(self) -> tp.Callable[..., tp.Sequence[Field]] | None:
         if isinstance(self.fields_from, type) and attrs_has(self.fields_from):
-            return fields_from_attrs
+            return partial(fields_from_attrs, self.cache)
         elif is_dataclass(self.fields_from):
-            return fields_from_dataclasses
+            return partial(fields_from_dataclasses, self.cache)
         elif (
             tp.get_origin(self.extracted) is None
             and isinstance(self.extracted, type)
             and self.extracted is not NotSpecifiedMeta
             and self.extracted not in builtin_types
         ):
-            return fields_from_class
+            return partial(fields_from_class, self.cache)
 
         return None
 
@@ -677,16 +696,6 @@ class Type(tp.Generic[T]):
             return []
 
         return self.mro.fields
-
-    @memoized_property
-    def typed_fields(self) -> list[Field]:
-        res: list[Field] = []
-        for field in self.fields:
-            if field.type is None:
-                res.append(field.with_replaced_type(field.type))
-            else:
-                res.append(field.with_replaced_type(self.disassemble(field.type, field.type)))
-        return res
 
     def find_generic_subtype(self, *want: type) -> collections.abc.Sequence["Type"]:
         return self.mro.find_subtypes(*want)
@@ -741,8 +750,8 @@ class Type(tp.Generic[T]):
                 if isinstance(arg, type):
                     resolve_types(arg, type_cache=self.cache)
 
-        for field in self.typed_fields:
-            field.type.resolve_types(_resolved=_resolved)
+        for field in self.fields:
+            field.disassembled_type.resolve_types(_resolved=_resolved)
 
     def func_from(
         self, options: list[tuple["Type", "ConvertFunction"]]
@@ -761,14 +770,13 @@ class Type(tp.Generic[T]):
         if res is NotSpecified:
             res = {}
 
-        if not isinstance(res, collections.abc.Mapping):
+        if not isinstance(res, collections.abc.MutableMapping):
             raise ValueError(f"Can only fill mappings, got {type(res)}")
 
-        if isinstance(res, dict):
-            for field in self.typed_fields:
-                if field.type is not None and field.name not in res:
-                    if field.type.is_annotated or field.type.has_fields:
-                        res[field.name] = NotSpecified
+        for field in self.fields:
+            if field.disassembled_type is not None and field.name not in res:
+                if field.disassembled_type.is_annotated or field.disassembled_type.has_fields:
+                    res[field.name] = NotSpecified
 
         return res
 
@@ -782,7 +790,7 @@ class Type(tp.Generic[T]):
         res = self.fill(res)
 
         conv_obj: dict[str, object] = {}
-        for field in self.typed_fields:
+        for field in self.fields:
             name = field.name
 
             if name not in res:
@@ -792,10 +800,7 @@ class Type(tp.Generic[T]):
             if name.startswith("_"):
                 name = name[1:]
 
-            attribute = tp.cast(
-                attrs.Attribute,
-                Field(name=field.name, owner=field.owner, type=tp.cast(type, field.type.original)),
-            )
+            attribute = tp.cast(attrs.Attribute, field)
             conv_obj[name] = converter._structure_attribute(attribute, val)
 
         return self.extracted(**conv_obj)

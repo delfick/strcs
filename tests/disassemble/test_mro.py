@@ -10,9 +10,22 @@ import strcs
 from strcs.type_tree import MRO
 
 
+class Disassembler:
+    def __init__(self, type_cache: strcs.TypeCache):
+        self.type_cache = type_cache
+
+    def __call__(self, typ: object) -> strcs.Type:
+        return strcs.Type.create(typ, cache=self.type_cache)
+
+
 @pytest.fixture()
 def type_cache() -> strcs.TypeCache:
     return strcs.TypeCache()
+
+
+@pytest.fixture()
+def Dis(type_cache: strcs.TypeCache) -> Disassembler:
+    return Disassembler(type_cache)
 
 
 describe "assumptions":
@@ -553,7 +566,7 @@ describe "MRO":
         assert mro.all_vars == (int, str)
         assert mro.signature_for_display == ""
 
-    it "can get fields", type_cache: strcs.TypeCache:
+    it "can get fields", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
@@ -569,16 +582,16 @@ describe "MRO":
         mro = MRO.create(Two, type_cache=type_cache)
 
         assert mro.raw_fields == [
-            strcs.Field(name="one", owner=Two, original_owner=One, type=T),
-            strcs.Field(name="two", owner=Two, original_owner=One, type=U),
+            strcs.Field(name="one", owner=Two, original_owner=One, disassembled_type=Dis(T)),
+            strcs.Field(name="two", owner=Two, original_owner=One, disassembled_type=Dis(U)),
         ]
 
         assert mro.fields == [
-            strcs.Field(name="one", owner=Two, original_owner=One, type=str),
-            strcs.Field(name="two", owner=Two, original_owner=One, type=int),
+            strcs.Field(name="one", owner=Two, original_owner=One, disassembled_type=Dis(str)),
+            strcs.Field(name="two", owner=Two, original_owner=One, disassembled_type=Dis(int)),
         ]
 
-    it "can get fields with modified types", type_cache: strcs.TypeCache:
+    it "can get fields with modified types", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
@@ -595,13 +608,27 @@ describe "MRO":
         mro = MRO.create(Two, type_cache=type_cache)
 
         assert mro.raw_fields == [
-            strcs.Field(name="one", owner=Two, original_owner=One, type=tp.Optional[T]),
-            strcs.Field(name="two", owner=Two, original_owner=One, type=tp.Annotated[U, "hello"]),
+            strcs.Field(
+                name="one", owner=Two, original_owner=One, disassembled_type=Dis(tp.Optional[T])
+            ),
+            strcs.Field(
+                name="two",
+                owner=Two,
+                original_owner=One,
+                disassembled_type=Dis(tp.Annotated[U, "hello"]),
+            ),
         ]
 
         assert mro.fields == [
-            strcs.Field(name="one", owner=Two, original_owner=One, type=tp.Optional[str]),
-            strcs.Field(name="two", owner=Two, original_owner=One, type=tp.Annotated[int, "hello"]),
+            strcs.Field(
+                name="one", owner=Two, original_owner=One, disassembled_type=Dis(tp.Optional[str])
+            ),
+            strcs.Field(
+                name="two",
+                owner=Two,
+                original_owner=One,
+                disassembled_type=Dis(tp.Annotated[int, "hello"]),
+            ),
         ]
 
         @attrs.define
@@ -615,14 +642,22 @@ describe "MRO":
         mro = MRO.create(Four, type_cache=type_cache)
 
         assert mro.raw_fields == [
-            strcs.Field(name="one", owner=Four, original_owner=Three, type=T),
-            strcs.Field(name="two", owner=Four, original_owner=One, type=tp.Annotated[U, "hello"]),
+            strcs.Field(name="one", owner=Four, original_owner=Three, disassembled_type=Dis(T)),
+            strcs.Field(
+                name="two",
+                owner=Four,
+                original_owner=One,
+                disassembled_type=Dis(tp.Annotated[U, "hello"]),
+            ),
         ]
 
         assert mro.fields == [
-            strcs.Field(name="one", owner=Four, original_owner=Three, type=str),
+            strcs.Field(name="one", owner=Four, original_owner=Three, disassembled_type=Dis(str)),
             strcs.Field(
-                name="two", owner=Four, original_owner=One, type=tp.Annotated[int, "hello"]
+                name="two",
+                owner=Four,
+                original_owner=One,
+                disassembled_type=Dis(tp.Annotated[int, "hello"]),
             ),
         ]
 

@@ -258,7 +258,7 @@ class MRO:
 
                         f.default = field.default
                         f.kind = field.kind
-                        f.type = field.type
+                        f.disassembled_type = Type.create(field.type, cache=self.type_cache)
                         f.owner = cls
                         found = True
                         break
@@ -292,7 +292,7 @@ class MRO:
                     field_type = object
 
             field_type = field_type_info.reassemble(field_type)
-            fields.append(field.with_replaced_type(field_type))
+            fields.append(field.with_replaced_type(Type.create(field_type, cache=self.type_cache)))
 
         return fields
 

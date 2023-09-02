@@ -6,6 +6,7 @@ import types
 import typing as tp
 from collections import OrderedDict
 from dataclasses import dataclass, is_dataclass
+from functools import partial
 
 import attrs
 import pytest
@@ -28,6 +29,48 @@ from .test_helpers import assertParams
 @pytest.fixture()
 def type_cache() -> strcs.TypeCache:
     return strcs.TypeCache()
+
+
+class Disassembler:
+    def __init__(self, type_cache: strcs.TypeCache):
+        self.type_cache = type_cache
+
+    def __call__(self, typ: object) -> strcs.Type:
+        return Type.create(typ, cache=self.type_cache)
+
+
+@pytest.fixture()
+def Dis(type_cache: strcs.TypeCache) -> Disassembler:
+    return Disassembler(type_cache)
+
+
+class Partial:
+    got: object
+    equals: bool
+
+    def __init__(self, func: tp.Callable, *args: object):
+        self.func = func
+        self.args = args
+
+    def __eq__(self, got: object) -> bool:
+        self.got = got
+        self.equals = False
+
+        if not isinstance(self.got, partial):
+            return False
+        if self.got.func is not self.func:
+            return False
+        if self.got.args != self.args:
+            return False
+
+        self.equals = True
+        return True
+
+    def __repr__(self) -> str:
+        if not hasattr(self, "got") or not hasattr(self, "equals"):
+            return f"<Partial {self.func}:{self.args} />"
+
+        return repr(self.got)
 
 
 T = tp.TypeVar("T")
@@ -80,7 +123,7 @@ describe "Type":
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == type(None)
-        assert disassembled.fields_getter is fields_from_class
+        assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
         assert not attrs_has(disassembled.checkable)
         assert not is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(None)
@@ -513,7 +556,7 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[dict[str, int], "stuff"] | None'
 
-    it "works on an attrs class", type_cache: strcs.TypeCache:
+    it "works on an attrs class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @define
         class Thing:
@@ -536,11 +579,11 @@ describe "Type":
         assert disassembled.without_optional == Thing
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Thing, type=int),
-            Field(name="two", owner=Thing, type=str),
+            Field(name="one", owner=Thing, disassembled_type=Dis(int)),
+            Field(name="two", owner=Thing, disassembled_type=Dis(str)),
         ]
         assert disassembled.fields_from == Thing
-        assert disassembled.fields_getter == fields_from_attrs
+        assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
         assert attrs_has(disassembled.checkable)
         assert not is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
@@ -559,7 +602,7 @@ describe "Type":
 
         assert disassembled.for_display() == "Thing"
 
-    it "works on an dataclasses class", type_cache: strcs.TypeCache:
+    it "works on an dataclasses class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @dataclass
         class Thing:
@@ -582,11 +625,11 @@ describe "Type":
         assert disassembled.without_optional == Thing
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Thing, type=int),
-            Field(name="two", owner=Thing, type=str),
+            Field(name="one", owner=Thing, disassembled_type=Dis(int)),
+            Field(name="two", owner=Thing, disassembled_type=Dis(str)),
         ]
         assert disassembled.fields_from == Thing
-        assert disassembled.fields_getter == fields_from_dataclasses
+        assert disassembled.fields_getter == Partial(fields_from_dataclasses, type_cache)
         assert not attrs_has(disassembled.checkable)
         assert is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
@@ -605,7 +648,7 @@ describe "Type":
 
         assert disassembled.for_display() == "Thing"
 
-    it "works on a normal class", type_cache: strcs.TypeCache:
+    it "works on a normal class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         class Thing:
             def __init__(self, one: int, two: str):
@@ -628,11 +671,11 @@ describe "Type":
         assert disassembled.without_optional == Thing
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Thing, type=int),
-            Field(name="two", owner=Thing, type=str),
+            Field(name="one", owner=Thing, disassembled_type=Dis(int)),
+            Field(name="two", owner=Thing, disassembled_type=Dis(str)),
         ]
         assert disassembled.fields_from == Thing
-        assert disassembled.fields_getter is fields_from_class
+        assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
         assert not attrs_has(disassembled.checkable)
         assert not is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
@@ -671,7 +714,7 @@ describe "Type":
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == D
-        assert disassembled.fields_getter == fields_from_class
+        assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
         assert not attrs_has(disassembled.checkable)
         assert not is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(D())
@@ -680,7 +723,7 @@ describe "Type":
 
         assert disassembled.for_display() == "D"
 
-    it "works on class with complicated hierarchy", type_cache: strcs.TypeCache:
+    it "works on class with complicated hierarchy", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         class Thing(tp.Generic[T, U]):
             def __init__(self, one: int, two: str):
@@ -729,13 +772,13 @@ describe "Type":
         assert disassembled.without_optional == Tree
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Meh, original_owner=Thing, type=int),
-            Field(name="two", owner=Meh, original_owner=Thing, type=str),
-            Field(name="three", owner=Meh, original_owner=Stuff, type=bool),
-            Field(name="four", owner=Tree, type=str),
+            Field(name="one", owner=Meh, original_owner=Thing, disassembled_type=Dis(int)),
+            Field(name="two", owner=Meh, original_owner=Thing, disassembled_type=Dis(str)),
+            Field(name="three", owner=Meh, original_owner=Stuff, disassembled_type=Dis(bool)),
+            Field(name="four", owner=Tree, disassembled_type=Dis(str)),
         ]
         assert disassembled.fields_from == Tree
-        assert disassembled.fields_getter == fields_from_class
+        assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
         assert not attrs_has(disassembled.checkable)
         assert not is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Tree(four="asdf"))
@@ -744,7 +787,7 @@ describe "Type":
 
         assert disassembled.for_display() == "Tree"
 
-    it "works on an annotated class", type_cache: strcs.TypeCache:
+    it "works on an annotated class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @define
         class Thing:
@@ -769,11 +812,11 @@ describe "Type":
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Thing, type=int),
-            Field(name="two", owner=Thing, type=str),
+            Field(name="one", owner=Thing, disassembled_type=Dis(int)),
+            Field(name="two", owner=Thing, disassembled_type=Dis(str)),
         ]
         assert disassembled.fields_from == Thing
-        assert disassembled.fields_getter == fields_from_attrs
+        assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
         assert attrs_has(disassembled.checkable)
         assert not is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
@@ -792,7 +835,7 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing, "blah"]'
 
-    it "works on an optional annotated class", type_cache: strcs.TypeCache:
+    it "works on an optional annotated class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @dataclass
         class Thing:
@@ -819,11 +862,11 @@ describe "Type":
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Thing, type=int),
-            Field(name="two", owner=Thing, type=str),
+            Field(name="one", owner=Thing, disassembled_type=Dis(int)),
+            Field(name="two", owner=Thing, disassembled_type=Dis(str)),
         ]
         assert disassembled.fields_from == Thing
-        assert disassembled.fields_getter == fields_from_dataclasses
+        assert disassembled.fields_getter == Partial(fields_from_dataclasses, type_cache)
         assert not attrs_has(disassembled.checkable)
         assert is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
@@ -842,7 +885,7 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing | None, "blah"]'
 
-    it "works on an optional annotated generic class", type_cache: strcs.TypeCache:
+    it "works on an optional annotated generic class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @dataclass
         class Thing(tp.Generic[T, U]):
@@ -870,11 +913,11 @@ describe "Type":
         assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Thing, type=int),
-            Field(name="two", owner=Thing, type=str),
+            Field(name="one", owner=Thing, disassembled_type=Dis(int)),
+            Field(name="two", owner=Thing, disassembled_type=Dis(str)),
         ]
         assert disassembled.fields_from == Thing
-        assert disassembled.fields_getter == fields_from_dataclasses
+        assert disassembled.fields_getter == Partial(fields_from_dataclasses, type_cache)
         assert not attrs_has(disassembled.checkable)
         assert is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
@@ -893,7 +936,7 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing[int, str] | None, "blah"]'
 
-    it "works on an optional annotated generic class without concrete types", type_cache: strcs.TypeCache:
+    it "works on an optional annotated generic class without concrete types", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @define
         class Thing(tp.Generic[T, U]):
@@ -921,11 +964,11 @@ describe "Type":
         assert disassembled.without_optional == tp.Annotated[Thing, anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Thing, type=object),
-            Field(name="two", owner=Thing, type=object),
+            Field(name="one", owner=Thing, disassembled_type=Dis(object)),
+            Field(name="two", owner=Thing, disassembled_type=Dis(object)),
         ]
         assert disassembled.fields_from == Thing
-        assert disassembled.fields_getter == fields_from_attrs
+        assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
         assert attrs_has(disassembled.checkable)
         assert not is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
@@ -944,7 +987,7 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing[~T, ~U] | None, "blah"]'
 
-    it "works on an optional annotated generic class with concrete types", type_cache: strcs.TypeCache:
+    it "works on an optional annotated generic class with concrete types", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @define
         class Thing(tp.Generic[T, U]):
@@ -972,11 +1015,11 @@ describe "Type":
         assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
-            Field(name="one", owner=Thing, type=int),
-            Field(name="two", owner=Thing, type=str),
+            Field(name="one", owner=Thing, disassembled_type=Dis(int)),
+            Field(name="two", owner=Thing, disassembled_type=Dis(str)),
         ]
         assert disassembled.fields_from == Thing
-        assert disassembled.fields_getter == fields_from_attrs
+        assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
         assert attrs_has(disassembled.checkable)
         assert not is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
@@ -996,7 +1039,8 @@ describe "Type":
         assert disassembled.for_display() == 'Annotated[Thing[int, str] | None, "blah"]'
 
 describe "getting fields":
-    it "works when there is a chain", type_cache: strcs.TypeCache:
+
+    it "works when there is a chain", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @define
         class Stuff:
@@ -1009,36 +1053,51 @@ describe "getting fields":
         resolve_types(Thing, globals(), locals(), type_cache=type_cache)
 
         disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
-        assert disassembled.fields == [Field(name="stuff", owner=Thing, type=Stuff | None)]
+        assert disassembled.fields == [
+            Field(name="stuff", owner=Thing, disassembled_type=Dis(Stuff | None))
+        ]
 
-    it "works on normal class", type_cache: strcs.TypeCache:
+    it "works on normal class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         class Thing:
             def __init__(self, one: int, /, two: str, *, three: bool = False, **kwargs):
                 pass
 
         disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
-        assert disassembled.fields_getter is fields_from_class
+        assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
         assert disassembled.fields_from is Thing
         assertParams(
             disassembled.fields,
             [
-                Field(name="one", owner=Thing, kind=inspect.Parameter.POSITIONAL_ONLY, type=int),
                 Field(
-                    name="two", owner=Thing, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=str
+                    name="one",
+                    owner=Thing,
+                    kind=inspect.Parameter.POSITIONAL_ONLY,
+                    disassembled_type=Dis(int),
+                ),
+                Field(
+                    name="two",
+                    owner=Thing,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    disassembled_type=Dis(str),
                 ),
                 Field(
                     name="three",
                     owner=Thing,
                     kind=inspect.Parameter.KEYWORD_ONLY,
-                    type=bool,
+                    disassembled_type=Dis(bool),
                     default=Default(False),
                 ),
-                Field(name="", owner=Thing, kind=inspect.Parameter.VAR_KEYWORD, type=object),
+                Field(
+                    name="",
+                    owner=Thing,
+                    kind=inspect.Parameter.VAR_KEYWORD,
+                    disassembled_type=Dis(object),
+                ),
             ],
         )
 
-    it "works on attrs class", type_cache: strcs.TypeCache:
+    it "works on attrs class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @define
         class Thing:
@@ -1047,32 +1106,35 @@ describe "getting fields":
             three: bool = attrs.field(kw_only=True, default=False)
 
         disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
-        assert disassembled.fields_getter is fields_from_attrs
+        assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
         assert disassembled.fields_from is Thing
         assertParams(
             disassembled.fields,
             [
                 Field(
-                    name="one", owner=Thing, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int
+                    name="one",
+                    owner=Thing,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    disassembled_type=Dis(int),
                 ),
                 Field(
                     name="two",
                     owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    type=str,
+                    disassembled_type=Dis(str),
                     default=Default("one"),
                 ),
                 Field(
                     name="three",
                     kind=inspect.Parameter.KEYWORD_ONLY,
                     owner=Thing,
-                    type=bool,
+                    disassembled_type=Dis(bool),
                     default=Default(False),
                 ),
             ],
         )
 
-    it "works on dataclasses class", type_cache: strcs.TypeCache:
+    it "works on dataclasses class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @dataclass
         class Thing:
@@ -1081,26 +1143,29 @@ describe "getting fields":
             three: bool = dataclasses.field(kw_only=True, default=False)
 
         disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
-        assert disassembled.fields_getter is fields_from_dataclasses
+        assert disassembled.fields_getter == Partial(fields_from_dataclasses, type_cache)
         assert disassembled.fields_from is Thing
         assertParams(
             disassembled.fields,
             [
                 Field(
-                    name="one", owner=Thing, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, type=int
+                    name="one",
+                    owner=Thing,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    disassembled_type=Dis(int),
                 ),
                 Field(
                     owner=Thing,
                     name="two",
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    type=str,
+                    disassembled_type=Dis(str),
                     default=Default("one"),
                 ),
                 Field(
                     name="three",
                     owner=Thing,
                     kind=inspect.Parameter.KEYWORD_ONLY,
-                    type=bool,
+                    disassembled_type=Dis(bool),
                     default=Default(False),
                 ),
             ],
