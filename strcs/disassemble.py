@@ -747,23 +747,12 @@ class Type(tp.Generic[T]):
     def func_from(
         self, options: list[tuple["Type", "ConvertFunction"]]
     ) -> tp.Optional["ConvertFunction"]:
-        for want, func in options:
-            if want in (self.original, self.extracted) or want == self:
+        for want, func in sorted(options, key=lambda pair: pair[0], reverse=True):
+            if self.checkable.matches(want.checkable):
                 return func
 
-        for want, func in options:
-            if issubclass(self.checkable, want.checkable):
-                return func
-
-        if not isinstance(self.origin, type):
-            return None
-
-        for want, func in options:
-            if want is self.origin:
-                return func
-
-        for want, func in options:
-            if issubclass(self.origin, want.checkable):
+        for want, func in sorted(options, key=lambda pair: pair[0], reverse=True):
+            if self.checkable.matches(want.checkable, subclasses=True):
                 return func
 
         return None

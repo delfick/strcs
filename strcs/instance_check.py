@@ -21,6 +21,15 @@ class InstanceCheck(abc.ABC):
         without_optional: object
         without_annotation: object
 
+    @classmethod
+    def matches(
+        cls,
+        other: type["InstanceCheck"],
+        subclasses: bool = False,
+        allow_missing_typevars: bool = True,
+    ) -> bool:
+        raise NotImplementedError()
+
 
 def create_checkable(disassembled: "Type") -> type[InstanceCheck]:
     extracted = disassembled.extracted
@@ -108,6 +117,53 @@ def _checker_union(
                     C = C.Meta.typ
             return issubclass(C, tuple(check_against))
 
+        @classmethod
+        def matches(
+            cls,
+            other: type[InstanceCheck],
+            subclasses: bool = False,
+            allow_missing_typevars=False,
+        ) -> bool:
+            if cls.Meta.union_types is None or other.Meta.union_types is None:
+                return False
+
+            if subclasses:
+                # I want it so that everything in cls is a subclass of other
+                if not all(issubclass(typ, other) for typ in cls.Meta.union_types):
+                    return False
+
+                # And for all types in other to have a matching subclass in cls
+                if not all(
+                    any(issubclass(cls_typ, other_typ) for cls_typ in cls.Meta.union_types)
+                    for other_typ in other.Meta.union_types
+                ):
+                    return False
+
+                return True
+            else:
+                for typ in cls.Meta.union_types:
+                    found = False
+                    for other_typ in other.Meta.union_types:
+                        if typ.matches(other_typ):
+                            found = True
+                            break
+                    if not found:
+                        return False
+
+                if len(cls.Meta.union_types) == len(other.Meta.union_types):
+                    return True
+
+                for typ in other.Meta.union_types:
+                    found = False
+                    for cls_typ in cls.Meta.union_types:
+                        if other_typ.matches(cls_typ):
+                            found = True
+                            break
+                    if not found:
+                        return False
+
+                return True
+
         Meta = M
 
     return Checker
@@ -120,6 +176,8 @@ def _checker_single(
     check_against: object | None,
     M: type[InstanceCheck.Meta],
 ) -> type[InstanceCheck]:
+    from .disassemble import Type
+
     class CheckerMeta(InstanceCheckMeta):
         def __repr__(self) -> str:
             return repr(check_against)
@@ -163,7 +221,45 @@ def _checker_single(
             if hasattr(C, "Meta") and issubclass(C.Meta, InstanceCheck.Meta):
                 if isinstance(C.Meta.typ, type):
                     C = C.Meta.typ
-            return issubclass(C, check_against)
+
+            if not issubclass(C, check_against):
+                return False
+
+            want = disassembled.disassemble(object, C)
+            for w, g in zip(want.mro.all_vars, disassembled.mro.all_vars):
+                if isinstance(w, Type) and isinstance(g, Type):
+                    if not issubclass(w.checkable, g.checkable):
+                        return False
+
+            return True
+
+        @classmethod
+        def matches(
+            cls,
+            other: type[InstanceCheck],
+            subclasses: bool = False,
+            allow_missing_typevars=False,
+        ) -> bool:
+            if subclasses:
+                if not issubclass(cls, other):
+                    return False
+
+                for ctv, otv in zip(
+                    cls.Meta.disassembled.mro.all_vars,
+                    other.Meta.disassembled.mro.all_vars,
+                ):
+                    if isinstance(ctv, Type) and isinstance(otv, Type):
+                        if not ctv.checkable.matches(otv.checkable, subclasses=True):
+                            return False
+                    elif otv is Type.Missing and not allow_missing_typevars:
+                        return False
+
+                return True
+            else:
+                return (
+                    cls.Meta.typ == other.Meta.typ
+                    and cls.Meta.disassembled.mro.all_vars == other.Meta.disassembled.mro.all_vars
+                )
 
         Meta = M
 
