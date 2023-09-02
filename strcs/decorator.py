@@ -8,7 +8,7 @@ from attrs import define
 from . import errors
 from .args_extractor import ArgsExtractor
 from .creation import instantiate
-from .disassemble import Type, TypeCache
+from .disassemble.base import Type, TypeCache
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
 

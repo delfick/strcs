@@ -9,12 +9,10 @@ import attrs
 import pytest
 from attrs import define
 
-from strcs.disassemble import (
+from strcs import Field, Type, TypeCache
+from strcs.disassemble.base import (
     Default,
-    Field,
     IsAnnotated,
-    Type,
-    TypeCache,
     extract_annotation,
     extract_optional,
     fields_from_attrs,

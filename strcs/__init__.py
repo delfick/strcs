@@ -8,7 +8,7 @@ from .decorator import (
     CreateArgs,
     CreatorDecorator,
 )
-from .disassemble import Field, Type, TypeCache
+from .disassemble.base import Field, Type, TypeCache
 from .hints import resolve_types
 from .instance_check import InstanceCheck, InstanceCheckMeta
 from .meta import Meta

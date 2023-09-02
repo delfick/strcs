@@ -4,7 +4,7 @@ import typing as tp
 import attrs
 import cattrs
 
-from .disassemble import Type
+from .disassemble.base import Type
 from .not_specified import NotSpecified
 
 T = tp.TypeVar("T")

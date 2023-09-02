@@ -4,7 +4,7 @@ import cattrs
 
 from .annotations import Ann, Annotation
 from .decorator import ConvertDefinition, ConvertFunction
-from .disassemble import Type, TypeCache
+from .disassemble.base import Type, TypeCache
 from .hooks import CreateStructureHook
 from .meta import Meta
 from .not_specified import NotSpecified

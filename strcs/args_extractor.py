@@ -3,7 +3,7 @@ import typing as tp
 
 import cattrs
 
-from .disassemble import Type
+from .disassemble.base import Type
 from .meta import Meta
 
 if tp.TYPE_CHECKING:

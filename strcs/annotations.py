@@ -9,7 +9,7 @@ from .decorator import (
     ConvertResponse,
     CreatorDecorator,
 )
-from .disassemble import Type, TypeCache
+from .disassemble.base import Type, TypeCache
 from .meta import Meta
 
 if tp.TYPE_CHECKING:

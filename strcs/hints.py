@@ -10,7 +10,7 @@ from attrs import fields as attrs_fields
 from attrs import has as is_attrs
 
 if tp.TYPE_CHECKING:
-    from .disassemble import TypeCache
+    from .disassemble.base import TypeCache
     from .register import CreateRegister
 
 T = tp.TypeVar("T")
@@ -222,7 +222,7 @@ def resolve_types(
                     value = tp.ForwardRef(value, is_argument=False, is_class=True)
 
                 if name in allfields:
-                    from .disassemble import Type
+                    from .disassemble.base import Type
 
                     disassembled = Type.create(value, cache=type_cache, expect=object)
 

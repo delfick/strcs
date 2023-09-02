@@ -4,8 +4,9 @@ import typing as tp
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 
-from .disassemble import Field, Type, TypeCache, union_types
+from .disassemble.base import Field, Type, TypeCache
 from .memoized_property import memoized_property
+from .standard import union_types
 
 
 class HasOrigBases(tp.Protocol):

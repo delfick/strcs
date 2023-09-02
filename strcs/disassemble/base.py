@@ -17,16 +17,16 @@ from attrs import NOTHING, Attribute, define
 from attrs import fields as attrs_fields
 from attrs import has as attrs_has
 
-from .hints import resolve_types
-from .instance_check import InstanceCheck, create_checkable
-from .memoized_property import memoized_property
-from .not_specified import NotSpecifiedMeta
-from .standard import builtin_types, union_types
+from ..hints import resolve_types
+from ..instance_check import InstanceCheck, create_checkable
+from ..memoized_property import memoized_property
+from ..not_specified import NotSpecifiedMeta
+from ..standard import builtin_types, union_types
 
 if tp.TYPE_CHECKING:
-    from .annotations import Ann
-    from .decorator import ConvertFunction
-    from .type_tree import MRO
+    from ..annotations import Ann
+    from ..decorator import ConvertFunction
+    from ..type_tree import MRO
 
 
 T = tp.TypeVar("T")
@@ -587,7 +587,7 @@ class Type(tp.Generic[T]):
 
     @memoized_property
     def mro(self) -> "MRO":
-        from .type_tree import MRO
+        from ..type_tree import MRO
 
         return MRO.create(self.extracted, type_cache=self.cache)
 
@@ -714,7 +714,7 @@ class Type(tp.Generic[T]):
 
     @memoized_property
     def ann(self) -> tp.Optional["Ann[T]"]:
-        from .annotations import AdjustableMeta, Ann, AnnBase, Annotation
+        from ..annotations import AdjustableMeta, Ann, AnnBase, Annotation
 
         ann: Ann[T] | None = None
         if self.annotation is not None and (

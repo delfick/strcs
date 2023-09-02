@@ -5,7 +5,7 @@ import cattrs
 from .annotations import Ann
 from .creation import fill, instantiate
 from .decorator import ConvertDefinition, ConvertFunction, CreateArgs
-from .disassemble import Type, TypeCache
+from .disassemble.base import Type, TypeCache
 from .meta import Meta
 from .not_specified import NotSpecified
 
