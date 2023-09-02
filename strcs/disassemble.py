@@ -1,5 +1,3 @@
-import abc
-import builtins
 import collections
 import collections.abc
 import functools
@@ -20,8 +18,10 @@ from attrs import fields as attrs_fields
 from attrs import has as attrs_has
 
 from .hints import resolve_types
+from .instance_check import InstanceCheck, create_checkable
 from .memoized_property import memoized_property
 from .not_specified import NotSpecified, NotSpecifiedMeta
+from .standard import builtin_types, union_types
 
 if tp.TYPE_CHECKING:
     from .annotations import Ann
@@ -31,8 +31,6 @@ if tp.TYPE_CHECKING:
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
-builtin_types = [v for v in vars(builtins).values() if isinstance(v, type)]
-union_types: list[object] = [type(tp.Union[str, int]), type(str | int), types.UnionType, tp.Union]
 
 
 def _get_generic_super() -> type:
@@ -382,21 +380,6 @@ def extract_annotation(typ: T) -> tuple[T, IsAnnotated | None, object | None]:
         return typ.__args__[0], typ, typ.__metadata__[0]
     else:
         return typ, None, None
-
-
-class InstanceCheckMeta(type):
-    pass
-
-
-class InstanceCheck(abc.ABC):
-    class Meta:
-        typ: object
-        original: object
-        optional: bool
-        union_types: tuple[type["InstanceCheck"]] | None
-        disassembled: "Type"
-        without_optional: object
-        without_annotation: object
 
 
 @define
@@ -834,157 +817,7 @@ class Type(tp.Generic[T]):
 
     @memoized_property
     def checkable(self) -> type[InstanceCheck]:
-        disassembled: Type = self
-        extracted = disassembled.extracted
-        origin = tp.get_origin(extracted)
-
-        class Meta(InstanceCheck.Meta):
-            typ = disassembled.origin
-            original = disassembled.original
-            optional = disassembled.optional
-            without_optional = disassembled.without_optional
-            without_annotation = disassembled.without_annotation
-
-        Meta.disassembled = self
-
-        if origin in union_types:
-            check_against = tuple(
-                self.disassemble(object, a).checkable for a in tp.get_args(extracted)
-            )
-            Meta.typ = extracted
-            Meta.union_types = tp.cast(tuple[type[InstanceCheck]], check_against)
-            Checker = self._checker_union(extracted, origin, check_against, Meta)
-        else:
-            Meta.union_types = None
-            check_against_single: type | None = disassembled.origin
-            if extracted is None:
-                check_against_single = None
-            Checker = self._checker_single(extracted, origin, check_against_single, Meta)
-
-        if hasattr(extracted, "__args__"):
-            Checker.__args__ = extracted.__args__  # type: ignore
-        if hasattr(extracted, "__origin__"):
-            Checker.__origin__ = extracted.__origin__  # type: ignore
-        if hasattr(Checker.Meta.typ, "__attrs_attrs__"):
-            Checker.__attrs_attrs__ = Checker.Meta.typ.__attrs_attrs__  # type:ignore
-        if hasattr(Checker.Meta.typ, "__dataclass_fields__"):
-            Checker.__dataclass_fields__ = Checker.Meta.typ.__dataclass_fields__  # type:ignore
-
-        return Checker
-
-    _checkable: type[InstanceCheck] = attrs.field(init=False)
-
-    def _checker_union(
-        self,
-        extracted: object,
-        origin: object,
-        check_against: tp.Sequence[type],
-        M: type[InstanceCheck.Meta],
-    ) -> type[InstanceCheck]:
-        disassembled = self
-
-        reprstr = " | ".join(repr(c) for c in check_against)
-
-        class CheckerMeta(InstanceCheckMeta):
-            def __repr__(self) -> str:
-                return reprstr
-
-            def __instancecheck__(self, obj: object) -> bool:
-                return (obj is None and disassembled.optional) or isinstance(
-                    obj, tuple(check_against)
-                )
-
-            def __eq__(self, o: object) -> bool:
-                return any(o == ch for ch in check_against)
-
-            def __hash__(self) -> int:
-                return hash(extracted)
-
-            @property  # type:ignore
-            def __class__(self) -> type:
-                return type(extracted)
-
-        class CombinedMeta(CheckerMeta, abc.ABCMeta):
-            pass
-
-        class Checker(InstanceCheck, metaclass=CombinedMeta):
-            def __new__(mcls, *args, **kwargs):
-                raise ValueError(f"Cannot instantiate a union type: {check_against}")
-
-            def __hash__(self) -> int:
-                return hash(check_against)
-
-            @classmethod
-            def __subclasshook__(cls, C: type) -> bool:
-                if C == CombinedMeta:
-                    return True
-
-                if hasattr(C, "Meta") and issubclass(C.Meta, InstanceCheck.Meta):
-                    if isinstance(C.Meta.typ, type):
-                        C = C.Meta.typ
-                return issubclass(C, tuple(check_against))
-
-            Meta = M
-
-        return Checker
-
-    def _checker_single(
-        self,
-        extracted: object,
-        origin: object,
-        check_against: object | None,
-        M: type[InstanceCheck.Meta],
-    ) -> type[InstanceCheck]:
-        disassembled = self
-
-        class CheckerMeta(InstanceCheckMeta):
-            def __repr__(self) -> str:
-                return repr(check_against)
-
-            def __instancecheck__(self, obj: object) -> bool:
-                if check_against is None:
-                    return obj is None
-
-                return (obj is None and disassembled.optional) or isinstance(
-                    obj, tp.cast(type, check_against)
-                )
-
-            def __eq__(self, o: object) -> bool:
-                return o == check_against
-
-            def __hash__(self) -> int:
-                return hash(extracted)
-
-            @property  # type:ignore
-            def __class__(self) -> type:
-                return type(extracted)
-
-        class CombinedMeta(CheckerMeta, abc.ABCMeta):
-            pass
-
-        class Checker(InstanceCheck, metaclass=CombinedMeta):
-            def __new__(mcls, *args, **kwargs):
-                return check_against(*args, **kwargs)
-
-            def __hash__(self) -> int:
-                return hash(check_against)
-
-            @classmethod
-            def __subclasshook__(cls, C: type) -> bool:
-                if C == CombinedMeta:
-                    return True
-
-                if not isinstance(check_against, type):
-                    return False
-
-                if hasattr(C, "Meta") and issubclass(C.Meta, InstanceCheck.Meta):
-                    if isinstance(C.Meta.typ, type):
-                        C = C.Meta.typ
-                return issubclass(C, check_against)
-
-            Meta = M
-
-        return Checker
+        return create_checkable(self)
 
 
 class TypeCache(collections.abc.MutableMapping[object, "Type"]):
