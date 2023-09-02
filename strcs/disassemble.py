@@ -13,7 +13,6 @@ from dataclasses import is_dataclass
 from functools import partial
 
 import attrs
-import cattrs
 from attrs import NOTHING, Attribute, define
 from attrs import fields as attrs_fields
 from attrs import has as attrs_has
@@ -21,7 +20,7 @@ from attrs import has as attrs_has
 from .hints import resolve_types
 from .instance_check import InstanceCheck, create_checkable
 from .memoized_property import memoized_property
-from .not_specified import NotSpecified, NotSpecifiedMeta
+from .not_specified import NotSpecifiedMeta
 from .standard import builtin_types, union_types
 
 if tp.TYPE_CHECKING:
@@ -765,45 +764,6 @@ class Type(tp.Generic[T]):
                 return func
 
         return None
-
-    def fill(self, res: object) -> tp.Mapping[str, object]:
-        if res is NotSpecified:
-            res = {}
-
-        if not isinstance(res, collections.abc.MutableMapping):
-            raise ValueError(f"Can only fill mappings, got {type(res)}")
-
-        for field in self.fields:
-            if field.disassembled_type is not None and field.name not in res:
-                if field.disassembled_type.is_annotated or field.disassembled_type.has_fields:
-                    res[field.name] = NotSpecified
-
-        return res
-
-    def convert(self, res: object, converter: cattrs.Converter) -> T:
-        if self.optional and res is None:
-            return tp.cast(T, None)
-
-        if not callable(self.extracted):
-            raise TypeError(f"Unsure how to instantiate a {type(self.extracted)}: {self.extracted}")
-
-        res = self.fill(res)
-
-        conv_obj: dict[str, object] = {}
-        for field in self.fields:
-            name = field.name
-
-            if name not in res:
-                continue
-
-            val = res[name]
-            if name.startswith("_"):
-                name = name[1:]
-
-            attribute = tp.cast(attrs.Attribute, field)
-            conv_obj[name] = converter._structure_attribute(attribute, val)
-
-        return self.extracted(**conv_obj)
 
     @property
     def checkable_as_type(self) -> type[T]:

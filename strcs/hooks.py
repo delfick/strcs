@@ -3,6 +3,7 @@ import typing as tp
 import cattrs
 
 from .annotations import Ann
+from .creation import fill, instantiate
 from .decorator import ConvertDefinition, ConvertFunction, CreateArgs
 from .disassemble import Type, TypeCache
 from .meta import Meta
@@ -147,7 +148,7 @@ class CreateStructureHook:
         if want.is_type_for(value):
             return value
         else:
-            return want.convert(value, self.converter)
+            return instantiate(want, value, self.converter)
 
     def switch_check(self, want: type) -> bool:
         ret = self.do_check
@@ -158,5 +159,5 @@ class CreateStructureHook:
         self.do_check = False
         self.converter._structure_func.dispatch.cache_clear()
         if isinstance(value, dict):
-            value = want.fill(value)
+            value = fill(want, value)
         return self.converter.structure(value, tp.cast(type, want.original))
