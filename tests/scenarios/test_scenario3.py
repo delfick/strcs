@@ -11,12 +11,12 @@ creator = reg.make_decorator()
 
 
 @define(frozen=True)
-class AdditionAnnotation(strcs.MergedAnnotation):
+class AdditionAnnotation(strcs.MergedMetaAnnotation):
     addition: int
 
 
 @define(frozen=True)
-class MultiplicationAnnotation(strcs.MergedAnnotation):
+class MultiplicationAnnotation(strcs.MergedMetaAnnotation):
     multiply_by: int
 
 
@@ -29,8 +29,8 @@ def change(value: object, /, addition: int = 0, multiply_by: int = 1) -> float |
 @define
 class Thing:
     base: tp.Annotated[float, change]
-    raised: tp.Annotated[float, strcs.AnnBase(AdditionAnnotation(addition=30), change)]
-    elevated: tp.Annotated[float, strcs.AnnBase(AdditionAnnotation(addition=40), change)]
+    raised: tp.Annotated[float, strcs.Ann(AdditionAnnotation(addition=30), change)]
+    elevated: tp.Annotated[float, strcs.Ann(AdditionAnnotation(addition=40), change)]
 
 
 @define

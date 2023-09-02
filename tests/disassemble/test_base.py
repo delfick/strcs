@@ -1190,7 +1190,7 @@ describe "annotations":
             ...
 
         ann = Type.create(tp.Annotated[int, creator], expect=int, cache=type_cache).ann
-        assert isinstance(ann, strcs.AnnBase)
+        assert isinstance(ann, strcs.Ann)
         assert ann.creator is creator
 
     it "can return an annotation with new adjustable meta", type_cache: strcs.TypeCache:
@@ -1202,25 +1202,25 @@ describe "annotations":
             ) -> strcs.Meta:
                 return meta.clone({"one": 1})
 
-        ann = Type.create(tp.Annotated[int, AdjustMeta], expect=int, cache=type_cache).ann
-        assert isinstance(ann, strcs.AnnBase), ann
-        assert ann.creator is None
-        assert ann.meta is AdjustMeta
+        adjustment = AdjustMeta()
+        ann = Type.create(tp.Annotated[int, adjustment], expect=int, cache=type_cache).ann
+        assert ann is adjustment
+        assert isinstance(ann, strcs.AdjustableMeta)
 
         meta = strcs.Meta({"two": 2})
         m = ann.adjusted_meta(meta, Type.create(int, cache=type_cache), type_cache)
         assert m.data == {"one": 1, "two": 2}
         assert meta.data == {"two": 2}
 
-    it "can return an annotation with new Annotation", type_cache: strcs.TypeCache:
+    it "can return an annotation with new MetaAnnotation", type_cache: strcs.TypeCache:
 
         @define
-        class Info(strcs.Annotation):
+        class Info(strcs.MetaAnnotation):
             three: str
 
         info = Info(three="three")
         ann = Type.create(tp.Annotated[int, info], expect=int, cache=type_cache).ann
-        assert isinstance(ann, strcs.AnnBase), ann
+        assert isinstance(ann, strcs.Ann), ann
         assert ann.creator is None
         assert ann.meta is info
 
@@ -1229,15 +1229,15 @@ describe "annotations":
         assert m.data == {"__call_defined_annotation__": info, "two": 2}
         assert meta.data == {"two": 2}
 
-    it "can return an annotation with new MergedAnnotation", type_cache: strcs.TypeCache:
+    it "can return an annotation with new MergedMetaAnnotation", type_cache: strcs.TypeCache:
 
         @define
-        class Info(strcs.MergedAnnotation):
+        class Info(strcs.MergedMetaAnnotation):
             three: str
 
         info = Info(three="three")
         ann = Type.create(tp.Annotated[int, info], expect=int, cache=type_cache).ann
-        assert isinstance(ann, strcs.AnnBase), ann
+        assert isinstance(ann, strcs.Ann), ann
         assert ann.creator is None
         assert ann.meta is info
 
@@ -1254,7 +1254,7 @@ describe "annotations":
         def creator2(value: object) -> strcs.ConvertResponse[int]:
             ...
 
-        class A(strcs.AnnBase[int]):
+        class A(strcs.Ann[int]):
             def adjusted_meta(
                 self, meta: strcs.Meta, typ: strcs.Type[int], type_cache: strcs.TypeCache
             ) -> strcs.Meta:
@@ -1262,7 +1262,7 @@ describe "annotations":
 
         a = A(creator=creator2)
         ann = Type.create(tp.Annotated[int, a], expect=int, cache=type_cache).ann
-        assert isinstance(ann, strcs.AnnBase), ann
+        assert isinstance(ann, strcs.Ann), ann
         assert ann is a
 
         meta = strcs.Meta({"two": 2})

@@ -386,7 +386,7 @@ describe "Creators":
     it "can be given as an override in an annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
 
         @define(frozen=True)
-        class Info(strcs.MergedAnnotation):
+        class Info(strcs.MergedMetaAnnotation):
             multiple: int
 
         def multiply(value: object, /, multiple: int) -> int | None:
@@ -394,11 +394,11 @@ describe "Creators":
                 return None
             return value * multiple
 
-        assert creg.create_annotated(int, strcs.AnnBase(Info(multiple=2), multiply), 3) == 6
+        assert creg.create_annotated(int, strcs.Ann(Info(multiple=2), multiply), 3) == 6
 
         @define
         class Thing:
-            thing: tp.Annotated[int, strcs.AnnBase(Info(multiple=5), multiply)]
+            thing: tp.Annotated[int, strcs.Ann(Info(multiple=5), multiply)]
 
         assert creg.create(Thing, {"thing": 20}).thing == 100
 
@@ -561,7 +561,7 @@ describe "Creators":
         it "can get annotated data from class definition into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
 
             @define(frozen=True)
-            class SentenceAnnotation(strcs.Annotation):
+            class SentenceAnnotation(strcs.MetaAnnotation):
                 prefix: str
 
             @define
@@ -589,11 +589,11 @@ describe "Creators":
         it "can get data spread into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
 
             @define(frozen=True)
-            class ChildAnnotation(strcs.MergedAnnotation):
+            class ChildAnnotation(strcs.MergedMetaAnnotation):
                 two: int
 
             @define(frozen=True)
-            class ThingAnnotation(strcs.MergedAnnotation):
+            class ThingAnnotation(strcs.MergedMetaAnnotation):
                 one: int
 
             @define
@@ -618,7 +618,7 @@ describe "Creators":
         it "can not add optional fields to the meta when they are none", creator: strcs.Creator, creg: strcs.CreateRegister:
 
             @define(frozen=True)
-            class Annotation(strcs.MergedAnnotation):
+            class Annotation(strcs.MergedMetaAnnotation):
                 one: int = 3
                 two: str | None = None
 
@@ -670,7 +670,7 @@ describe "Creators":
             """Entirely possible I got a bit carried away with this example and I agree this is a stupid way of whatever this is"""
 
             @define(frozen=True)
-            class LottoAnnotation(strcs.Annotation):
+            class LottoAnnotation(strcs.MetaAnnotation):
                 numbers: tuple[int, int, int, int, int]
 
                 def adjusted_meta(
@@ -743,7 +743,7 @@ describe "Creators":
         it "can override a creator and meta in the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
 
             @define(frozen=True)
-            class ThingAnnotation(strcs.MergedAnnotation):
+            class ThingAnnotation(strcs.MergedMetaAnnotation):
                 add: int
 
             @define
@@ -764,7 +764,7 @@ describe "Creators":
             @define
             class Things:
                 thing1: Thing
-                thing2: tp.Annotated[Thing, strcs.AnnBase(ThingAnnotation(add=20), other_creator)]
+                thing2: tp.Annotated[Thing, strcs.Ann(ThingAnnotation(add=20), other_creator)]
                 thing3: Thing
 
             things = creg.create(Things, {"thing1": 1, "thing2": 5, "thing3": 10})

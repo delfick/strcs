@@ -2,7 +2,7 @@ import typing as tp
 
 import cattrs
 
-from .annotations import Ann
+from .annotations import AdjustableCreator, AdjustableMeta
 from .decorator import ConvertDefinition, ConvertFunction, CreateArgs
 from .disassemble.base import Type, TypeCache
 from .disassemble.creation import fill, instantiate
@@ -117,9 +117,11 @@ class CreateStructureHook:
         if normal_creator and creator is None:
             creator = normal_creator
 
-        if isinstance(want.ann, Ann):
-            meta = want.ann.adjusted_meta(meta, want, self.type_cache)
-            creator = want.ann.adjusted_creator(creator, self.register, want, self.type_cache)
+        if isinstance(want.ann, (AdjustableMeta, AdjustableCreator)):
+            if isinstance(want.ann, AdjustableMeta):
+                meta = want.ann.adjusted_meta(meta, want, self.type_cache)
+            if isinstance(want.ann, AdjustableCreator):
+                creator = want.ann.adjusted_creator(creator, self.register, want, self.type_cache)
             if meta is not self.meta:
                 return self.register.create(
                     Type.create(

@@ -11,7 +11,7 @@ creator = reg.make_decorator()
 
 
 @define(frozen=True)
-class MultiplyAnnotation(strcs.MergedAnnotation):
+class MultiplyAnnotation(strcs.MergedMetaAnnotation):
     multiply: int
 
 

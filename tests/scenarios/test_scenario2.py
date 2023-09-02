@@ -11,12 +11,12 @@ creator = reg.make_decorator()
 
 
 @define(frozen=True)
-class NumberAnnotation(strcs.Annotation):
+class NumberAnnotation(strcs.MetaAnnotation):
     add: int
 
 
 @define(frozen=True)
-class SentenceAnnotation(strcs.MergedAnnotation):
+class SentenceAnnotation(strcs.MergedMetaAnnotation):
     prefix: str
 
 

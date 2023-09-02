@@ -2,7 +2,12 @@ import typing as tp
 
 import cattrs
 
-from .annotations import Ann, Annotation
+from .annotations import (
+    AdjustableCreator,
+    AdjustableMeta,
+    MergedMetaAnnotation,
+    MetaAnnotation,
+)
 from .decorator import ConvertDefinition, ConvertFunction
 from .disassemble.base import Type, TypeCache
 from .hooks import CreateStructureHook
@@ -117,7 +122,11 @@ class CreateRegister:
     def create_annotated(
         self,
         typ: type[T] | Type[T],
-        ann: Annotation | Ann | ConvertFunction[T],
+        ann: MetaAnnotation
+        | MergedMetaAnnotation
+        | AdjustableMeta
+        | AdjustableCreator
+        | ConvertFunction[T],
         value: object = NotSpecified,
         meta: Meta | None = None,
         once_only_creator: ConvertFunction[T] | None = None,

@@ -1,5 +1,12 @@
 from . import errors
-from .annotations import Ann, AnnBase, Annotation, FromMeta, MergedAnnotation
+from .annotations import (
+    AdjustableCreator,
+    AdjustableMeta,
+    Ann,
+    FromMeta,
+    MergedMetaAnnotation,
+    MetaAnnotation,
+)
 from .args_extractor import ArgsExtractor
 from .decorator import (
     ConvertDefinition,
@@ -26,22 +33,23 @@ __all__ = [
     "errors",
     "VERSION",
     "Creator",
-    "AnnBase",
     "FromMeta",
     "TypeCache",
-    "Annotation",
     "CreateArgs",
     "Registerer",
     "NotSpecified",
     "InstanceCheck",
     "resolve_types",
     "ArgsExtractor",
+    "MetaAnnotation",
+    "AdjustableMeta",
     "CreateRegister",
     "ConvertFunction",
     "ConvertResponse",
     "CreatorDecorator",
     "NotSpecifiedMeta",
-    "MergedAnnotation",
+    "AdjustableCreator",
     "ConvertDefinition",
     "InstanceCheckMeta",
+    "MergedMetaAnnotation",
 ]

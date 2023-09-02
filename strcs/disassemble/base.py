@@ -24,7 +24,7 @@ from .hints import resolve_types
 from .instance_check import InstanceCheck, create_checkable
 
 if tp.TYPE_CHECKING:
-    from ..annotations import Ann
+    from ..annotations import AdjustableCreator, AdjustableMeta
     from ..decorator import ConvertFunction
     from .type_tree import MRO
 
@@ -713,20 +713,25 @@ class Type(tp.Generic[T]):
         return issubclass(subclass_of, self.checkable)
 
     @memoized_property
-    def ann(self) -> tp.Optional["Ann[T]"]:
-        from ..annotations import AdjustableMeta, Ann, AnnBase, Annotation
+    def ann(self) -> tp.Optional[tp.Union["AdjustableMeta[T]", "AdjustableCreator[T]"]]:
+        from ..annotations import (
+            AdjustableCreator,
+            AdjustableMeta,
+            Ann,
+            MergedMetaAnnotation,
+            MetaAnnotation,
+        )
 
-        ann: Ann[T] | None = None
-        if self.annotation is not None and (
-            isinstance(self.annotation, (Ann, Annotation)) or callable(self.annotation)
-        ):
-
-            if isinstance(self.annotation, Ann):
+        ann: AdjustableMeta[T] | AdjustableCreator[T] | None = None
+        if self.annotation is not None:
+            if isinstance(self.annotation, AdjustableMeta):
                 ann = self.annotation
-            elif isinstance(self.annotation, (Annotation, AdjustableMeta)):
-                ann = AnnBase[T](self.annotation)
+            elif isinstance(self.annotation, (MetaAnnotation, MergedMetaAnnotation)):
+                ann = Ann[T](self.annotation)
+            elif isinstance(self.annotation, AdjustableCreator):
+                ann = self.annotation
             elif callable(self.annotation):
-                ann = AnnBase[T](creator=self.annotation)
+                ann = Ann[T](creator=self.annotation)
 
         return ann
 
