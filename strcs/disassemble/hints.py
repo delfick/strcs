@@ -10,8 +10,8 @@ from attrs import fields as attrs_fields
 from attrs import has as is_attrs
 
 if tp.TYPE_CHECKING:
-    from .disassemble.base import TypeCache
-    from .register import CreateRegister
+    from ..register import CreateRegister
+    from .base import TypeCache
 
 T = tp.TypeVar("T")
 C = tp.TypeVar("C", bound=type)
@@ -171,7 +171,7 @@ def resolve_types(
 
     This is equivalent to ``attrs.resolve_types`` except it doesn't erase Annotations.
     """
-    from .register import CreateRegister
+    from ..register import CreateRegister
 
     if isinstance(type_cache, CreateRegister):
         type_cache = type_cache.type_cache
@@ -222,7 +222,7 @@ def resolve_types(
                     value = tp.ForwardRef(value, is_argument=False, is_class=True)
 
                 if name in allfields:
-                    from .disassemble.base import Type
+                    from .base import Type
 
                     disassembled = Type.create(value, cache=type_cache, expect=object)
 

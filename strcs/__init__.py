@@ -9,12 +9,12 @@ from .decorator import (
     CreatorDecorator,
 )
 from .disassemble.base import Field, Type, TypeCache
-from .hints import resolve_types
-from .instance_check import InstanceCheck, InstanceCheckMeta
+from .disassemble.hints import resolve_types
+from .disassemble.instance_check import InstanceCheck, InstanceCheckMeta
+from .disassemble.type_tree import MRO
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
 from .register import CreateRegister, Creator, Registerer
-from .type_tree import MRO
 from .version import VERSION
 
 __all__ = [

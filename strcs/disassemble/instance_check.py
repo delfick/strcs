@@ -1,10 +1,10 @@
 import abc
 import typing as tp
 
-from .standard import union_types
+from ..standard import union_types
 
 if tp.TYPE_CHECKING:
-    from .disassemble.base import Type
+    from .base import Type
 
 
 class InstanceCheckMeta(type):
@@ -176,7 +176,7 @@ def _checker_single(
     check_against: object | None,
     M: type[InstanceCheck.Meta],
 ) -> type[InstanceCheck]:
-    from .disassemble.base import Type
+    from .base import Type
 
     class CheckerMeta(InstanceCheckMeta):
         def __repr__(self) -> str:

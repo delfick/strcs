@@ -6,7 +6,7 @@ import cattrs
 import pytest
 
 import strcs
-from strcs.creation import fill, instantiate
+from strcs.disassemble.creation import fill, instantiate
 
 
 @pytest.fixture()
