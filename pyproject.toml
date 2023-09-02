@@ -1,3 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "strcs"
+dynamic = ["version"]
+description = "Wrapper to make it more convenient to make structure hooks for cattrs"
+readme = "README.rst"
+license = "MIT"
+requires-python = ">= 3.10"
+authors = [
+    { name = "Stephen Moore", email = "stephen@delfick.com" },
+]
+dependencies = [
+    "attrs==22.2.0",
+    "cattrs==22.2.0",
+]
+
+[project.optional-dependencies]
+tests = [
+    "noseOfYeti[black]==2.4.2",
+    "pytest==7.2.0",
+]
+
+[project.urls]
+Homepage = "http://github.com/delfick/strcs"
+
+[tool.hatch.version]
+path = "strcs/version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/strcs",
+]
+
 [tool.black]
 line-length = 100
 include = '(\.py|^venv)$'

@@ -10,3 +10,4 @@ pylsp-mypy==0.6.7
 mslex==0.3.0
 isort==5.12.0
 pyls-isort==0.2.2
+hatch==1.7.0
