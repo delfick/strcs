@@ -5,6 +5,31 @@ PropRet = tp.TypeVar("PropRet")
 
 
 class memoized_property(tp.Generic[PropRet]):
+    """
+    A descriptor that memoizes the value it creates. This requires that
+    the object the descriptor is on has a ``_memoized_cache`` attribute that is
+    a mutable mapping that lets us save the generated values.
+
+    Usage is::
+
+        class MyClass:
+            def __init__(self):
+                self._memoized_cache = {}
+
+            @memoized_property
+            def expensive(self)->int:
+                return perform_expensive_operation()
+
+
+        instance = MyClass()
+        assert instance.expensive == 20
+        assert instance.expensive == 20 # This time expensive operation is not run
+
+        # It's possible to remove the cached value
+        del instance.expensive
+        assert instance.expensive == 20 # Expensive operation runs again
+    """
+
     name: str
 
     class Empty:
