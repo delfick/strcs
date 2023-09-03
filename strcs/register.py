@@ -1,3 +1,7 @@
+"""
+The register is how the developer can associate creator functions with
+specific types.
+"""
 import typing as tp
 
 import cattrs
@@ -18,18 +22,50 @@ T = tp.TypeVar("T")
 
 
 class Registerer(tp.Protocol[T]):
-    def __call__(self, func: ConvertDefinition[T] | None = None) -> ConvertDefinition[T]:
+    """
+    Protocol representing an object that can decorate a ConvertDefinition for
+    adding it to the register.
+
+    It should return what it was given without changing it.
+    """
+
+    def __call__(self, func: ConvertDefinition[T] | None = None) -> ConvertDefinition[T] | None:
         ...
 
 
 class Creator(tp.Protocol[T]):
+    """
+    Protocol representing an object that when called will returned a Registerer.
+    """
+
     register: "CreateRegister"
 
-    def __call__(self, typ: object, assume_unchanged_converted=True) -> Registerer[T]:
+    def __call__(self, typ: object, *, assume_unchanged_converted=True) -> Registerer[T]:
         ...
 
 
 class CreateRegister:
+    """
+    The register is a central object that holds knowledge of how to transform data
+    into different types. It is used to get a decorator that is used to add those
+    :ref:`creators <features_creators>` and also used to then do a conversion:
+
+    Usage looks like:
+
+    .. code-block:: python
+
+        import strcs
+
+        reg = strcs.CreateRegister()
+        creator = reg.make_decorator()
+
+        # Then the creator may be used as a decorator to add knowledge about custom
+        # transformations
+
+        # Then objects may be created
+        instance = reg.create(MyKls, some_data)
+    """
+
     def __init__(
         self,
         *,
@@ -85,6 +121,37 @@ class CreateRegister:
         )
 
     def make_decorator(self) -> Creator:
+        """
+        Return an object that can be used to register Creators:
+
+        .. code-block:: python
+
+            import attrs
+            import strcs
+
+            reg = strcs.CreateRegister()
+            creator = reg.make_decorator()
+
+
+            @attrs.define
+            class Thing:
+                one: int
+
+
+            @creator(Thing)
+            def make_thing(value: object, /) -> strcs.ConvertResponse[Thing]:
+                ...
+
+            thing = reg.create(Thing, ...)
+
+        The decorator is instantiated with the object the creator should be
+        making. As well as optional a boolean called ``assume_unchanged_converted``
+        which defaults to True.
+
+        When ``assume_unchanged_converted`` is True then the creator is not
+        called if the value is already the desired type. If it is False then
+        it will always be called.
+        """
         from .decorator import WrappedCreator
 
         register = self
@@ -96,7 +163,7 @@ class CreateRegister:
 
             register: tp.ClassVar[CreateRegister]
 
-            def __init__(self, typ: object, assume_unchanged_converted=True):
+            def __init__(self, typ: object, *, assume_unchanged_converted=True):
                 self.original = typ
                 self.assume_unchanged_converted = assume_unchanged_converted
 
@@ -131,6 +198,15 @@ class CreateRegister:
         meta: Meta | None = None,
         once_only_creator: ConvertFunction[T] | None = None,
     ) -> T:
+        """
+        Create an instance of the specified type by transforming the provided
+        value.
+
+        If no ``meta`` is provided, then an empty meta is created.
+
+        If ``once_only_creator`` is provided then it will be used as the entry
+        point for conversion.
+        """
         if isinstance(typ, Type):
             want = typ
         else:
@@ -160,6 +236,10 @@ class CreateRegister:
         meta: Meta | None = None,
         once_only_creator: ConvertFunction[T] | None = None,
     ) -> T:
+        """
+        This is the same as ``reg.create`` but the type will be wrapped with the
+        provided annotation.
+        """
         if isinstance(typ, Type):
             want = typ
         else:

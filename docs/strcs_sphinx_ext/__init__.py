@@ -25,6 +25,24 @@ def process_signature(
             ", creator: strcs.ConvertDefinition[T] | None = None)",
             return_annotation,
         )
+    elif name == "strcs.CreateRegister":
+        return "()", return_annotation
+    elif name == "strcs.CreateRegister.create":
+        return (
+            "(typ: type[T] | strcs.Type[T], value: object = strcs.NotSpecified"
+            ", meta: strcs.Meta | None = None"
+            ", once_only_creator: strcs.ConvertFunction[T] | None = None)"
+        ), return_annotation
+    elif name == "strcs.CreateRegister.create_annotated":
+        return (
+            "(typ: type[T] | strcs.Type[T],"
+            ", ann: MetaAnnotation | MergedMetaAnnotation | AdjustableMeta | AdjustableCreator | ConvertFunction[T]"
+            ", value: object = strcs.NotSpecified"
+            ", meta: strcs.Meta | None = None"
+            ", once_only_creator: strcs.ConvertFunction[T] | None = None)"
+        ), return_annotation
+    elif name == "strcs.CreateRegister.make_decorator":
+        return "()", "strcs.Creator"
 
     return None
 

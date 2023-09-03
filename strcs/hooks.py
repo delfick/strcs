@@ -1,3 +1,11 @@
+"""
+The heart of ``strcs`` is the hook that is created for cattrs. This hook handles
+the requirement of passing around the meta object to deeply nested objects even
+if there is an unbroken chain of ``strcs`` creators to reach that nested object.
+
+This is done without recursion errors and with the ability to customize the result
+for specific properties on a class.
+"""
 import typing as tp
 
 import cattrs
@@ -17,14 +25,33 @@ U = tp.TypeVar("U")
 
 
 def _object_check(typ: type) -> bool:
+    """
+    We need to be able to tell cattrs to passthrough anything with the type "object"
+
+    This function is defined at the module level so that it can also be removed
+    from cattrs when ``strcs`` is finished with it's processing.
+    """
     return typ is object
 
 
 def _passthrough(obj: object, typ: type) -> object:
+    """
+    We need to be able to tell cattrs to passthrough anything with the type "object"
+
+    This function is defined at the module level so that it can also be removed
+    from cattrs when ``strcs`` is finished with it's processing.
+    """
     return obj
 
 
 class CreateStructureHook:
+    """
+    This class knows how to register hooks to inject ``strcs`` logic into a
+    cattrs Converter. Usage is via the ``structure`` classmethod which will
+    do a structure with strcs logic and remove strcs hooks from the converter
+    when done.
+    """
+
     @classmethod
     def structure(
         kls,
@@ -60,12 +87,19 @@ class CreateStructureHook:
             type_cache=type_cache,
         )
 
+        # Make sure cattrs doesn't complain about values with the type "object"
         converter.register_structure_hook_func(_object_check, _passthrough)
+
+        # Insert the strcs conversion logic with a check function that lets us
+        # also rely on cattrs logic, so that deeply nested values after a broken
+        # chain of strcs conversions, still gets strcs logic
         converter.register_structure_hook_func(hooks.switch_check, hooks.convert)
 
         try:
+            # Start by converting without cattrs logic
             ret = hooks.convert(value, typ)
         finally:
+            # Ensure our strcs hooks are removed after they are used
             converter._structure_func._function_dispatch._handler_pairs.remove(
                 (hooks.switch_check, hooks.convert, False)
             )
