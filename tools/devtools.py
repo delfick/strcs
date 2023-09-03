@@ -1,15 +1,10 @@
-import http.server
 import inspect
 import os
 import platform
 import shlex
 import shutil
-import socketserver
 import sys
-import threading
-import time
 import typing as tp
-import webbrowser
 from pathlib import Path
 
 here = Path(__file__).parent
@@ -108,43 +103,23 @@ class App:
 
     @command
     def docs(self, bin_dir: Path, args: list[str]) -> None:
-        do_view: bool = False
         docs_path = here / ".." / "docs"
+        build_path = docs_path / "_build"
+        command: list[Path | str] = [bin_dir / "sphinx-build"]
+
+        other_args: list[str] = []
         for arg in args:
             if arg == "fresh":
-                build_path = docs_path / "_build"
                 if build_path.exists():
                     shutil.rmtree(build_path)
             elif arg == "view":
-                do_view = True
+                command = [bin_dir / "sphinx-autobuild", "--port", "9876"]
+            else:
+                other_args.append(arg)
 
         os.chdir(docs_path)
-        run(bin_dir / "sphinx-build", "-b", "html", ".", "_build/html", "-d", "_build/doctrees")
 
-        if do_view:
-
-            port = 9876
-            address = f"http://127.0.0.1:{port}"
-            results = docs_path / "_build" / "html"
-
-            class Handler(http.server.SimpleHTTPRequestHandler):
-                def __init__(self, *args, **kwargs):
-                    kwargs["directory"] = str(results)
-                    super().__init__(*args, **kwargs)
-
-            def open_browser():
-                time.sleep(0.2)
-                webbrowser.open(address)
-
-            try:
-                with socketserver.TCPServer(("", port), Handler) as httpd:
-                    print(f"Serving docs at {address}")
-                    thread = threading.Thread(target=open_browser)
-                    thread.daemon = True
-                    thread.start()
-                    httpd.serve_forever()
-            except KeyboardInterrupt:
-                pass
+        run(*command, ".", "_build/html", "-b", "html", "-d", "_build/doctrees", *other_args)
 
 
 app = App()
