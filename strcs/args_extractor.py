@@ -1,3 +1,13 @@
+"""
+A key part of what ``strcs`` provides is the ability to provide functions that
+are used to transform between some value and the final type. These functions
+allow the developer to request information necessary for that transformation from
+the meta object that is present.
+
+The ``ArgsExtractor`` is used to determine the information that is passed into
+these functions. It takes in information about the function, as well as some
+related information and returns what the function should be called with.
+"""
 import inspect
 import typing as tp
 
@@ -34,6 +44,30 @@ class ArgsExtractor(tp.Generic[T]):
         self.signature = signature
 
     def extract(self) -> list[object]:
+        """
+        Looking at the signature object of the function we want to generate values
+        for, we can determine what to provide.
+
+        Support all the ConvertDefinition forms:
+
+        ()
+
+        (value, /)
+
+        (value, want, /)
+
+        (value, want, /, **meta)
+
+        Where meta objects can be:
+
+        _meta: The meta object
+        _converter: The cattrs.Converter object
+        _register: The CreateRegister object
+
+        Search in meta by name only if a keyword arg has no type annotation and
+        search in meta by name and type if a keyword arg does have a type
+        annotation.
+        """
         from .register import CreateRegister
 
         values = list(self.signature.parameters.values())

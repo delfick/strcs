@@ -38,9 +38,8 @@ Here the ``create_thing`` creator that has been registered for the ``Thing``
 class will convert an integer into an instance of the ``Thing`` class. It does
 this by returning a dictionary that cattrs will then use to create the instance.
 
-.. note:: the type annotation on ``val`` in the creator is not enforced and
-   should only be considered as documentation. It is up to the creator to
-   understand the shape of that variable.
+.. note:: the type annotation on ``value`` in the creator must be ``object``
+   as there are no guarantees on what is provided for value.
 
 ``strcs`` allows creators to be one of the following forms:
 
@@ -93,7 +92,7 @@ this by returning a dictionary that cattrs will then use to create the instance.
    @creator(T)
    def creator(value: object, want: strcs.Type[T], /, meta_arg: U, meta_arg2: Z, ...) -> strcs.ConvertResponse:
        """
-       The positional only slash means that val and want aren't taken from
+       The positional only slash means that value and want aren't taken from
        possible names from the meta
        """
        ...
@@ -103,7 +102,7 @@ this by returning a dictionary that cattrs will then use to create the instance.
    do not conflict with any names used in keyword arguments. For more
    information see https://realpython.com/lessons/positional-only-arguments/
 
-A creator gets the ``val`` that needs to be transformed, the type that we ``want``
+A creator gets the ``value`` that needs to be transformed, the type that we ``want``
 to create (note this may be a subclass of the type used in the decorator) and
 any arguments from meta.
 
@@ -132,7 +131,11 @@ converter being used, and the register being used:
 
     @creator(Thing)
     def create_thing(
-        value: object, /, _meta: strcs.Meta, _converter: cattrs.Converter, _register: strcs.CreateRegister
+        value: object,
+        /,
+        _meta: strcs.Meta,
+        _converter: cattrs.Converter,
+        _register: strcs.CreateRegister,
     ) -> dict | None:
         if not isinstance(value, dict):
             return None
@@ -166,7 +169,7 @@ Returning None
     raising an error
 
 Returning True
-    Will make ``strcs`` use the val as is
+    Will make ``strcs`` use the ``value`` as is
 
 Returning a dictionary
     Will make ``strcs`` use ``converter.structure_attrs_fromdict`` on that
@@ -209,7 +212,11 @@ argument in the creator so that an infinite loop may be avoided.
 
     @creator(Thing)
     def create_thing(
-        value: object, want: strcs.Type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
+        value: object,
+        want: strcs.Type,
+        /,
+        _register: strcs.CreateRegister,
+        _meta: strcs.Meta,
     ) -> Thing | None:
         if not (isinstance(value, list) and len(value) == 2 and all(isinstance(v, int) for v in value)):
             return None
@@ -337,5 +344,5 @@ Generator creators may also yield other generators:
 Async creators
 --------------
 
-It's not possible to have async creators because as of 2022, ``cattrs`` itself
+It's not possible to have async creators because as of 2023, ``cattrs`` itself
 does not support async enabled hooks.
