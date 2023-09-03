@@ -27,7 +27,7 @@ from .decorator import (
     ConvertDefinition,
     ConvertFunction,
     ConvertResponse,
-    CreatorDecorator,
+    WrappedCreator,
 )
 from .disassemble.base import Type, TypeCache
 from .meta import Meta
@@ -256,11 +256,9 @@ class Ann(tp.Generic[T]):
         if self.creator is None:
             return creator
 
-        wrapped, _ = CreatorDecorator[T](
-            register, typ, assume_unchanged_converted=typ.has_fields, type_cache=type_cache
-        ).wrap(self.creator)
-
-        return wrapped
+        return WrappedCreator[T](
+            typ, self.creator, type_cache=type_cache, assume_unchanged_converted=typ.has_fields
+        )
 
 
 @define(frozen=True)

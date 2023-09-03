@@ -23,6 +23,8 @@ class Registerer(tp.Protocol[T]):
 
 
 class Creator(tp.Protocol[T]):
+    register: "CreateRegister"
+
     def __call__(self, typ: object, assume_unchanged_converted=True) -> Registerer[T]:
         ...
 
@@ -83,17 +85,44 @@ class CreateRegister:
         )
 
     def make_decorator(self) -> Creator:
-        def creator(typ: object, assume_unchanged_converted=True) -> Registerer[T]:
-            from .decorator import CreatorDecorator
+        from .decorator import WrappedCreator
 
-            return CreatorDecorator[T](
-                self,
-                typ,
-                assume_unchanged_converted=assume_unchanged_converted,
-                type_cache=self.type_cache,
-            )
+        register = self
 
-        return creator
+        class Decorator(tp.Generic[T]):
+            typ: Type[T]
+            func: ConvertDefinition[T]
+            wrapped: WrappedCreator[T]
+
+            register: tp.ClassVar[CreateRegister]
+
+            def __init__(self, typ: object, assume_unchanged_converted=True):
+                self.original = typ
+                self.assume_unchanged_converted = assume_unchanged_converted
+
+            def __call__(
+                self, func: ConvertDefinition[T] | None = None
+            ) -> ConvertDefinition[T] | None:
+
+                if not isinstance(self.original, Type):
+                    typ: Type[T] = Type.create(self.original, cache=register.type_cache)
+                else:
+                    typ = self.original
+
+                self.wrapped = WrappedCreator[T](
+                    typ,
+                    func,
+                    type_cache=register.type_cache,
+                    assume_unchanged_converted=self.assume_unchanged_converted,
+                )
+                self.typ = typ
+                self.func = self.wrapped.func
+
+                register[typ] = self.wrapped
+                return func
+
+        Decorator.register = register
+        return Decorator
 
     def create(
         self,

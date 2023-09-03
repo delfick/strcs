@@ -355,15 +355,6 @@ describe "Register":
                 assert tp.cast(type, Thing()) not in creg
 
 describe "Creators":
-    it "stores the type and the register", creator: strcs.Creator, creg: strcs.CreateRegister:
-
-        class Thing:
-            pass
-
-        dec = tp.cast(strcs.CreatorDecorator, creator(Thing))
-        assert dec.original is Thing
-        assert dec.register is creg
-
     it "takes a ConvertDefinition", creator: strcs.Creator:
 
         class Thing:
@@ -378,9 +369,9 @@ describe "Creators":
         decorated = dec(tp.cast(strcs.ConvertDefinition[Thing], make))
 
         assert decorated is make
-        assert tp.cast(strcs.CreatorDecorator, dec).func is make
+        assert tp.cast(strcs.WrappedCreator, dec).func is make
 
-        assert tp.cast(strcs.CreatorDecorator, dec).register.create(Thing) is thing
+        assert creator.register.create(Thing) is thing
         make.assert_called_once_with()
 
     it "can be given as an override in an annotation", creator: strcs.Creator, creg: strcs.CreateRegister:

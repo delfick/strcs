@@ -13,7 +13,7 @@ from .decorator import (
     ConvertFunction,
     ConvertResponse,
     CreateArgs,
-    CreatorDecorator,
+    WrappedCreator,
 )
 from .disassemble.base import Field, Type, TypeCache
 from .disassemble.hints import resolve_types
@@ -44,9 +44,9 @@ __all__ = [
     "MetaAnnotation",
     "AdjustableMeta",
     "CreateRegister",
+    "WrappedCreator",
     "ConvertFunction",
     "ConvertResponse",
-    "CreatorDecorator",
     "NotSpecifiedMeta",
     "AdjustableCreator",
     "ConvertDefinition",

@@ -46,8 +46,8 @@ ConvertDefinition: tp.TypeAlias = tp.Callable[..., ConvertResponse[T]]
 ConvertFunction: tp.TypeAlias = tp.Callable[[CreateArgs[T]], T]
 
 
-def take_or_make(value: object, typ: Type[T], /) -> ConvertResponse[T]:
-    if typ.is_type_for(value):
+def take_or_make(value: object, want: Type[T], /) -> ConvertResponse[T]:
+    if want.is_type_for(value):
         return value
     elif isinstance(value, (dict, NotSpecifiedMeta)):
         return value
@@ -56,68 +56,42 @@ def take_or_make(value: object, typ: Type[T], /) -> ConvertResponse[T]:
 
 
 class WrappedCreator(tp.Generic[T]):
-    def __init__(self, wrapped: tp.Callable[[CreateArgs], T], func: ConvertDefinition[T]):
-        self.func = func
-        self.wrapped = wrapped
 
-    def __eq__(self, o: object) -> bool:
-        return o == self.func or (
-            isinstance(o, WrappedCreator) and o.func == self.func and o.wrapped == self.wrapped
-        )
-
-    def __call__(self, create_args: "CreateArgs") -> T:
-        return self.wrapped(create_args)
-
-    def __repr__(self):
-        return f"<Wrapped {self.func}>"
-
-
-class CreatorDecorator(tp.Generic[T]):
-    typ: Type[T]
     func: ConvertDefinition[T]
 
     def __init__(
         self,
-        register: "CreateRegister",
-        typ: object,
-        assume_unchanged_converted=True,
+        typ: Type[T],
+        func: ConvertDefinition[T] | None = None,
         *,
         type_cache: TypeCache,
+        assume_unchanged_converted: bool = True,
     ):
-        self.original = typ
-        self.register = register
+        self.typ = typ
         self.type_cache = type_cache
         self.assume_unchanged_converted = assume_unchanged_converted
 
-    def __call__(self, func: ConvertDefinition[T] | None = None) -> ConvertDefinition[T]:
-        if not isinstance(self.original, Type):
-            self.typ = Type.create(self.original, cache=self.type_cache)
-        else:
-            self.typ = self.original
-
-        wrapped, func = self.wrap(func)
-        self.func = func
-        self.register[self.typ] = wrapped
-        return func
-
-    def wrap(
-        self, func: ConvertDefinition[T] | None = None
-    ) -> tuple[ConvertFunction[T], ConvertDefinition[T]]:
         if func is None:
-            self.func = tp.cast(ConvertDefinition[T], take_or_make)
+            self.func = take_or_make
         else:
             self.func = func
 
-        if hasattr(self.func, "side_effect"):
+        if hasattr(func, "side_effect"):
             # Hack to deal with mock objects
-            self.signature = inspect.signature(self.func.side_effect)  # type: ignore
+            side_effect = getattr(func, "side_effect")
+            assert callable(side_effect)
+            self.signature = inspect.signature(side_effect)
         else:
+            assert callable(self.func)
             self.signature = inspect.signature(self.func)
 
-        wrapped = WrappedCreator[T](self.wrapped, self.func)
-        return wrapped, self.func
+    def __eq__(self, o: object) -> bool:
+        return o == self.func or (isinstance(o, WrappedCreator) and o.func == self.func)
 
-    def wrapped(self, create_args: CreateArgs[T]) -> T:
+    def __repr__(self):
+        return f"<Wrapped {self.func}>"
+
+    def __call__(self, create_args: "CreateArgs") -> T:
         want = create_args.want
         meta = create_args.meta
         value = create_args.value
