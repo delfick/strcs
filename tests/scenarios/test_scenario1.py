@@ -57,7 +57,7 @@ class Projects:
 
 
 @creator(Item)
-def create_item(item: object) -> dict | None:
+def create_item(item: object, /) -> dict | None:
     if item is strcs.NotSpecified:
         item = {}
     if isinstance(item, dict):
@@ -87,7 +87,7 @@ def create_container(
 
 
 @creator(Projects)
-def create_projects(value: object) -> dict | None:
+def create_projects(value: object, /) -> dict | None:
     if isinstance(value, list):
         return {"projects": value}
     elif isinstance(value, dict) and "projects" in value:

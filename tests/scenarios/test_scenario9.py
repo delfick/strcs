@@ -43,7 +43,7 @@ def create_other(value: object, /, multiply: int = 1) -> dict:
 
 
 @creator(Sub)
-def create_sub(value: object) -> tp.Generator[dict | None, Sub, None]:
+def create_sub(value: object, /) -> tp.Generator[dict | None, Sub, None]:
     if isinstance(value, dict):
         res = yield value
 

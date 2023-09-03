@@ -17,7 +17,7 @@ class Sentences:
 
 
 @creator(Sentences)
-def create_sentences(value: object) -> dict | None:
+def create_sentences(value: object, /) -> dict | None:
     if not isinstance(value, str):
         return None
     parts = value.split(",")

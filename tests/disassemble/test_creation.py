@@ -126,7 +126,7 @@ describe "creation":
     it "invokes creators for annotated fields":
         reg = strcs.CreateRegister()
 
-        def doubler(val: object) -> int:
+        def doubler(val: object, /) -> int:
             assert isinstance(val, int)
             return val * 2
 
@@ -143,7 +143,7 @@ describe "creation":
     it "invokes creators for annotated fields even if not provided":
         reg = strcs.CreateRegister()
 
-        def doubler(val: object) -> int:
+        def doubler(val: object, /) -> int:
             assert val is strcs.NotSpecified
             return 200
 

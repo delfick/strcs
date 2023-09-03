@@ -128,7 +128,26 @@ class CreatorDecorator(tp.Generic[T]):
             return tp.cast(T, value)
 
         try:
-            res = self._invoke_func(value, want, meta, converter, register)
+            args = ArgsExtractor(
+                signature=self.signature,
+                value=value,
+                want=want,
+                meta=meta,
+                converter=converter,
+                register=register,
+                creator=self.func,
+            ).extract()
+        except Exception as error:
+            raise errors.UnableToConvert(
+                converting=value,
+                into=want,
+                reason="Failed to determine arguments for creator",
+                error=error,
+                creator=self.func,
+            )
+
+        try:
+            res = self.func(*args)
         except Exception as error:
             raise errors.UnableToConvert(
                 converting=value,
@@ -218,35 +237,3 @@ class CreatorDecorator(tp.Generic[T]):
             return deal(made, value)
         finally:
             res.close()
-
-    def _invoke_func(
-        self,
-        value: object,
-        want: Type[T],
-        meta: Meta,
-        converter: cattrs.Converter,
-        register: "CreateRegister",
-    ) -> ConvertResponse[T]:
-
-        if len(self.signature.parameters) == 0:
-            return tp.cast(ConvertDefinitionNoValue, self.func)()
-
-        elif len(self.signature.parameters) == 1:
-            return tp.cast(ConvertDefinitionValue, self.func)(value)
-
-        elif len(self.signature.parameters) == 2 and all(
-            v.kind is inspect.Parameter.POSITIONAL_ONLY for v in self.signature.parameters.values()
-        ):
-            return tp.cast(ConvertDefinitionValueAndType, self.func)(value, want)
-
-        else:
-            args = ArgsExtractor(
-                signature=self.signature,
-                value=value,
-                want=want,
-                meta=meta,
-                converter=converter,
-                register=register,
-                creator=self.func,
-            ).extract()
-            return self.func(*args)

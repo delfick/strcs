@@ -41,7 +41,7 @@ class Things:
 
 
 @creator(Thing)
-def create_thing(value: object) -> dict | None:
+def create_thing(value: object, /) -> dict | None:
     if not isinstance(value, (int, float)):
         return None
     return {"base": value, "raised": value + 0.1, "elevated": value + 0.2}

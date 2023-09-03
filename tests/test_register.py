@@ -428,7 +428,7 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing, assume_unchanged_converted=False)
-            def make(value: object) -> Thing:
+            def make(value: object, /) -> Thing:
                 called.append(value)
                 return thing
 
@@ -655,7 +655,7 @@ describe "Creators":
                 things: list[Thing]
 
             @creator(Thing)
-            def create_thing(value: object) -> dict | None:
+            def create_thing(value: object, /) -> dict | None:
                 if not isinstance(value, int):
                     return None
                 counts["upto"] += 1
@@ -723,7 +723,7 @@ describe "Creators":
                 val: int
 
             @creator(Thing)
-            def create_thing(value: object) -> dict | None:
+            def create_thing(value: object, /) -> dict | None:
                 if not isinstance(value, int):
                     return None
                 return {"val": value * 2}
@@ -731,7 +731,7 @@ describe "Creators":
             @define
             class Things:
                 thing1: Thing
-                thing2: tp.Annotated[Thing, lambda value: {"val": value * 3}]
+                thing2: tp.Annotated[Thing, lambda value, /: {"val": value * 3}]
                 thing3: Thing
 
             things = creg.create(Things, {"thing1": 1, "thing2": 5, "thing3": 10})
@@ -751,7 +751,7 @@ describe "Creators":
                 val: int
 
             @creator(Thing)
-            def create_thing(value: object) -> dict | None:
+            def create_thing(value: object, /) -> dict | None:
                 if not isinstance(value, int):
                     return None
                 return {"val": value * 2}
@@ -860,11 +860,11 @@ describe "Creators":
             thing = Thing()
 
             @creator(Thing)
-            def make(thing: object) -> Thing | dict | None:
+            def make(value: object, /) -> Thing | dict | None:
                 called.append(1)
-                if not isinstance(thing, (Thing, dict)):
+                if not isinstance(value, (Thing, dict)):
                     return None
-                return thing
+                return value
 
             assert creg.create(Thing, thing) is thing
             assert called == []
@@ -1072,7 +1072,7 @@ describe "Creators":
                         self.two = None
 
                 @creator(Thing)
-                def make(value: object) -> tp.Generator[dict | bool, Thing, None]:
+                def make(value: object, /) -> tp.Generator[dict | bool, Thing, None]:
                     if not isinstance(value, dict):
                         return None
                     made = yield value
@@ -1094,7 +1094,7 @@ describe "Creators":
                         self.two = None
 
                 @creator(Thing)
-                def make(value: object) -> tp.Generator[dict, Thing, None]:
+                def make(value: object, /) -> tp.Generator[dict, Thing, None]:
                     if not isinstance(value, dict):
                         return None
                     made = yield value
@@ -1129,7 +1129,7 @@ describe "Creators":
 
                 @creator(Thing)
                 def make(
-                    value: object,
+                    value: object, /
                 ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified], Thing, None]:
                     if not isinstance(value, (dict, Thing, type(strcs.NotSpecified))):
                         return None
@@ -1168,7 +1168,7 @@ describe "Creators":
 
                 @creator(Thing)
                 def make(
-                    value: object,
+                    value: object, /
                 ) -> tp.Generator[tp.Generator[dict, Thing, None], Thing, None]:
                     called.append(1)
                     made = yield recursion_is_fun(value)
@@ -1190,7 +1190,7 @@ describe "Creators":
 
                 @creator(Thing)
                 def make(
-                    value: object,
+                    value: object, /
                 ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified] | None, Thing, None]:
                     made = yield {"one": 0}
                     assert isinstance(made, Thing)

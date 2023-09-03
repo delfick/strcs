@@ -36,8 +36,12 @@ class ArgsExtractor(tp.Generic[T]):
     def extract(self) -> list[object]:
         from .register import CreateRegister
 
-        use = []
         values = list(self.signature.parameters.values())
+
+        if len(values) < 2 and all(v.kind is inspect.Parameter.POSITIONAL_ONLY for v in values):
+            return [self.value, self.want][: len(values)]
+
+        use = []
 
         if values and values[0].kind is inspect.Parameter.POSITIONAL_ONLY:
             values.pop(0)
