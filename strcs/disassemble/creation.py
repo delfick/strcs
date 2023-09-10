@@ -11,6 +11,17 @@ T = tp.TypeVar("T")
 
 
 def fill(want: Type[T], res: object) -> tp.Mapping[str, object]:
+    """
+    Given a ``strcs.Type`` and some object, ensure the object has ``NotSpecified`` as values for
+    any missing key that we want to go through ``strcs`` logic.
+
+    If res is ``strcs.NotSpecified`` it will be replaced with a dictionary. If it otherwise isn't a
+    mutable mapping, then this function currently will complain.
+
+    The way ``strcs`` integrates with ``cattrs`` means that keys with no value may not go through
+    all the logic we want it to go through, and so if the type of the field is annotated or
+    "has_fields" then that missing key will be given a ``strcs.NotSpecified``.
+    """
     if res is NotSpecified:
         res = {}
 
@@ -26,6 +37,16 @@ def fill(want: Type[T], res: object) -> tp.Mapping[str, object]:
 
 
 def instantiate(want: Type[T], res: object, converter: cattrs.Converter) -> T:
+    """
+    Given a ``strcs.Type`` and some object, turn that object into an instance of our type.
+
+    This function will complain if the extracted type is not callable.
+
+    This will find values for keys in res depending on the fields on the provided type that
+    are owned by the extracted type.
+
+    It will use the ``cattrs.Converter`` provided to do transformation on each field.
+    """
     if res is None:
         if want.optional or want.original is None:
             return tp.cast(T, None)
