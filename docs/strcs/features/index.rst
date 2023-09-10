@@ -3,7 +3,7 @@
 Features
 ========
 
-There are four important parts that make up how ``strcs`` works:
+There are five important parts that make up how ``strcs`` works:
 
 .. note:: It's a good idea to read about cattrs before reading about strcs,
    https://cattrs.readthedocs.io/en/latest/readme.html
@@ -36,3 +36,11 @@ It's possible to annotation the type on fields on a class to inject meta
 information and/or replace the creator used for that field.
 
 See :ref:`features_annotations`
+
+.. rubric:: Disassembled
+
+The ``strcs`` codebase has the ability to introspect and sort python type annotations so
+that it can understand what is thrown at it. This functionality can also be used
+without the rest of ``strcs`` functionality.
+
+See :ref:`features_disassembled`

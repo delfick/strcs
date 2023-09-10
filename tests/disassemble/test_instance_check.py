@@ -1,7 +1,10 @@
 # coding: spec
+import copy
+import dataclasses
 import types
 import typing as tp
 
+import attrs
 import pytest
 
 import strcs
@@ -315,6 +318,45 @@ describe "InstanceCheck":
         with pytest.raises(ValueError, match="Cannot instantiate a union type"):
             constructor(1)
 
+    it "can get repr", type_cache: strcs.TypeCache:
+
+        class One:
+            one: int
+            two: str
+
+        class Two(tp.Generic[T]):
+            one: T
+            two: str
+
+        @attrs.define
+        class Three:
+            one: bool
+            two: dict[str, One]
+
+        examples = [
+            (0, repr(int)),
+            (1, repr(int)),
+            (None, repr(None)),
+            (True, repr(bool)),
+            (False, repr(bool)),
+            ([], repr(list)),
+            ({}, repr(dict)),
+            ([1], repr(list)),
+            ({2: 1}, repr(dict)),
+            (One, repr(One)),
+            (Two, repr(Two)),
+            (Two[int], repr(Two)),
+            (Three, repr(Three)),
+            (int | str, f"{repr(int)} | {repr(str)}"),
+            (int | None, repr(int)),
+            (tp.Union[int, str], f"{repr(int)} | {repr(str)}"),
+            (tp.Union[bool, None], repr(bool)),
+            (One | int, f"{repr(One)} | {repr(int)}"),
+        ]
+        for thing, expected in examples:
+            checkable = Type.create(thing, cache=type_cache).checkable
+            assert repr(checkable) == expected
+
     it "can get typing origin", type_cache: strcs.TypeCache:
 
         assert tp.get_origin(Type.create(str | int, cache=type_cache).checkable) == types.UnionType
@@ -371,3 +413,94 @@ describe "InstanceCheck":
 
         assert tp.get_args(Type.create(Thing, cache=type_cache).checkable) == ()
         assert tp.get_args(Type.create(Thing[int], cache=type_cache).checkable) == (int,)
+
+    it "can get typing hints", type_cache: strcs.TypeCache:
+        assert tp.get_type_hints(Type.create(int, cache=type_cache).checkable) == {}
+
+        class Thing:
+            one: int
+            two: str
+
+        class Other(tp.Generic[T]):
+            one: T
+            two: str
+
+        @attrs.define
+        class Stuff:
+            one: bool
+            two: dict[str, Thing]
+
+        lcls = copy.copy(locals())
+        lcls["TypeCache"] = strcs.TypeCache
+
+        thing: object
+        for thing in (0, 1, None, True, False, [], {}, Thing, Other, Other[int], Stuff):
+            want_result: object | None = None
+            want_error: Exception | None = None
+
+            got_result: object | None = None
+            got_error: Exception | None = None
+
+            try:
+                want_result = tp.get_type_hints(thing)
+            except Exception as e:
+                want_error = e
+
+            try:
+                got_result = tp.get_type_hints(Type.create(thing, cache=type_cache).checkable)
+            except Exception as e:
+                got_error = e
+
+            if want_result is None and isinstance(want_error, TypeError):
+                # Can't get around the fact that checkable is a type
+                assert got_result == {}
+                assert got_error is None
+            else:
+                assert got_result == want_result, thing
+                assert got_error == want_error, thing
+
+    it "allows attrs helpers", type_cache: strcs.TypeCache:
+
+        @attrs.define
+        class One:
+            one: int
+            two: str
+
+        @dataclasses.dataclass
+        class Two:
+            one: int
+            two: str
+
+        class Three:
+            one: int
+            two: str
+
+        for kls in (One, Two, Three):
+            checkable = Type.create(kls, cache=type_cache).checkable
+            is_attrs = attrs.has(kls)
+            assert is_attrs == attrs.has(checkable)
+            if is_attrs:
+                assert attrs.fields(kls) == attrs.fields(checkable)  # type: ignore[arg-type]
+
+    it "allows dataclasses helpers", type_cache: strcs.TypeCache:
+
+        @attrs.define
+        class One:
+            one: int
+            two: str
+
+        @dataclasses.dataclass
+        class Two:
+            one: int
+            two: str
+
+        class Three:
+            one: int
+            two: str
+
+        for kls in (One, Two, Three):
+            checkable = Type.create(kls, cache=type_cache).checkable
+            is_dataclass = dataclasses.is_dataclass(kls)
+            assert is_dataclass == dataclasses.is_dataclass(checkable)
+            if is_dataclass:
+                assert dataclasses.fields(kls) == dataclasses.fields(checkable)  # type: ignore[arg-type]

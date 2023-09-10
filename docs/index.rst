@@ -7,6 +7,7 @@
    strcs/features/meta
    strcs/features/creators
    strcs/features/annotations
+   strcs/features/disassembled
 
 .. _strcs:
 
