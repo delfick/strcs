@@ -1,3 +1,13 @@
+"""
+There is a limitation whereby unresolved string type annotations will cause
+errors as ``strcs`` won't know what object the string represents. ``strcs`` offers a helper
+function based off ``typing.get_type_hints`` for resolving string type
+annotations. It will automatically be used on any class that ``strcs`` needs to work with
+unless the ``auto_resolve_string_annotations=False`` is given to ``strcs.CreateRegister``.
+
+.. autofunction:: strcs.resolve_types
+
+"""
 import functools
 import operator
 import sys
@@ -24,10 +34,19 @@ class IsField(tp.Protocol):
 
 @tp.runtime_checkable
 class WithResolvedTypes(tp.Protocol[C]):
+    """
+    Strcs will mark classes it has resolved types for to prevent recursive loops.
+    """
+
     __strcs_types_resolved__: C
 
 
 class WithCopyWith(tp.Protocol[T]):
+    """
+    The typing.Generic class has a ``copy_with`` method that lets you create a new
+    version of that instance with different arguments.
+    """
+
     __args__: tuple
 
     def copy_with(self, args: tuple) -> T:
@@ -39,6 +58,10 @@ class WithCopyWith(tp.Protocol[T]):
 
 
 class WithOrigin(tp.Protocol):
+    """
+    Used to identify objects that have a result from ``typing.get_origin``
+    """
+
     __args__: tuple
 
     @classmethod
@@ -47,6 +70,10 @@ class WithOrigin(tp.Protocol):
 
 
 class IsUnion(tp.Protocol):
+    """
+    Used to identify objects that are unions
+    """
+
     __args__: tuple
 
     @classmethod
@@ -55,6 +82,10 @@ class IsUnion(tp.Protocol):
 
 
 class WithClassGetItem(tp.Protocol[C]):
+    """
+    Used to find objects that are filled generics.
+    """
+
     __args__: tuple
     __origin__: type[C]
 
@@ -76,6 +107,10 @@ def resolve_type(
     globalns: dict[str, object] | None = None,
     localns: dict[str, object] | None = None,
 ) -> object:
+    """
+    Resolve a single type annotation such that all ForwardRefs under this type are
+    replaced with concrete types.
+    """
     origin = tp.get_origin(typ)
 
     if isinstance(typ, str):
@@ -109,6 +144,10 @@ def resolve_type(
 
 
 class AnnotationUpdater(tp.Protocol):
+    """
+    Protocol for an object that can change the annotations on an object
+    """
+
     def __contains__(self, name: object) -> bool:
         ...
 
@@ -117,6 +156,11 @@ class AnnotationUpdater(tp.Protocol):
 
 
 class FromAnnotations(AnnotationUpdater):
+    """
+    Changing annotations on a ``__annotations__`` object is easy as that
+    is a Mutable mapping.
+    """
+
     def __init__(self, cls: type):
         self.annotations = cls.__annotations__
 
@@ -128,6 +172,11 @@ class FromAnnotations(AnnotationUpdater):
 
 
 class FromFields(AnnotationUpdater):
+    """
+    Updating annotations on an attrs/dataclass requires also updating the fields
+    on the class as well
+    """
+
     def __init__(self, cls: type, fields: dict[str, IsField]):
         self.fields = fields
         self.annotations = cls.__annotations__
@@ -150,6 +199,11 @@ def resolve_types(
     """
     Resolve any strings and forward annotations in type annotations.
 
+    This is equivalent to ``attrs.resolve_types`` except it doesn't erase Annotations.
+
+    It is automatically used by ``strcs.CreateRegister`` unless the
+    ``auto_resolve_string_annotations=False`` option is used when it's created.
+
     Assumes that the string annotations have been defined when you call this function::
 
         from attrs import define
@@ -169,7 +223,38 @@ def resolve_types(
 
         strcs.resolve_types(One)
 
-    This is equivalent to ``attrs.resolve_types`` except it doesn't erase Annotations.
+    Note that if ``from __future__ import annotations`` is used then all types are
+    strings and require resolution. In that case if auto resolution on the register
+    is turned off then ``strcs.resolve_types`` may be used as a decorator in any
+    situation where types are already available at definition:
+
+    .. code-block:: python
+
+        from __future__ import annotations
+        from attrs import define
+        import strcs
+
+
+        @strcs.resolve_types
+        class Stuff:
+            one: int
+
+
+        @define
+        class Thing:
+            stuff: "Stuff"
+            other: "Other"
+
+
+        @strcs.resolve_types
+        @define
+        class Other:
+            thing: Thing | None
+
+
+        strcs.resolve_types(Thing)
+
+    .. note:: Calling resolve_types will modify the fields on the class in place.
     """
     from ..register import CreateRegister
 
