@@ -1,8 +1,9 @@
-import dataclasses
 import itertools
 import typing as tp
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
+
+import attrs
 
 from ..memoized_property import memoized_property
 from ..standard import union_types
@@ -10,28 +11,84 @@ from .base import Field, Type, TypeCache
 
 
 class HasOrigBases(tp.Protocol):
+    """
+    Used to figure out the origin classes for an object.
+    """
+
     __orig_bases__: tuple[object]
 
     @classmethod
-    def match(self, thing: object) -> tp.TypeGuard["HasOrigBases"]:
+    def has(self, thing: object) -> tp.TypeGuard["HasOrigBases"]:
         return isinstance(getattr(thing, "__orig_bases__", None), tuple)
+
+    @classmethod
+    def determine_orig_bases(cls, orig: object | None, mro: Sequence[type]) -> Sequence[object]:
+        """
+        Determine the classes to use for our bases.
+
+        Python type annotations are difficult to parse and does not make our lives easy here.
+
+        ``tp.get_origin`` and ``__orig_bases__`` are specific to generics and we want to know
+        if this class is not generic, has generic as a direct parent, or generic as a distant
+        parent.
+
+        The ``__orig_bases__`` will itself contain filled generics this class is based off and so
+        we get the unsubscripted class of those and look for them in the mro.
+
+        If any of them are the second in the list, then that means they have come directly from this
+        class and not from a distant parent.
+        """
+        if HasOrigBases.has(orig):
+            bases = [tp.get_origin(base) or base for base in orig.__orig_bases__]
+            if any(mro.index(base) == 1 for base in bases):
+                return orig.__orig_bases__
+
+        return list(mro)[1:]
 
 
 class MRO:
     """
     This class represents the type Hierarchy of an object.
 
-    Using this class it is possible to figure out the MRO of the underlying classes and
-    the typevars for this object and all objects in it's hierarchy.
+    Using this class it is possible to figure out the hierarchy of the underlying
+    classes and the typevars for this object and all objects in it's hierarchy.
 
     As well as match the class against fields and determine closest type match for
     typevars.
+
+    An instance of this object may be created using the ``create`` classmethod:
+
+    .. code-block:: python
+
+        from my_code import my_class
+        import strcs
+
+
+        type_cache = strcs.TypeCache()
+        mro = strcs.MRO.create(my_class, type_cache)
+
+    Or via the ``mro`` property on a ``strcs.Type`` instance:
+
+    .. code-block:: python
+
+        from my_code import my_class
+        import strcs
+
+
+        type_cache = strcs.TypeCache()
+        typ = strcs.Type.create(my_class, cache=type_cache)
+        mro = typ.mro
     """
 
     _memoized_cache: dict[str, object]
 
-    @dataclasses.dataclass
+    @attrs.define
     class Referal:
+        """
+        An ``attrs`` class used to represent when one type var is defined in
+        terms of another.
+        """
+
         owner: type
         typevar: tp.TypeVar
         value: object
@@ -49,30 +106,7 @@ class MRO:
         origin = start if isinstance(start, type) and not args else tp.get_origin(start)
         mro = () if origin is None or not hasattr(origin, "__mro__") else origin.__mro__
 
-        def determine_orig_bases(orig: object | None) -> Sequence[object]:
-            """
-            Determine the classes to use for our bases.
-
-            Python type annotations are difficult to parse and does not make our lives easy here.
-
-            ``tp.get_origin`` and ``__orig_bases__`` are specific to generics and we want to know
-            if this class is not generic, has generic as a direct parent, or generic as a distant
-            parent.
-
-            The ``__orig_bases__`` will itself contain filled generics this class is based off and so
-            we get the unsubscripted class of those and look for them in the mro.
-
-            If any of them are the second in the list, then that means they have come directly from this
-            class and not from a distant parent.
-            """
-            if HasOrigBases.match(orig):
-                bases = [tp.get_origin(base) or base for base in orig.__orig_bases__]
-                if any(mro.index(base) == 1 for base in bases):
-                    return orig.__orig_bases__
-
-            return list(mro)[1:]
-
-        orig_bases = determine_orig_bases(origin)
+        orig_bases = HasOrigBases.determine_orig_bases(origin, mro)
         bases = [Type.create(base, expect=object, cache=type_cache) for base in orig_bases]
 
         return cls(
@@ -104,7 +138,9 @@ class MRO:
 
         The keys to the dictionary are a tuple of (class, typevar).
 
-        So for example, getting the typevars for ``Two`` in the following example::
+        So for example, getting the typevars for ``Two`` in the following example:
+
+        .. code-block:: python
 
             import typing as tp
             import strcs
@@ -113,21 +149,27 @@ class MRO:
             T = tp.TypeVar("U")
 
 
-
             class One(tp.Generic[T]):
                 pass
 
             class Two(tp.Generic[U], One[U]):
                 pass
 
-        Will result in having::
+            type_cache = strcs.TypeCache()
+            typevars = strcs.Type.create(Two, cache=type_cache).mro.typevars
+
+        Will result in having:
+
+        .. code-block:: python
 
             {
                 (Two, U): strcs.Type.Missing,
                 (One, T): MRO.Referal(owner=Two, typevar=U, value=strcs.Type.Missing)
             }
 
-        And for ``Two[str]``::
+        And for ``Two[str]``:
+
+        .. code-block:: python
 
             {
                 (Two, U): str,
@@ -188,6 +230,11 @@ class MRO:
 
     @memoized_property
     def all_vars(self) -> tuple[Type | type[Type.Missing], ...]:
+        """
+        Return an ordered tuple of all the type vars that make up this object
+        taking into account type vars on this object as well as all inherited
+        objects.
+        """
         if self.origin in union_types:
             return ()
 
@@ -220,6 +267,40 @@ class MRO:
 
     @memoized_property
     def signature_for_display(self) -> str:
+        """
+        Return a string representing the filled types for this object.
+
+        For example:
+
+        .. code-block:: python
+
+            import typing as tp
+            import strcs
+
+            T = tp.TypeVar("T")
+            U = tp.TypeVar("U")
+
+
+            class One(tp.Generic[T]):
+                pass
+
+
+            class Two(tp.Generic[U], One[U]):
+                pass
+
+
+            type_cache = strcs.TypeCache()
+            typ1 = strcs.Type.create(One, cache=type_cache)
+            typ2 = strcs.Type.create(One[int], cache=type_cache)
+            typ3 = strcs.Type.create(Two[str], cache=type_cache)
+
+            assert typ1.mro.signature_for_display == "~T"
+            assert typ2.mro.signature_for_display == "int"
+            assert typ3.mro.signature_for_display == "str"
+
+        It is used by ``strcs.Type`` in it's ``for_display`` method to give a
+        string representation of the object it is wrapping.
+        """
         found_with_missing: set[type] = set()
         signature_typevars: list[tuple[tp.TypeVar | int, object]] = []
         for (owner, tv), value in self.typevars.items():
@@ -245,6 +326,17 @@ class MRO:
 
     @memoized_property
     def raw_fields(self) -> tp.Sequence[Field]:
+        """
+        Return a sequence of ``strcs.Field`` objects representing all the
+        annotated fields on the class, including those it receives from it's
+        ancestors.
+
+        These field objects will not contain converted types (any type variables
+        are not resolved).
+
+        The ``fields`` method on the ``MRO`` object will take these fields
+        and resolve the type vars.
+        """
         result: list[Field] = []
         for cls in reversed(self.mro):
             disassembled = Type.create(cls, expect=object, cache=self.type_cache)
@@ -270,6 +362,14 @@ class MRO:
 
     @memoized_property
     def fields(self) -> tp.Sequence[Field]:
+        """
+        Return a sequence of ``strcs.Field`` objects representing the fields
+        on the object, after resolving the type vars.
+
+        Type vars are resolved by understanding how type variables are filled out
+        on the outer object, and how that relates to type variables being used
+        to make up other type variables.
+        """
         typevars = self.typevars
         fields: list[Field] = []
 
@@ -298,6 +398,46 @@ class MRO:
         return fields
 
     def find_subtypes(self, *want: type) -> Sequence["Type"]:
+        """
+        This method will take in a tuple of expected types and return a matching
+        list of types from the type variables on the object.
+
+        The wanted types must be parents of the filled type variables and in the
+        correct order for the function to not raise an error.
+
+        For example:
+
+        .. code-block:: python
+
+            import typing as tp
+            import strcs
+
+            T = tp.TypeVar("T")
+
+
+            class A:
+                pass
+
+
+            class B(A):
+                pass
+
+
+            class C(A):
+                pass
+
+
+            class One(tp.Generic[T]):
+                pass
+
+
+            type_cache = strcs.TypeCache()
+            typ1 = strcs.Type.create(One[B], cache=type_cache)
+            typ2 = strcs.Type.create(One[C], cache=type_cache)
+
+            assert typ1.mro.find_subtypes(A) == (B, )
+            assert typ2.mro.find_subtypes(A) == (C, )
+        """
         typevars = self.typevars
         result: list["Type"] = []
 

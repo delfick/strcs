@@ -3,4 +3,9 @@
 Introspecting python types and their annotations
 ================================================
 
-.. automodule:: strcs.disassemble.instance_check
+.. autoclass:: strcs.MRO
+    :members:
+
+.. autoclass:: strcs.InstanceCheck
+    :members:
+    :undoc-members:

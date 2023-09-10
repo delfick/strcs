@@ -1,8 +1,3 @@
-"""
-.. autoclass:: strcs.InstanceCheck
-    :members:
-    :undoc-members:
-"""
 import abc
 import typing as tp
 

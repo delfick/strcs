@@ -43,6 +43,8 @@ def process_signature(
         ), return_annotation
     elif name == "strcs.CreateRegister.make_decorator":
         return "()", "strcs.Creator"
+    elif name == "strcs.MRO":
+        return "", ""
 
     return None
 
