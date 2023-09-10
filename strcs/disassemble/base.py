@@ -17,10 +17,10 @@ from attrs import NOTHING, Attribute, define
 from attrs import fields as attrs_fields
 from attrs import has as attrs_has
 
+from ..hints import resolve_types
 from ..memoized_property import memoized_property
 from ..not_specified import NotSpecifiedMeta
 from ..standard import builtin_types, union_types
-from .hints import resolve_types
 from .instance_check import InstanceCheck, create_checkable
 
 if tp.TYPE_CHECKING:
