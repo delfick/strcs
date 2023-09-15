@@ -30,20 +30,6 @@ T = tp.TypeVar("T")
 U = tp.TypeVar("U")
 
 
-def _get_generic_super() -> type:
-    class _G(tp.Generic[T]):
-        one: T
-
-    bases = getattr(_G, "__orig_bases__", None)
-    assert isinstance(bases, tuple) and len(bases) > 0
-    ret = tp.get_origin(bases[0])
-    assert isinstance(ret, type)
-    return ret
-
-
-generic_super = _get_generic_super()
-
-
 class IsAnnotated(tp.Protocol):
     __args__: tuple
     __metadata__: tuple
