@@ -15,14 +15,14 @@ signature:
 
 .. code-block:: python
 
-    from attrs import define
+    import attrs
     import strcs
 
     reg = strcs.CreateRegister()
     creator = reg.make_decorator()
 
 
-    @define
+    @attrs.define
     class MyKls:
         one: int
 

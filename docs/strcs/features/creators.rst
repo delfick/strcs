@@ -11,14 +11,14 @@ For example:
 
 .. code-block:: python
 
-    from attrs import define
+    import attrs
     import strcs
 
     reg = strcs.CreateRegister()
     creator = reg.make_decorator()
 
 
-    @define
+    @attrs.define
     class Thing:
         one: int
 
@@ -111,7 +111,7 @@ converter being used, and the register being used:
 
 .. code-block:: python
 
-    from attrs import define
+    import attrs
     import cattrs
     import strcs
 
@@ -124,7 +124,7 @@ converter being used, and the register being used:
     meta = reg.meta(converter=converter)
 
 
-    @define
+    @attrs.define
     class Thing:
         one: int
 
@@ -188,7 +188,7 @@ argument in the creator so that an infinite loop may be avoided.
 
 .. code-block:: python
 
-    from attrs import define
+    import attrs
     import typing as tp
     import secrets
     import strcs
@@ -198,13 +198,13 @@ argument in the creator so that an infinite loop may be avoided.
     creator = reg.make_decorator()
 
 
-    @define
+    @attrs.define
     class Part:
         one: int
         identity: tp.Annotated[str, strcs.FromMeta("identity")]
 
 
-    @define
+    @attrs.define
     class Thing:
         part1: Part
         part2: Part
@@ -263,14 +263,14 @@ For example:
 
 .. code-block:: python
 
-    from attrs import define
+    import attrs
     import strcs
 
     reg = strcs.CreateRegister()
     creator = reg.make_decorator()
 
 
-    @define
+    @attrs.define
     class Thing:
         one: int
 
@@ -297,7 +297,7 @@ Generator creators may also yield other generators:
 
 .. code-block:: python
 
-    from attrs import define
+    import attrs
     import typing as tp
     import strcs
 
@@ -308,7 +308,7 @@ Generator creators may also yield other generators:
     called = []
 
 
-    @define
+    @attrs.define
     class Thing:
         one: int = 1
 

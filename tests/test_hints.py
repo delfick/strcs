@@ -1,11 +1,9 @@
 # coding: spec
 
+import dataclasses
 import typing as tp
-from dataclasses import dataclass
-from dataclasses import fields as dataclass_fields
 
-from attrs import define
-from attrs import fields as attrs_fields
+import attrs
 
 import strcs
 
@@ -19,7 +17,7 @@ class IsField(tp.Protocol):
     name: str
 
 
-@define
+@attrs.define
 class AnnotationField:
     type: type
     name: str
@@ -136,133 +134,133 @@ describe "resolve_types":
         self.assertWorks(None, get_fields)
 
     it "works on attrs classes":
-        self.assertWorks(define, attrs_fields)
+        self.assertWorks(attrs.define, attrs.fields)
 
     it "works on dataclass classes":
-        self.assertWorks(dataclass, dataclass_fields)
+        self.assertWorks(dataclasses.dataclass, dataclasses.fields)
 
     it "finds via properties":
 
-        @define
+        @attrs.define
         class One:
             one: "int"
             two: tp.Optional["str"]
             three: tp.Annotated[tp.Optional["str"], 32]
 
-        @define
+        @attrs.define
         class Holder:
             one: "One"
 
-        fields = {field.name: field.type for field in attrs_fields(Holder)}
+        fields = {field.name: field.type for field in attrs.fields(Holder)}
         assert fields["one"] == "One"
 
-        fields = {field.name: field.type for field in attrs_fields(One)}
+        fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == "int"
         assert fields["two"] == tp.Optional["str"]
         assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
 
         strcs.resolve_types(Holder, globals(), locals(), type_cache=strcs.TypeCache())
 
-        fields = {field.name: field.type for field in attrs_fields(Holder)}
+        fields = {field.name: field.type for field in attrs.fields(Holder)}
         assert fields["one"] is One
 
-        fields = {field.name: field.type for field in attrs_fields(One)}
+        fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == int
         assert fields["two"] == tp.Optional[str]
         assert fields["three"] == tp.Annotated[tp.Optional[str], 32]
 
     it "finds via optional properties":
 
-        @define
+        @attrs.define
         class One:
             one: "int"
             two: tp.Optional["str"]
             three: tp.Annotated[tp.Optional["str"], 32]
 
-        @define
+        @attrs.define
         class Holder:
             one: tp.Optional["One"]
 
-        fields = {field.name: field.type for field in attrs_fields(Holder)}
+        fields = {field.name: field.type for field in attrs.fields(Holder)}
         assert fields["one"] == tp.Optional["One"]
 
-        fields = {field.name: field.type for field in attrs_fields(One)}
+        fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == "int"
         assert fields["two"] == tp.Optional["str"]
         assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
 
         strcs.resolve_types(Holder, globals(), locals(), type_cache=strcs.TypeCache())
 
-        fields = {field.name: field.type for field in attrs_fields(Holder)}
+        fields = {field.name: field.type for field in attrs.fields(Holder)}
         assert fields["one"] == One | None
 
-        fields = {field.name: field.type for field in attrs_fields(One)}
+        fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == int
         assert fields["two"] == tp.Optional[str]
         assert fields["three"] == tp.Annotated[tp.Optional[str], 32]
 
     it "finds via annotated properties":
 
-        @define
+        @attrs.define
         class One:
             one: "int"
             two: tp.Optional["str"]
             three: tp.Annotated[tp.Optional["str"], 32]
 
-        @define
+        @attrs.define
         class Two:
             one: "str"
 
-        @define
+        @attrs.define
         class Three:
             four: "Four"
 
-        @define
+        @attrs.define
         class Four:
             one: "bool"
 
-        @define
+        @attrs.define
         class Holder:
             one: tp.Optional["One"]
             two: tp.Annotated[tp.Optional["Two"], "hi"]
             three: tp.Optional[tp.Annotated["Three", "hi"]]
 
-        fields = {field.name: field.type for field in attrs_fields(Holder)}
+        fields = {field.name: field.type for field in attrs.fields(Holder)}
         assert fields["one"] == tp.Optional["One"]
         assert fields["two"] == tp.Annotated[tp.Optional["Two"], "hi"]
         assert fields["three"] == tp.Optional[tp.Annotated["Three", "hi"]]
 
-        fields = {field.name: field.type for field in attrs_fields(One)}
+        fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == "int"
         assert fields["two"] == tp.Optional["str"]
         assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
 
-        fields = {field.name: field.type for field in attrs_fields(Two)}
+        fields = {field.name: field.type for field in attrs.fields(Two)}
         assert fields["one"] == "str"
 
-        fields = {field.name: field.type for field in attrs_fields(Three)}
+        fields = {field.name: field.type for field in attrs.fields(Three)}
         assert fields["four"] == "Four"
 
-        fields = {field.name: field.type for field in attrs_fields(Four)}
+        fields = {field.name: field.type for field in attrs.fields(Four)}
         assert fields["one"] == "bool"
 
         strcs.resolve_types(Holder, globals(), locals(), type_cache=strcs.TypeCache())
 
-        fields = {field.name: field.type for field in attrs_fields(Holder)}
+        fields = {field.name: field.type for field in attrs.fields(Holder)}
         assert fields["one"] == One | None
         assert fields["two"] == tp.Annotated[Two | None, "hi"]
         assert fields["three"] == tp.Optional[tp.Annotated[Three, "hi"]]
 
-        fields = {field.name: field.type for field in attrs_fields(One)}
+        fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == int
         assert fields["two"] == str | None
         assert fields["three"] == tp.Annotated[str | None, 32]
 
-        fields = {field.name: field.type for field in attrs_fields(Two)}
+        fields = {field.name: field.type for field in attrs.fields(Two)}
         assert fields["one"] == str
 
-        fields = {field.name: field.type for field in attrs_fields(Three)}
+        fields = {field.name: field.type for field in attrs.fields(Three)}
         assert fields["four"] == Four
 
-        fields = {field.name: field.type for field in attrs_fields(Four)}
+        fields = {field.name: field.type for field in attrs.fields(Four)}
         assert fields["one"] == bool

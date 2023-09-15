@@ -1,12 +1,12 @@
 # coding: spec
 
+import dataclasses
 import random
 import typing as tp
-from dataclasses import dataclass
 from unittest import mock
 
+import attrs
 import pytest
-from attrs import define
 
 import strcs
 
@@ -44,11 +44,11 @@ describe "Matching a Type":
 
     it "finds the matching attrs/dataclass/normal class", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Thing:
             pass
 
-        @dataclass
+        @dataclasses.dataclass
         class Stuff:
             pass
 
@@ -70,19 +70,19 @@ describe "Matching a Type":
 
     it "finds the matching attrs/dataclass/normal subclass", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Thing:
             pass
 
-        @define
+        @attrs.define
         class ChildThing(Thing):
             pass
 
-        @dataclass
+        @dataclasses.dataclass
         class Stuff:
             pass
 
-        @dataclass
+        @dataclasses.dataclass
         class ChildStuff(Stuff):
             pass
 
@@ -108,19 +108,19 @@ describe "Matching a Type":
 
     it "finds the matching child attrs/dataclass/normal", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Thing:
             pass
 
-        @define
+        @attrs.define
         class ChildThing(Thing):
             pass
 
-        @dataclass
+        @dataclasses.dataclass
         class Stuff:
             pass
 
-        @dataclass
+        @dataclasses.dataclass
         class ChildStuff(Stuff):
             pass
 
@@ -160,19 +160,19 @@ describe "Matching a Type":
 
     it "finds union type before matching against first function", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Thing:
             pass
 
-        @define
+        @attrs.define
         class ChildThing(Thing):
             pass
 
-        @dataclass
+        @dataclasses.dataclass
         class Stuff:
             pass
 
-        @dataclass
+        @dataclasses.dataclass
         class ChildStuff(Stuff):
             pass
 

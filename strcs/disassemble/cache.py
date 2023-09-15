@@ -1,11 +1,11 @@
-import collections
 import typing as tp
+from collections.abc import MutableMapping
 
 if tp.TYPE_CHECKING:
     from .base import Type
 
 
-class TypeCache(collections.abc.MutableMapping[object, "Type"]):
+class TypeCache(MutableMapping[object, "Type"]):
     def __init__(self):
         self.cache = {}
 

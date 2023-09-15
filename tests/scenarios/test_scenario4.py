@@ -2,7 +2,7 @@
 
 import typing as tp
 
-from attrs import define
+import attrs
 
 import strcs
 
@@ -15,14 +15,14 @@ reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
 
-@define
+@attrs.define
 class Image:
     author: str
     filename: str
     renderer: tp.Annotated[Renderer, strcs.FromMeta("renderer")]
 
 
-@define
+@attrs.define
 class Images:
     images: list[Image]
 

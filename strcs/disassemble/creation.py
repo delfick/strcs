@@ -1,5 +1,5 @@
-import collections.abc
 import typing as tp
+from collections.abc import MutableMapping
 
 import attrs
 import cattrs
@@ -25,7 +25,7 @@ def fill(want: Type[T], res: object) -> tp.Mapping[str, object]:
     if res is NotSpecified:
         res = {}
 
-    if not isinstance(res, collections.abc.MutableMapping):
+    if not isinstance(res, MutableMapping):
         raise ValueError(f"Can only fill mappings, got {type(res)}")
 
     for field in want.fields:

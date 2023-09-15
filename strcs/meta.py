@@ -1,10 +1,10 @@
-import collections.abc
 import fnmatch
 import inspect
 import typing as tp
+from collections.abc import Mapping
 
+import attrs
 import cattrs
-from attrs import define
 
 from . import errors
 from .disassemble import Type, TypeCache
@@ -18,9 +18,7 @@ class Empty:
 
 
 class NarrowCB(tp.Protocol):
-    def __call__(
-        self, *patterns: str, obj: collections.abc.Mapping | object = Empty
-    ) -> dict[str, object]:
+    def __call__(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]:
         ...
 
 
@@ -55,18 +53,18 @@ class Narrower:
         assert Narrower(obj).narrow("a.b*") == {"a.b": {"f": 6}, "a.bc": True}
     """
 
-    @define
+    @attrs.define
     class Further:
         value: object
         patterns: list[str]
 
     class Progress:
-        def __init__(self, obj: collections.abc.Mapping | object):
+        def __init__(self, obj: Mapping | object):
             self.obj = obj
 
             self.further: dict[str, Narrower.Further] = {}
             self.collected: dict[str, object] = {}
-            self.obj_is_mapping = isinstance(self.obj, collections.abc.Mapping)
+            self.obj_is_mapping = isinstance(self.obj, Mapping)
 
         def collect(self, narrow: NarrowCB) -> dict[str, object]:
             for n, ft in self.further.items():
@@ -87,7 +85,7 @@ class Narrower:
                 patt = f"{n}{pattern[1:]}"
 
             is_nestable = not (
-                not isinstance(v, (collections.abc.Mapping, type))
+                not isinstance(v, (Mapping, type))
                 and v.__class__.__module__ in ("__builtin__", "builtins")
             )
 
@@ -98,18 +96,16 @@ class Narrower:
             elif fnmatch.fnmatch(n, patt):
                 self.collected[n] = v
 
-    def __init__(self, obj: collections.abc.Mapping | object):
+    def __init__(self, obj: Mapping | object):
         self.obj = obj
 
     def keys_from(self, options: object) -> tp.Iterable[str]:
-        if isinstance(options, (collections.abc.Mapping, tp.Iterable)):
+        if isinstance(options, (Mapping, tp.Iterable)):
             yield from iter(options)
         else:
             yield from [n for n in dir(options) if not n.startswith("_")]
 
-    def narrow(
-        self, *patterns: str, obj: collections.abc.Mapping | object = Empty
-    ) -> dict[str, object]:
+    def narrow(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]:
         if not patterns:
             return {}
 
@@ -122,7 +118,7 @@ class Narrower:
                 pattern = pattern[1:]
             for n in self.keys_from(obj):
                 if progress.obj_is_mapping:
-                    v = tp.cast(collections.abc.Mapping, obj)[n]
+                    v = tp.cast(Mapping, obj)[n]
                 else:
                     v = getattr(obj, n)
 

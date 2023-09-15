@@ -7,7 +7,7 @@ Annotations
 
 .. code-block:: python
 
-    from attrs import define, asdict
+    import attrs
     import typing as tp
     import strcs
 
@@ -15,7 +15,7 @@ Annotations
     creator = reg.make_decorator()
 
 
-    @define(frozen=True)
+    @attrs.define(frozen=True)
     class MathsAnnotation(strcs.MergedMetaAnnotation):
         addition: int | None = None
         multiplication: int | None = None
@@ -25,12 +25,12 @@ Annotations
         return (value + addition) * multiplication
 
 
-    @define
+    @attrs.define
     class Thing:
         val: tp.Annotated[int, strcs.Ann(MathsAnnotation(addition=20), do_maths)]
 
 
-    @define
+    @attrs.define
     class Holder:
         once: Thing
         twice: tp.Annotated[Thing, MathsAnnotation(multiplication=2)]
@@ -53,7 +53,7 @@ Annotations
 
     holder = reg.create(Holder, 33)
     assert isinstance(holder, Holder)
-    assert asdict(holder) == {"once": {"val": 53}, "twice": {"val": 106}, "thrice": {"val": 159}}
+    assert attrs.asdict(holder) == {"once": {"val": 53}, "twice": {"val": 106}, "thrice": {"val": 159}}
 
 .. note:: it is a good idea to set a default value when retrieving multiple values
    from meta that have the same type. In the example above ``addition`` and

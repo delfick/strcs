@@ -1,24 +1,24 @@
 import inspect
+import textwrap
 import traceback
 import typing as tp
-from textwrap import dedent
 
-from attrs import define
+import attrs
 from cattrs.errors import IterableValidationError
 
 
-@define
+@attrs.define
 class StructuresError(Exception):
     ...
 
 
-@define
+@attrs.define
 class NoCreatorFound(StructuresError):
     want: object
     available: list[type]
 
 
-@define
+@attrs.define
 class UnableToConvert(StructuresError):
     creator: tp.Callable
     converting: object
@@ -51,7 +51,7 @@ class UnableToConvert(StructuresError):
             + error_string
             + "\n".join(
                 f" |   {line}"
-                for line in dedent(
+                for line in textwrap.dedent(
                     f"""
         Trying to convert '{self.converting}' into '{self.into}'
 
@@ -81,38 +81,38 @@ class UnableToConvert(StructuresError):
             return f" at {source_file}:{line_numbers[1]}"
 
 
-@define
+@attrs.define
 class NoDataByTypeName(StructuresError):
     want: object
     patterns: list[str]
     available: dict[str, type]
 
 
-@define
+@attrs.define
 class RequiredParam(StructuresError):
     why: str
     need: str
     have: list[str]
 
 
-@define
+@attrs.define
 class MultipleNamesForType(StructuresError):
     want: object
     found: list[str]
 
 
-@define
+@attrs.define
 class CanOnlyRegisterTypes(StructuresError):
     got: object
 
 
-@define
+@attrs.define
 class FoundWithWrongType(StructuresError):
     want: object
     patterns: list[str]
 
 
-@define
+@attrs.define
 class SupertypeNotValid(StructuresError):
     want: object
     got: object

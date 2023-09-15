@@ -4,9 +4,9 @@ import secrets
 import typing as tp
 from unittest import mock
 
+import attrs
 import cattrs
 import pytest
-from attrs import define
 
 import strcs
 
@@ -69,11 +69,11 @@ describe "Register":
 
     it "can register a convert function", creg: strcs.CreateRegister:
 
-        @define
+        @attrs.define
         class Thing:
             data: int
 
-        @define
+        @attrs.define
         class Stuff:
             info: str
 
@@ -100,7 +100,7 @@ describe "Register":
     describe "can use the converters":
         it "works on anything", creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Thing:
                 pass
 
@@ -137,17 +137,17 @@ describe "Register":
 
         it "lets converter work on other types", creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Other:
                 name: str
 
-            @define
+            @attrs.define
             class Stuff:
                 one: int
                 two: int
                 other: Other
 
-            @define
+            @attrs.define
             class Thing:
                 number: int
                 obj: Stuff
@@ -179,12 +179,12 @@ describe "Register":
 
         it "let's us convert a type that isn't in the register", creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Stuff:
                 one: int
                 two: int
 
-            @define
+            @attrs.define
             class Other:
                 name: str
                 stuff: Stuff
@@ -214,11 +214,11 @@ describe "Register":
 
         it "doesn't recreate cattrs objects already created", creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Stuff:
                 one: int
 
-            @define
+            @attrs.define
             class Thing:
                 stuff: Stuff
 
@@ -241,7 +241,7 @@ describe "Register":
                 def __init__(self, one: int):
                     self.one = one
 
-            @define
+            @attrs.define
             class Thing:
                 stuff: Stuff
 
@@ -258,19 +258,19 @@ describe "Register":
 
         it "let's us convert with super types", creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Shape:
                 three: int
                 one: int = 1
                 two: int = 2
 
-            @define
+            @attrs.define
             class Triangle(Shape):
                 three: int
                 one: int = 20
                 two: int = 45
 
-            @define
+            @attrs.define
             class Square(Shape):
                 three: int
                 one: int = 33
@@ -341,7 +341,7 @@ describe "Register":
 
         it "fails on checking against a not type in the register", creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Thing:
                 pass
 
@@ -376,7 +376,7 @@ describe "Creators":
 
     it "can be given as an override in an annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-        @define(frozen=True)
+        @attrs.define(frozen=True)
         class Info(strcs.MergedMetaAnnotation):
             multiple: int
 
@@ -387,7 +387,7 @@ describe "Creators":
 
         assert creg.create_annotated(int, strcs.Ann(Info(multiple=2), multiply), 3) == 6
 
-        @define
+        @attrs.define
         class Thing:
             thing: tp.Annotated[int, strcs.Ann(Info(multiple=5), multiply)]
 
@@ -467,7 +467,7 @@ describe "Creators":
                 (thing, Thing),
             ]
 
-            @define
+            @attrs.define
             class Child(Thing):
                 pass
 
@@ -507,7 +507,7 @@ describe "Creators":
             assert creg.create(Thing, meta=meta) is thing
             assert called == [(strcs.NotSpecified, Thing, 1, thing)]
 
-            @define
+            @attrs.define
             class Child(Thing):
                 pass
 
@@ -522,7 +522,7 @@ describe "Creators":
 
         it "can use a default value for things asked for from meta", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Thing:
                 val: str
 
@@ -551,15 +551,15 @@ describe "Creators":
 
         it "can get annotated data from class definition into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define(frozen=True)
+            @attrs.define(frozen=True)
             class SentenceAnnotation(strcs.MetaAnnotation):
                 prefix: str
 
-            @define
+            @attrs.define
             class Sentence:
                 sentence: str
 
-            @define
+            @attrs.define
             class Thing:
                 one: tp.Annotated[Sentence, SentenceAnnotation(prefix="hello")]
 
@@ -579,23 +579,23 @@ describe "Creators":
 
         it "can get data spread into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define(frozen=True)
+            @attrs.define(frozen=True)
             class ChildAnnotation(strcs.MergedMetaAnnotation):
                 two: int
 
-            @define(frozen=True)
+            @attrs.define(frozen=True)
             class ThingAnnotation(strcs.MergedMetaAnnotation):
                 one: int
 
-            @define
+            @attrs.define
             class Child:
                 data: int
 
-            @define
+            @attrs.define
             class Thing:
                 child: tp.Annotated[Child, ChildAnnotation(two=30)]
 
-            @define
+            @attrs.define
             class Overall:
                 thing: tp.Annotated[Thing, ThingAnnotation(one=40)]
 
@@ -608,12 +608,12 @@ describe "Creators":
 
         it "can not add optional fields to the meta when they are none", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define(frozen=True)
+            @attrs.define(frozen=True)
             class Annotation(strcs.MergedMetaAnnotation):
                 one: int = 3
                 two: str | None = None
 
-            @define
+            @attrs.define
             class Thing:
                 val: str
 
@@ -636,12 +636,12 @@ describe "Creators":
 
             counts = {"upto": 0}
 
-            @define
+            @attrs.define
             class Thing:
                 one: int
                 upto: int
 
-            @define
+            @attrs.define
             class Things:
                 things: list[Thing]
 
@@ -660,7 +660,7 @@ describe "Creators":
         it "can adjust meta from a method on the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
             """Entirely possible I got a bit carried away with this example and I agree this is a stupid way of whatever this is"""
 
-            @define(frozen=True)
+            @attrs.define(frozen=True)
             class LottoAnnotation(strcs.MetaAnnotation):
                 numbers: tuple[int, int, int, int, int]
 
@@ -669,16 +669,16 @@ describe "Creators":
                 ) -> strcs.Meta:
                     return meta.clone({"powerball": self.numbers[-1], "numbers": self.numbers[:-1]})
 
-            @define
+            @attrs.define
             class Result:
                 winner: bool
 
-            @define
+            @attrs.define
             class Ticket:
                 numbers: list[int]
                 powerball: int
 
-            @define
+            @attrs.define
             class Lotto:
                 results: tp.Annotated[list[Result], LottoAnnotation(numbers=(2, 6, 8, 10, 69))]
 
@@ -709,7 +709,7 @@ describe "Creators":
 
         it "can override a creator in the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Thing:
                 val: int
 
@@ -719,7 +719,7 @@ describe "Creators":
                     return None
                 return {"val": value * 2}
 
-            @define
+            @attrs.define
             class Things:
                 thing1: Thing
                 thing2: tp.Annotated[Thing, lambda value, /: {"val": value * 3}]
@@ -733,11 +733,11 @@ describe "Creators":
 
         it "can override a creator and meta in the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define(frozen=True)
+            @attrs.define(frozen=True)
             class ThingAnnotation(strcs.MergedMetaAnnotation):
                 add: int
 
-            @define
+            @attrs.define
             class Thing:
                 val: int
 
@@ -752,7 +752,7 @@ describe "Creators":
                     return None
                 return {"val": value + add}
 
-            @define
+            @attrs.define
             class Things:
                 thing1: Thing
                 thing2: tp.Annotated[Thing, strcs.Ann(ThingAnnotation(add=20), other_creator)]
@@ -771,7 +771,7 @@ describe "Creators":
 
             other = Other()
 
-            @define
+            @attrs.define
             class Thing:
                 want: tp.Annotated[Other, strcs.FromMeta("other")]
 
@@ -844,7 +844,7 @@ describe "Creators":
         it "returns the value as is without going through function if assume unchanged and value is of the same type", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
 
-            @define
+            @attrs.define
             class Thing:
                 pass
 
@@ -887,7 +887,7 @@ describe "Creators":
         it "turns a dictionary into the object", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
 
-            @define
+            @attrs.define
             class Thing:
                 one: int
                 two: str
@@ -906,7 +906,7 @@ describe "Creators":
         it "uses creator for other registered classes", creator: strcs.Creator, creg: strcs.CreateRegister:
             called = []
 
-            @define
+            @attrs.define
             class Other:
                 three: int
                 four: int
@@ -916,12 +916,12 @@ describe "Creators":
                 called.append(2)
                 return {"three": 20, "four": 50}
 
-            @define
+            @attrs.define
             class Stuff:
                 five: int = 1
                 six: int = 2
 
-            @define
+            @attrs.define
             class Thing:
                 one: int
                 two: str
@@ -951,7 +951,7 @@ describe "Creators":
 
         it "can have a creator with no function", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Thing:
                 one: int = 1
 
@@ -968,7 +968,7 @@ describe "Creators":
             assert isinstance(made, Thing)
             assert made.one == 20
 
-            @define
+            @attrs.define
             class Other:
                 pass
 
@@ -978,12 +978,12 @@ describe "Creators":
 
         it "can use register.create in the creator using the type currently being created", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Thing:
                 one: int
                 identity: tp.Annotated[str, strcs.FromMeta("identity")]
 
-            @define
+            @attrs.define
             class Things:
                 thing1: Thing
 
@@ -1019,7 +1019,7 @@ describe "Creators":
 
         it "can use register.create in the creator using the type currently being created without a layer of indirection", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-            @define
+            @attrs.define
             class Thing:
                 one: int
                 identity: tp.Annotated[str, strcs.FromMeta("identity")]
@@ -1055,7 +1055,7 @@ describe "Creators":
         describe "generator creator":
             it "can modify the created object inside the creator", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-                @define(slots=False)
+                @attrs.define(slots=False)
                 class Thing:
                     one: int
 
@@ -1077,7 +1077,7 @@ describe "Creators":
 
             it "can modify the created object inside the creator without yielding second time", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-                @define(slots=False)
+                @attrs.define(slots=False)
                 class Thing:
                     one: int
 
@@ -1098,7 +1098,7 @@ describe "Creators":
 
             it "considers not yielding means it could not convert", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-                @define(slots=False)
+                @attrs.define(slots=False)
                 class Thing:
                     one: int
 
@@ -1114,7 +1114,7 @@ describe "Creators":
 
             it "uses the first yielded thing to determine what is made", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-                @define(slots=False)
+                @attrs.define(slots=False)
                 class Thing:
                     one: int = 1
 
@@ -1141,7 +1141,7 @@ describe "Creators":
             it "can yield another generator because recursion is fun", creator: strcs.Creator, creg: strcs.CreateRegister:
                 called = []
 
-                @define(slots=False)
+                @attrs.define(slots=False)
                 class Thing:
                     one: int = 1
 
@@ -1175,7 +1175,7 @@ describe "Creators":
 
             it "uses what is yielded the second time", creator: strcs.Creator, creg: strcs.CreateRegister:
 
-                @define(slots=False)
+                @attrs.define(slots=False)
                 class Thing:
                     one: int = 1
 

@@ -1,17 +1,14 @@
 # coding: spec
 import dataclasses
+import functools
 import inspect
 import re
 import types
 import typing as tp
 from collections import OrderedDict
-from dataclasses import dataclass, is_dataclass
-from functools import partial
 
 import attrs
 import pytest
-from attrs import define
-from attrs import has as attrs_has
 
 import strcs
 from strcs import Field, InstanceCheckMeta, Type, resolve_types
@@ -55,7 +52,7 @@ class Partial:
         self.got = got
         self.equals = False
 
-        if not isinstance(self.got, partial):
+        if not isinstance(self.got, functools.partial):
             return False
         if self.got.func is not self.func:
             return False
@@ -96,8 +93,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == type(None)
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(None)
         assert not disassembled.is_type_for(1)
         assert disassembled.is_equivalent_type_for(None)
@@ -123,8 +120,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == type(None)
         assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(None)
         assert not disassembled.is_type_for(1)
         assert disassembled.is_equivalent_type_for(None)
@@ -150,8 +147,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == int
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(1)
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
@@ -178,8 +175,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == int | str
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(1)
         assert disassembled.is_type_for("asdf")
         assert not disassembled.is_type_for(None)
@@ -217,8 +214,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == provided
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(1)
         assert disassembled.is_type_for("asdf")
         assert disassembled.is_type_for([1, 3])
@@ -251,8 +248,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == int | str
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(1)
         assert disassembled.is_type_for("asdf")
         assert not disassembled.is_type_for(None)
@@ -280,8 +277,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == int | str
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(1)
         assert disassembled.is_type_for("asdf")
         assert disassembled.is_type_for(None)
@@ -311,8 +308,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == int
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(1)
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
@@ -339,8 +336,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == int
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(1)
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
@@ -369,8 +366,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == int
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(1)
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(3)
@@ -397,8 +394,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == list
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for([])
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for([1])
@@ -427,8 +424,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == list
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for([])
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for([12])
@@ -455,8 +452,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for({1: 2})
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for({3: 4})
@@ -485,8 +482,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for({})
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for({})
@@ -516,8 +513,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for({})
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for({})
@@ -547,8 +544,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
         assert disassembled.fields_getter is None
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for({})
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for({})
@@ -557,7 +554,7 @@ describe "Type":
 
     it "works on an attrs class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing:
             one: int
             two: str
@@ -583,13 +580,13 @@ describe "Type":
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
-        assert attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
 
-        @define
+        @attrs.define
         class Child(Thing):
             pass
 
@@ -603,7 +600,7 @@ describe "Type":
 
     it "works on an dataclasses class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             one: int
             two: str
@@ -629,13 +626,13 @@ describe "Type":
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == Partial(fields_from_dataclasses, type_cache)
-        assert not attrs_has(disassembled.checkable)
-        assert is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
 
-        @dataclass
+        @dataclasses.dataclass
         class Child(Thing):
             pass
 
@@ -675,8 +672,8 @@ describe "Type":
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
@@ -714,8 +711,8 @@ describe "Type":
         assert disassembled.fields == []
         assert disassembled.fields_from == D
         assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(D())
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(D())
@@ -778,8 +775,8 @@ describe "Type":
         ]
         assert disassembled.fields_from == Tree
         assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
-        assert not attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Tree(four="asdf"))
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Tree(four="asdf"))
@@ -788,7 +785,7 @@ describe "Type":
 
     it "works on an annotated class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing:
             one: int
             two: str
@@ -816,13 +813,13 @@ describe "Type":
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
-        assert attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
         assert not disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
 
-        @define
+        @attrs.define
         class Child(Thing):
             pass
 
@@ -836,7 +833,7 @@ describe "Type":
 
     it "works on an optional annotated class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             one: int
             two: str
@@ -866,13 +863,13 @@ describe "Type":
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == Partial(fields_from_dataclasses, type_cache)
-        assert not attrs_has(disassembled.checkable)
-        assert is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
 
-        @dataclass
+        @dataclasses.dataclass
         class Child(Thing):
             pass
 
@@ -886,7 +883,7 @@ describe "Type":
 
     it "works on an optional annotated generic class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing(tp.Generic[T, U]):
             one: T
             two: U
@@ -917,13 +914,13 @@ describe "Type":
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == Partial(fields_from_dataclasses, type_cache)
-        assert not attrs_has(disassembled.checkable)
-        assert is_dataclass(disassembled.checkable)
+        assert not attrs.has(disassembled.checkable)
+        assert dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
 
-        @dataclass
+        @dataclasses.dataclass
         class Child(Thing):
             pass
 
@@ -937,7 +934,7 @@ describe "Type":
 
     it "works on an optional annotated generic class without concrete types", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
             two: U
@@ -968,13 +965,13 @@ describe "Type":
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
-        assert attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
 
-        @define
+        @attrs.define
         class Child(Thing):
             pass
 
@@ -988,7 +985,7 @@ describe "Type":
 
     it "works on an optional annotated generic class with concrete types", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
             two: U
@@ -1019,13 +1016,13 @@ describe "Type":
         ]
         assert disassembled.fields_from == Thing
         assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
-        assert attrs_has(disassembled.checkable)
-        assert not is_dataclass(disassembled.checkable)
+        assert attrs.has(disassembled.checkable)
+        assert not dataclasses.is_dataclass(disassembled.checkable)
         assert disassembled.is_type_for(Thing(one=1, two="two"))
         assert disassembled.is_type_for(None)
         assert disassembled.is_equivalent_type_for(Thing(one=1, two="two"))
 
-        @define
+        @attrs.define
         class Child(Thing):
             pass
 
@@ -1041,11 +1038,11 @@ describe "getting fields":
 
     it "works when there is a chain", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Stuff:
             thing: "Thing"
 
-        @define
+        @attrs.define
         class Thing:
             stuff: tp.Optional["Stuff"]
 
@@ -1098,7 +1095,7 @@ describe "getting fields":
 
     it "works on attrs class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing:
             one: int
             two: str = "one"
@@ -1135,7 +1132,7 @@ describe "getting fields":
 
     it "works on dataclasses class", type_cache: strcs.TypeCache, Dis: Disassembler:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             one: int
             two: str = "one"
@@ -1214,7 +1211,7 @@ describe "annotations":
 
     it "can return an annotation with new MetaAnnotation", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Info(strcs.MetaAnnotation):
             three: str
 
@@ -1231,7 +1228,7 @@ describe "annotations":
 
     it "can return an annotation with new MergedMetaAnnotation", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Info(strcs.MergedMetaAnnotation):
             three: str
 

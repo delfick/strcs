@@ -1,13 +1,13 @@
 # coding: spec
+import dataclasses
 import itertools
 import sys
+import textwrap
 import types
 import typing as tp
-from dataclasses import dataclass
-from textwrap import dedent
 
+import attrs
 import pytest
-from attrs import define
 
 import strcs
 from strcs import Type
@@ -25,7 +25,7 @@ describe "Type":
 
     def assertDisplay(self, disassembled: Type, expected: str) -> None:
         got = disassembled.score.for_display(indent="  ").strip()
-        want = "\n".join(f"  {line}" for line in dedent(expected).split("\n")).strip()
+        want = "\n".join(f"  {line}" for line in textwrap.dedent(expected).split("\n")).strip()
         if got != want:
             for i, (g, w) in enumerate(itertools.zip_longest(got.split("\n"), want.split("\n"))):
                 cross = "x" if g != w else "✓"
@@ -818,7 +818,7 @@ describe "Type":
 
     it "works on an attrs class", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Thing:
             one: int
             two: str
@@ -849,7 +849,7 @@ describe "Type":
 
     it "works on an dataclasses class", type_cache: strcs.TypeCache:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             one: int
             two: str
@@ -1095,7 +1095,7 @@ describe "Type":
 
     it "works on an annotated class", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Thing:
             one: int
             two: str
@@ -1128,7 +1128,7 @@ describe "Type":
 
     it "works on an optional annotated class", type_cache: strcs.TypeCache:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             one: int
             two: str
@@ -1161,7 +1161,7 @@ describe "Type":
 
     it "works on an optional annotated generic class", type_cache: strcs.TypeCache:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing(tp.Generic[T, U]):
             one: T
             two: U
@@ -1230,7 +1230,7 @@ describe "Type":
 
     it "works on an optional annotated generic class without concrete types", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
             two: U
@@ -1283,7 +1283,7 @@ describe "Type":
 
     it "works on an optional annotated generic class with concrete types", type_cache: strcs.TypeCache:
 
-        @define
+        @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
             two: U

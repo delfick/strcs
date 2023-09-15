@@ -61,23 +61,23 @@ class MRO:
 
     .. code-block:: python
 
-        from my_code import my_class
+        import my_code
         import strcs
 
 
         type_cache = strcs.TypeCache()
-        mro = strcs.MRO.create(my_class, type_cache)
+        mro = strcs.MRO.create(my_code.my_class, type_cache)
 
     Or via the ``mro`` property on a ``strcs.Type`` instance:
 
     .. code-block:: python
 
-        from my_code import my_class
+        import my_code
         import strcs
 
 
         type_cache = strcs.TypeCache()
-        typ = strcs.Type.create(my_class, cache=type_cache)
+        typ = strcs.Type.create(my_code.my_class, cache=type_cache)
         mro = typ.mro
     """
 

@@ -3,11 +3,9 @@ import dataclasses
 import inspect
 import sys
 import typing as tp
-from dataclasses import dataclass
 
 import attrs
 import pytest
-from attrs import define
 
 from strcs import Field, Type, TypeCache
 from strcs.disassemble import (
@@ -210,7 +208,7 @@ describe "fields_from_attrs":
 
     it "finds no fields on class with no fields", type_cache: TypeCache:
 
-        @define
+        @attrs.define
         class Thing:
             pass
 
@@ -218,7 +216,7 @@ describe "fields_from_attrs":
 
     it "finds keyword only fields", type_cache: TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing:
             items: tuple[int, str]
             stuff: bool = attrs.field(kw_only=True)
@@ -244,7 +242,7 @@ describe "fields_from_attrs":
 
     it "finds defaults", type_cache: TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing:
             items: tuple[int, str] = (1, "asdf")
             stuff: bool = attrs.field(kw_only=True, default=True)
@@ -275,7 +273,7 @@ describe "fields_from_attrs":
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
-        @define
+        @attrs.define
         class Thing:
             items: tuple[int, str] = attrs.field(factory=factory_one)
             stuff: bool = attrs.field(kw_only=True, factory=factory_two)
@@ -305,7 +303,7 @@ describe "fields_from_attrs":
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
-        @define
+        @attrs.define
         class Thing:
             items: tuple[int, str] = attrs.field(factory=factory_one)
             stuff: bool = attrs.field(kw_only=True, factory=factory_two)
@@ -335,7 +333,7 @@ describe "fields_from_attrs":
 
     it "renames private variables", type_cache: TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing:
             _thing: str
             other: int
@@ -366,7 +364,7 @@ describe "fields_from_attrs":
         if sys.version_info < (3, 11):
             pytest.skip("pep 681 is from python 3.11")
 
-        @define
+        @attrs.define
         class Thing:
             stuff: str
             _thing: str = attrs.field(alias="wat")
@@ -405,7 +403,7 @@ describe "fields_from_attrs":
         factory_one = lambda: (1, "asdf")
         factory_two = lambda instance: True
 
-        @define
+        @attrs.define
         class Thing:
             items: tuple[int, str] = attrs.field(factory=factory_one)
             stuff: bool = attrs.field(
@@ -434,7 +432,7 @@ describe "fields_from_attrs":
 
     it "uses object as type if unknown", type_cache: TypeCache, Dis: Disassembler:
 
-        @define
+        @attrs.define
         class Thing:
             blah = attrs.field()
             stuff = attrs.field(kw_only=True)
@@ -461,7 +459,7 @@ describe "fields_from_dataclasses":
 
     it "finds no fields on class with no fields", type_cache: TypeCache:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             pass
 
@@ -469,7 +467,7 @@ describe "fields_from_dataclasses":
 
     it "finds keyword only fields", type_cache: TypeCache, Dis: Disassembler:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             items: tuple[int, str]
             stuff: bool = dataclasses.field(kw_only=True)
@@ -495,7 +493,7 @@ describe "fields_from_dataclasses":
 
     it "finds defaults", type_cache: TypeCache, Dis: Disassembler:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             items: tuple[int, str] = (1, "asdf")
             stuff: bool = dataclasses.field(kw_only=True, default=True)
@@ -526,7 +524,7 @@ describe "fields_from_dataclasses":
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             items: tuple[int, str] = dataclasses.field(default_factory=factory_one)
             stuff: bool = dataclasses.field(kw_only=True, default_factory=factory_two)
@@ -556,7 +554,7 @@ describe "fields_from_dataclasses":
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             items: tuple[int, str] = dataclasses.field(default_factory=factory_one)
             stuff: bool = dataclasses.field(kw_only=True, default_factory=factory_two)
@@ -586,7 +584,7 @@ describe "fields_from_dataclasses":
 
     it "doesn't rename private variables", type_cache: TypeCache, Dis: Disassembler:
 
-        @dataclass
+        @dataclasses.dataclass
         class Thing:
             _thing: str
             other: int

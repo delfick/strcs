@@ -1,7 +1,6 @@
 import typing as tp
 
 import attrs
-from attrs import define
 
 if tp.TYPE_CHECKING:
     from .base import Type
@@ -13,7 +12,7 @@ def _get_type() -> type["Type"]:
     return Type
 
 
-@define(order=True)
+@attrs.define(order=True)
 class ScoreOrigin:
     # The order of the fields matter
     custom: bool = attrs.field(init=False)
@@ -48,7 +47,7 @@ class ScoreOrigin:
         return "\n".join(f"{indent}{line}" for line in lines)
 
 
-@define(order=True)
+@attrs.define(order=True)
 class Score:
     # The order of the fields matter
     annotated_union: tuple["Score", ...] = attrs.field(init=False)

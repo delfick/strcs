@@ -1,5 +1,5 @@
-import collections.abc
 import typing as tp
+from collections.abc import MutableMapping
 
 PropRet = tp.TypeVar("PropRet")
 
@@ -44,9 +44,9 @@ class memoized_property(tp.Generic[PropRet]):
         if "_memoized_cache" not in owner.__annotations__:
             raise NotImplementedError("The class this is attached to needs a _cache on it")
 
-    def cache(self, instance: object) -> collections.abc.MutableMapping[str, object]:
+    def cache(self, instance: object) -> MutableMapping[str, object]:
         cache = getattr(instance, "_memoized_cache", None)
-        assert isinstance(cache, collections.abc.MutableMapping)
+        assert isinstance(cache, MutableMapping)
         return cache
 
     @tp.overload

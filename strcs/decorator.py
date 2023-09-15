@@ -13,7 +13,7 @@ For example:
     creator = reg.make_decorator()
 
 
-    @define
+    @attrs.define
     class Thing:
         one: int
 
@@ -69,12 +69,12 @@ The ``WrappedCreator`` object is used to take ``ConvertDefinition`` functions
 and provide a ``ConvertFunction`` interface for executing them and is used
 by the function returned by ``strcs.CreateRegister::make_decorator``
 """
-import collections.abc
 import inspect
 import typing as tp
+from collections.abc import Mapping
 
+import attrs
 import cattrs
-from attrs import define
 
 from . import errors
 from .args_extractor import ArgsExtractor
@@ -88,7 +88,7 @@ if tp.TYPE_CHECKING:
 T = tp.TypeVar("T")
 
 
-@define
+@attrs.define
 class CreateArgs(tp.Generic[T]):
     """
     The object given to ``ConvertFunction`` objects to produce an instance of the
@@ -261,7 +261,7 @@ class WrappedCreator(tp.Generic[T]):
                     )
                 return tp.cast(T, value)
             else:
-                if not isinstance(res, collections.abc.Mapping) and issubclass(
+                if not isinstance(res, Mapping) and issubclass(
                     want.checkable, Type.create(type(res), cache=self.type_cache).checkable
                 ):
                     raise errors.SupertypeNotValid(

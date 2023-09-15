@@ -3,7 +3,7 @@
 import secrets
 import typing as tp
 
-from attrs import define
+import attrs
 
 import strcs
 
@@ -11,24 +11,24 @@ reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
 
-@define
+@attrs.define
 class Itself:
     one: int
 
 
-@define
+@attrs.define
 class Other:
     one: Itself
     two: Itself
 
 
-@define
+@attrs.define
 class Part:
     one: int
     identity: tp.Annotated[str, strcs.FromMeta("identity")]
 
 
-@define
+@attrs.define
 class Thing:
     part1: Part
     part2: Part

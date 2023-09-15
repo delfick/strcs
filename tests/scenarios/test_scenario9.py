@@ -1,12 +1,12 @@
 # coding: spec
 
 import fnmatch
+import textwrap
 import traceback
 import typing as tp
-from textwrap import dedent
 
+import attrs
 import pytest
-from attrs import define
 from cattrs.errors import IterableValidationError
 
 import strcs
@@ -15,18 +15,18 @@ reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
 
-@define
+@attrs.define
 class Sub:
     two: str
 
 
-@define
+@attrs.define
 class Other:
     one: int
     sub: Sub
 
 
-@define
+@attrs.define
 class Stuff:
     others: list[Other]
 
@@ -72,9 +72,9 @@ describe "Having reasonable error messages":
                 },
             )
 
-        message = dedent("".join(traceback.format_exception(e.value))).split("\n")
+        message = textwrap.dedent("".join(traceback.format_exception(e.value))).split("\n")
         want = (
-            dedent(
+            textwrap.dedent(
                 """
             + Exception Group Traceback (most recent call last):
             | cattrs.errors.IterableValidationError: While structuring list[tests.scenarios.test_scenario9.Other] (4 sub-exceptions)

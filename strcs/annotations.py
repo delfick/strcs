@@ -21,7 +21,6 @@ object as a creator override.
 import typing as tp
 
 import attrs
-from attrs import define
 
 from .decorator import (
     ConvertDefinition,
@@ -90,7 +89,7 @@ class AdjustableCreator(tp.Protocol[T]):
         ...
 
 
-@define
+@attrs.define
 class MetaAnnotation:
     """
     A class representing information that may be added into into the meta object
@@ -106,7 +105,7 @@ class MetaAnnotation:
 
     .. code-block:: python
 
-        from attrs import define
+        import attrs
         import typing as tp
         import strcs
 
@@ -114,13 +113,13 @@ class MetaAnnotation:
         creator = reg.make_decorator()
 
 
-        @define(frozen=True)
+        @attrs.define(frozen=True)
         class MyAnnotation(strcs.MetaAnnotation):
             one: int
             two: int
 
 
-        @define
+        @attrs.define
         class MyKls:
             key: tp.Annotated[str, MyAnnotation(one=1, two=2)]
 
@@ -133,7 +132,7 @@ class MetaAnnotation:
     """
 
 
-@define
+@attrs.define
 class MergedMetaAnnotation:
     """
     A class representing information that may be merged into into the meta object
@@ -148,7 +147,7 @@ class MergedMetaAnnotation:
 
     .. code-block:: python
 
-        from attrs import define
+        import attrs
         import typing as tp
         import strcs
 
@@ -156,13 +155,13 @@ class MergedMetaAnnotation:
         creator = reg.make_decorator()
 
 
-        @define(frozen=True)
+        @attrs.define(frozen=True)
         class MyAnnotation(strcs.MergedMetaAnnotation):
             one: int
             two: int
 
 
-        @define
+        @attrs.define
         class MyKls:
             key: tp.Annotated[str, MyAnnotation(one=1, two=2)]
 
@@ -178,7 +177,7 @@ class MergedMetaAnnotation:
 
     .. code-block:: python
 
-        @define(frozen=True)
+        @attrs.define(frozen=True)
         class MyAnnotation(strcs.MergedMetaAnnotation):
             one: int | None = None
             two: int | None = None
@@ -261,7 +260,7 @@ class Ann(tp.Generic[T]):
         )
 
 
-@define(frozen=True)
+@attrs.define(frozen=True)
 class FromMeta:
     """
     An implementation of both ``strcs.AdjustedMeta`` and ``strcs.AdjustedCreator``
@@ -271,7 +270,7 @@ class FromMeta:
 
     .. code-block:: python
 
-        from attrs import define
+        import attrs
         import typing as tp
         import strcs
 
@@ -284,7 +283,7 @@ class FromMeta:
                 return "abracadabra!"
 
 
-        @define
+        @attrs.define
         class Wizard:
             magic: tp.Annotated[Magic, strcs.FromMeta("magic")]
 

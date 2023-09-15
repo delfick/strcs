@@ -1,7 +1,7 @@
 # coding: spec
 
+import attrs
 import cattrs
-from attrs import define
 
 import strcs
 
@@ -9,7 +9,7 @@ reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
 
-@define
+@attrs.define
 class Sentences:
     one: str
     two: str

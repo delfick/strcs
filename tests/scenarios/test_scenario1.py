@@ -2,8 +2,8 @@
 
 import typing as tp
 
+import attrs
 import pytest
-from attrs import define, field
 
 import strcs
 
@@ -13,47 +13,47 @@ creator = reg.make_decorator()
 T = tp.TypeVar("T")
 
 
-@define
+@attrs.define
 class Project:
-    details: tp.List["Detail"] = field(factory=lambda: [])
+    details: tp.List["Detail"] = attrs.field(factory=lambda: [])
 
 
-@define
+@attrs.define
 class Detail:
     project: Project
     key: str
     value: object
 
 
-@define
+@attrs.define
 class Item:
     one: int
     two: int
 
 
-@define
+@attrs.define
 class ItemOne(Item):
     one: int = 20
     two: int = 50
     three: bool = False
 
 
-@define
+@attrs.define
 class ItemTwo(Item):
     one: int = 3
     two: int = 5
     four: bool = True
 
 
-@define
+@attrs.define
 class Container(tp.Generic[T]):
     category: str
     item: T
 
 
-@define
+@attrs.define
 class Projects:
-    projects: tp.List[Project] = field(factory=lambda: [])
+    projects: tp.List[Project] = attrs.field(factory=lambda: [])
 
 
 @creator(Item)

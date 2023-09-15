@@ -1,12 +1,9 @@
+import dataclasses
 import inspect
 import sys
 import typing as tp
-from dataclasses import MISSING
-from dataclasses import fields as dataclass_fields
 
 import attrs
-from attrs import NOTHING, Attribute, define
-from attrs import fields as attrs_fields
 
 if tp.TYPE_CHECKING:
     from .base import Type, TypeCache
@@ -21,7 +18,7 @@ def _get_type() -> type["Type"]:
     return Type
 
 
-@define
+@attrs.define
 class Default:
     value: object | None
 
@@ -46,7 +43,7 @@ def kind_name(kind: int) -> str:
     return "<UNKNOWN_KIND>"
 
 
-@define
+@attrs.define
 class Field(tp.Generic[T]):
     name: str
     owner: object
@@ -73,7 +70,7 @@ class Field(tp.Generic[T]):
         return self.with_replaced_type(self.disassembled_type)
 
     @kind.validator
-    def check_kind(self, attribute: Attribute, value: object) -> None:
+    def check_kind(self, attribute: attrs.Attribute, value: object) -> None:
         allowed = (
             inspect.Parameter.KEYWORD_ONLY,
             inspect.Parameter.VAR_POSITIONAL,
@@ -121,7 +118,7 @@ def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
 
 def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     result: list[Field] = []
-    for field in attrs_fields(typ):
+    for field in attrs.fields(typ):
         if not field.init:
             continue
 
@@ -138,7 +135,7 @@ def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
             if not field.default.takes_self:
                 dflt = field.default.factory
 
-        elif field.default is not NOTHING:
+        elif field.default is not attrs.NOTHING:
             dflt = Default(field.default)
 
         if sys.version_info >= (3, 11) and field.alias is not None:
@@ -166,7 +163,7 @@ def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
 
 def fields_from_dataclasses(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     result: list[Field] = []
-    for field in dataclass_fields(typ):
+    for field in dataclasses.fields(typ):
         if not field.init:
             continue
 
@@ -179,10 +176,10 @@ def fields_from_dataclasses(type_cache: "TypeCache", typ: type) -> tp.Sequence[F
             kind = inspect.Parameter.KEYWORD_ONLY.value
 
         dflt: tp.Callable[[], object | None] | None = None
-        if field.default is not MISSING:
+        if field.default is not dataclasses.MISSING:
             dflt = Default(field.default)
 
-        if field.default_factory is not MISSING:
+        if field.default_factory is not dataclasses.MISSING:
             dflt = field.default_factory
 
         name = field.name

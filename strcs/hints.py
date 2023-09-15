@@ -8,16 +8,14 @@ unless the ``auto_resolve_string_annotations=False`` is given to ``strcs.CreateR
 .. autofunction:: strcs.resolve_types
 
 """
+import dataclasses
 import functools
 import operator
 import sys
 import types
 import typing as tp
-from dataclasses import fields as dataclass_fields
-from dataclasses import is_dataclass
 
-from attrs import fields as attrs_fields
-from attrs import has as is_attrs
+import attrs
 
 if tp.TYPE_CHECKING:
     from .disassemble import TypeCache
@@ -206,17 +204,17 @@ def resolve_types(
 
     Assumes that the string annotations have been defined when you call this function::
 
-        from attrs import define
-        # or ``from dataclasses import dataclass as define``
+        import attrs
+        # or ``dataclasses`` equivalent
         import strcs
 
 
-        @define
+        @attrs.define
         class One:
             two: "Two"
 
 
-        @define
+        @attrs.define
         class Two:
             ...
 
@@ -231,7 +229,7 @@ def resolve_types(
     .. code-block:: python
 
         from __future__ import annotations
-        from attrs import define
+        import attrs
         import strcs
 
 
@@ -240,14 +238,14 @@ def resolve_types(
             one: int
 
 
-        @define
+        @attrs.define
         class Thing:
             stuff: "Stuff"
             other: "Other"
 
 
         @strcs.resolve_types
-        @define
+        @attrs.define
         class Other:
             thing: Thing | None
 
@@ -265,11 +263,11 @@ def resolve_types(
     if getattr(cls, "__strcs_types_resolved__", None) != cls:
         allfields: AnnotationUpdater
 
-        if is_attrs(cls):
-            allfields = FromFields(cls, {field.name: field for field in attrs_fields(cls)})
+        if attrs.has(cls):
+            allfields = FromFields(cls, {field.name: field for field in attrs.fields(cls)})
 
-        elif is_dataclass(cls):
-            allfields = FromFields(cls, {field.name: field for field in dataclass_fields(cls)})
+        elif dataclasses.is_dataclass(cls):
+            allfields = FromFields(cls, {field.name: field for field in dataclasses.fields(cls)})
 
         elif isinstance(cls, type) and hasattr(cls, "__annotations__"):
             allfields = FromAnnotations(cls)

@@ -2,7 +2,7 @@
 
 import typing as tp
 
-from attrs import define
+import attrs
 
 import strcs
 
@@ -10,24 +10,24 @@ reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
 
-@define(frozen=True)
+@attrs.define(frozen=True)
 class MultiplyAnnotation(strcs.MergedMetaAnnotation):
     multiply: int
 
 
-@define
+@attrs.define
 class Stuff:
     pass
 
 
-@define
+@attrs.define
 class SubOther:
     other: "Other"
     stuff: "Stuff"
     another: tp.Annotated["Other", MultiplyAnnotation(multiply=2)]
 
 
-@define
+@attrs.define
 class Other:
     sub: SubOther | None
     val: int

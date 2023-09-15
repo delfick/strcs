@@ -1,15 +1,12 @@
-import collections
-import collections.abc
+import dataclasses
 import functools
 import json
 import operator
 import typing as tp
-from dataclasses import is_dataclass
+from collections.abc import Sequence
 from functools import partial
 
 import attrs
-from attrs import define
-from attrs import has as attrs_has
 
 from ..hints import resolve_types
 from ..memoized_property import memoized_property
@@ -31,7 +28,7 @@ T = tp.TypeVar("T")
 U = tp.TypeVar("U")
 
 
-@define
+@attrs.define
 class Type(tp.Generic[T]):
     class MissingType:
         score: Score
@@ -289,7 +286,7 @@ class Type(tp.Generic[T]):
         origin = self.origin
         if (
             not isinstance(self.extracted, type)
-            or (not attrs_has(self.extracted) and not is_dataclass(self.extracted))
+            or (not attrs.has(self.extracted) and not dataclasses.is_dataclass(self.extracted))
             and origin
         ):
             if origin not in union_types:
@@ -299,9 +296,9 @@ class Type(tp.Generic[T]):
 
     @memoized_property
     def fields_getter(self) -> tp.Callable[..., tp.Sequence[Field]] | None:
-        if isinstance(self.fields_from, type) and attrs_has(self.fields_from):
+        if isinstance(self.fields_from, type) and attrs.has(self.fields_from):
             return partial(fields_from_attrs, self.cache)
-        elif is_dataclass(self.fields_from):
+        elif dataclasses.is_dataclass(self.fields_from):
             return partial(fields_from_dataclasses, self.cache)
         elif (
             tp.get_origin(self.extracted) is None
@@ -314,20 +311,20 @@ class Type(tp.Generic[T]):
         return None
 
     @memoized_property
-    def raw_fields(self) -> collections.abc.Sequence[Field]:
+    def raw_fields(self) -> Sequence[Field]:
         if self.fields_getter is None:
             return []
 
         return self.fields_getter(self.fields_from)
 
     @property
-    def fields(self) -> collections.abc.Sequence[Field]:
+    def fields(self) -> Sequence[Field]:
         if self.is_union:
             return []
 
         return self.mro.fields
 
-    def find_generic_subtype(self, *want: type) -> collections.abc.Sequence["Type"]:
+    def find_generic_subtype(self, *want: type) -> Sequence["Type"]:
         return self.mro.find_subtypes(*want)
 
     def is_type_for(self, instance: object) -> tp.TypeGuard[T]:
