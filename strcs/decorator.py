@@ -78,9 +78,7 @@ from attrs import define
 
 from . import errors
 from .args_extractor import ArgsExtractor
-from .disassemble.base import Type
-from .disassemble.cache import TypeCache
-from .disassemble.creation import instantiate
+from .disassemble import Type, TypeCache, instantiate
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
 

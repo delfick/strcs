@@ -15,12 +15,12 @@ from attrs import has as attrs_has
 
 import strcs
 from strcs import Field, InstanceCheckMeta, Type, resolve_types
-from strcs.disassemble.base import (
+from strcs.disassemble import (
+    Default,
     fields_from_attrs,
     fields_from_class,
     fields_from_dataclasses,
 )
-from strcs.disassemble.fields import Default
 
 from .test_helpers import assertParams
 

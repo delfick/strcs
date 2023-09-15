@@ -29,8 +29,7 @@ from .decorator import (
     ConvertResponse,
     WrappedCreator,
 )
-from .disassemble.base import Type
-from .disassemble.cache import TypeCache
+from .disassemble import Type, TypeCache
 from .meta import Meta
 
 if tp.TYPE_CHECKING:

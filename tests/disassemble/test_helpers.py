@@ -10,7 +10,8 @@ import pytest
 from attrs import define
 
 from strcs import Field, Type, TypeCache
-from strcs.disassemble.base import (
+from strcs.disassemble import (
+    Default,
     IsAnnotated,
     extract_annotation,
     extract_optional,
@@ -18,7 +19,6 @@ from strcs.disassemble.base import (
     fields_from_class,
     fields_from_dataclasses,
 )
-from strcs.disassemble.fields import Default
 
 
 class Disassembler:

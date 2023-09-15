@@ -7,7 +7,7 @@ import attrs
 import pytest
 
 import strcs
-from strcs.disassemble.type_tree import MRO
+from strcs.disassemble import MRO
 
 
 class Disassembler:
