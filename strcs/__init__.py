@@ -15,7 +15,8 @@ from .decorator import (
     CreateArgs,
     WrappedCreator,
 )
-from .disassemble.base import Field, Type, TypeCache
+from .disassemble.base import Field, Type
+from .disassemble.cache import TypeCache
 from .disassemble.instance_check import InstanceCheck, InstanceCheckMeta
 from .disassemble.type_tree import MRO
 from .hints import resolve_types

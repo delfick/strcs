@@ -7,7 +7,8 @@ import cattrs
 from attrs import define
 
 from . import errors
-from .disassemble.base import Type, TypeCache
+from .disassemble.base import Type
+from .disassemble.cache import TypeCache
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")

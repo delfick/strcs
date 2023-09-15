@@ -13,7 +13,8 @@ from .annotations import (
     MetaAnnotation,
 )
 from .decorator import ConvertDefinition, ConvertFunction
-from .disassemble.base import Type, TypeCache
+from .disassemble.base import Type
+from .disassemble.cache import TypeCache
 from .hooks import CreateStructureHook
 from .meta import Meta
 from .not_specified import NotSpecified

@@ -12,7 +12,8 @@ import cattrs
 
 from .annotations import AdjustableCreator, AdjustableMeta
 from .decorator import ConvertDefinition, ConvertFunction, CreateArgs
-from .disassemble.base import Type, TypeCache
+from .disassemble.base import Type
+from .disassemble.cache import TypeCache
 from .disassemble.creation import fill, instantiate
 from .meta import Meta
 from .not_specified import NotSpecified
