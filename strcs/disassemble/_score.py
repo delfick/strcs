@@ -3,11 +3,11 @@ import typing as tp
 import attrs
 
 if tp.TYPE_CHECKING:
-    from .base import Type
+    from ._base import Type
 
 
 def _get_type() -> type["Type"]:
-    from .base import Type
+    from ._base import Type
 
     return Type
 

@@ -12,16 +12,21 @@ from ..hints import resolve_types
 from ..memoized_property import memoized_property
 from ..not_specified import NotSpecifiedMeta
 from ..standard import builtin_types, union_types
-from .extract import IsAnnotated, extract_annotation, extract_optional
-from .fields import Field, fields_from_attrs, fields_from_class, fields_from_dataclasses
-from .instance_check import InstanceCheck, create_checkable
-from .score import Score
+from ._extract import IsAnnotated, extract_annotation, extract_optional
+from ._fields import (
+    Field,
+    fields_from_attrs,
+    fields_from_class,
+    fields_from_dataclasses,
+)
+from ._instance_check import InstanceCheck, create_checkable
+from ._score import Score
 
 if tp.TYPE_CHECKING:
     from ..annotations import AdjustableCreator, AdjustableMeta
     from ..decorator import ConvertFunction
-    from .cache import TypeCache
-    from .type_tree import MRO
+    from ._cache import TypeCache
+    from ._type_tree import MRO
 
 
 T = tp.TypeVar("T")
@@ -215,7 +220,7 @@ class Type(tp.Generic[T]):
 
     @memoized_property
     def mro(self) -> "MRO":
-        from .type_tree import MRO
+        from ._type_tree import MRO
 
         return MRO.create(self.extracted, type_cache=self.cache)
 

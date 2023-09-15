@@ -5,7 +5,7 @@ import attrs
 import cattrs
 
 from ..not_specified import NotSpecified
-from .base import Type
+from ._base import Type
 
 T = tp.TypeVar("T")
 

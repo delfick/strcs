@@ -2,7 +2,7 @@ import typing as tp
 from collections.abc import MutableMapping
 
 if tp.TYPE_CHECKING:
-    from .base import Type
+    from ._base import Type
 
 
 class TypeCache(MutableMapping[object, "Type"]):

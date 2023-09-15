@@ -7,8 +7,8 @@ import attrs
 
 from ..memoized_property import memoized_property
 from ..standard import union_types
-from .base import Field, Type
-from .cache import TypeCache
+from ._base import Field, Type
+from ._cache import TypeCache
 
 
 class HasOrigBases(tp.Protocol):

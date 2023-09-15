@@ -1,17 +1,18 @@
-from .base import Type
-from .cache import TypeCache
-from .creation import fill, instantiate
-from .extract import IsAnnotated, extract_annotation, extract_optional
-from .fields import (
+from ._base import Type
+from ._cache import TypeCache
+from ._creation import fill, instantiate
+from ._extract import IsAnnotated, extract_annotation, extract_optional
+from ._fields import (
     Default,
     Field,
     fields_from_attrs,
     fields_from_class,
     fields_from_dataclasses,
+    kind_name,
 )
-from .instance_check import InstanceCheck, InstanceCheckMeta
-from .score import Score, ScoreOrigin
-from .type_tree import MRO
+from ._instance_check import InstanceCheck, InstanceCheckMeta
+from ._score import Score, ScoreOrigin
+from ._type_tree import MRO, HasOrigBases
 
 __all__ = [
     "Type",
@@ -19,9 +20,6 @@ __all__ = [
     "IsAnnotated",
     "extract_annotation",
     "extract_optional",
-    "InstanceCheck",
-    "InstanceCheckMeta",
-    "MRO",
     "fill",
     "instantiate",
     "Default",
@@ -29,6 +27,11 @@ __all__ = [
     "fields_from_attrs",
     "fields_from_class",
     "fields_from_dataclasses",
+    "kind_name",
+    "InstanceCheck",
+    "InstanceCheckMeta",
     "Score",
     "ScoreOrigin",
+    "MRO",
+    "HasOrigBases",
 ]

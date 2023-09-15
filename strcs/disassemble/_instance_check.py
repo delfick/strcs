@@ -4,7 +4,7 @@ import typing as tp
 from ..standard import union_types
 
 if tp.TYPE_CHECKING:
-    from .base import Type
+    from ._base import Type
 
 
 class InstanceCheckMeta(type):
@@ -264,7 +264,7 @@ def _checker_single(
     check_against: object | None,
     M: type[InstanceCheck.Meta],
 ) -> type[InstanceCheck]:
-    from .base import Type
+    from ._base import Type
 
     class CheckerMeta(InstanceCheckMeta):
         def __repr__(self) -> str:
