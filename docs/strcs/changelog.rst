@@ -5,7 +5,7 @@ Changelog
 
 .. _release-0.3.0:
 
-0.3.0 - TBD
+0.3.0 - 17 September 2023
     * Introduced a number of helpers for introspecting type annotations
     * Introduced new ``strcs.Type`` class for representing types and creators
       now take these objects.
