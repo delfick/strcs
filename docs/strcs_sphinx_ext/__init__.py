@@ -43,11 +43,13 @@ def process_signature(
         ), return_annotation
     elif name == "strcs.CreateRegister.make_decorator":
         return "()", "strcs.Creator"
-    elif name == "strcs.MRO":
-        return "", ""
-    elif name == "strcs.Field":
-        return "", ""
-    elif name == "strcs.disassemble.IsAnnotated":
+    elif name in (
+        "strcs.MRO",
+        "strcs.Field",
+        "strcs.disassemble.isAnnotated",
+        "strcs.disassemble.Score",
+        "strcs.disassemble.ScoreOrigin",
+    ):
         return "", ""
 
     return None

@@ -14,22 +14,40 @@ def _get_type() -> type["Type"]:
 
 @attrs.define(order=True)
 class ScoreOrigin:
+    """
+    A container used by ``strcs.Score`` for data related to the MRO of a type
+    """
+
     # The order of the fields matter
     custom: bool = attrs.field(init=False)
+    "Whether this class is user defined (True) or standard library (False), decided by whether the module is 'builtins'"
+
     package: str
+    "The package this comes from"
+
     module: str
+    "The module this comes from"
+
     name: str
+    "The name of the class"
 
     def __attrs_post_init__(self) -> None:
         self.custom = self.module != "builtins"
 
     @classmethod
     def create(self, typ: type) -> "ScoreOrigin":
+        """
+        Used to create a ScoreOrigin from a python type.
+        """
         return ScoreOrigin(
             name=typ.__name__, module=typ.__module__, package=getattr(typ, "__package__", "")
         )
 
     def for_display(self, indent="") -> str:
+        """
+        Return a human friendly string representing this ScoreOrigin.
+        """
+
         def with_space(o: object) -> str:
             s = str(o)
 
@@ -49,22 +67,60 @@ class ScoreOrigin:
 
 @attrs.define(order=True)
 class Score:
+    """
+    A score is a representation of the complexity of a type. The more data held by this object,
+    the more complex the type is.
+
+    The order of these fields indicate how important they are in determining whether any
+    type is more complex than another.
+    """
+
     # The order of the fields matter
     annotated_union: tuple["Score", ...] = attrs.field(init=False)
+    """
+    If this object is an annotated union, then annotated_union will contain the scores of each part of the union instead of self.union
+
+    This is so that an optional union with an annotation is considered more complex than one without an annotation
+    """
+
     union_optional: bool = attrs.field(init=False)
+    "Whether this is a union that contains a None"
+
     union_length: int = attrs.field(init=False)
+    "How many items are in the union"
+
     union: tuple["Score", ...]
+    "The scores of each part that makes up the union, or empty if not a union or is an annotated union"
+
     annotated: bool
+    "Whether this type is annotated"
+
     custom: bool = attrs.field(init=False)
+    "Whether this type is user defined"
+
     optional: bool
+    "Whether this type is optional"
+
     mro_length: int = attrs.field(init=False)
+    "How many items are in the mro of the type"
+
     typevars_length: int = attrs.field(init=False)
+    "How many type vars are defined for the type if it is a generic"
+
     typevars_filled: tuple[bool, ...]
+    "A boolean in order for each type var saying whether that type var has a value or not"
+
     typevars: tuple["Score", ...]
+    "A score for each type var on the type"
+
     origin_mro: tuple[ScoreOrigin, ...]
+    "A score origin for each object in the mro of the type"
 
     @classmethod
     def create(cls, typ: "Type") -> "Score":
+        """
+        Used to create a score for a given ``strcs.Type``. This is used by the ``score`` property on the ``strcs.Type`` object.
+        """
         return cls(
             union=tuple(ut.score for ut in typ.nonoptional_union_types),
             typevars=tuple(tv.score for tv in typ.mro.all_vars),
@@ -88,6 +144,9 @@ class Score:
             self.annotated_union = ()
 
     def for_display(self, indent="  ") -> str:
+        """
+        Return a human readable string representing the score.
+        """
         lines: list[str] = []
 
         class WithDisplay(tp.Protocol):

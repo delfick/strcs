@@ -24,3 +24,22 @@ Introspecting python types and their annotations
 .. autoclass:: strcs.InstanceCheck
     :members:
     :undoc-members:
+
+Scores
+------
+
+It is useful to be able to sort type annotations by complexity so that when
+determining if a creator should be used for a particular type, more specific
+creators are considered before less specific creators.
+
+To achieve this, ``strcs`` has ``strcs.disassemble.Score`` objects that are
+returned from the ``score`` property on a ``strcs.Type`` and are used when
+sorting a sequence of ``strcs.Type`` objects.
+
+.. autoclass:: strcs.disassemble.Score
+   :members:
+   :member-order: bysource
+
+.. autoclass:: strcs.disassemble.ScoreOrigin
+   :members:
+   :member-order: bysource
