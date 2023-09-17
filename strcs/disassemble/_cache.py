@@ -7,8 +7,8 @@ if tp.TYPE_CHECKING:
 
 class TypeCache(MutableMapping[object, "Type"]):
     """
-    The ``TypeCache`` is used to memoize the ``strcs.Type`` objects that get created
-    because the creation of ``strcs.Type`` objects is very deterministic.
+    The ``TypeCache`` is used to memoize the :class:`strcs.Type` objects that get created
+    because the creation of :class:`strcs.Type` objects is very deterministic.
 
     It can be treated like a mutable mapping:
 

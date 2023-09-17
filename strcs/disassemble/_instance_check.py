@@ -15,8 +15,8 @@ class InstanceCheckMeta(type):
 
 class InstanceCheck(abc.ABC):
     """
-    Returned from the ``checkable`` property on a ``strcs.Type``. This object can be used wherever
-    you'd otherwise want to treat the ``strcs.Type`` object as a python ``type`` regardless of whether
+    Returned from the ``checkable`` property on a :class:`strcs.Type`. This object can be used wherever
+    you'd otherwise want to treat the :class:`strcs.Type` object as a python ``type`` regardless of whether
     it's in a union, or annotated, or a generic or some other non-type python object.
 
     It will be different depending on whether the type is for a union or not.
@@ -29,7 +29,7 @@ class InstanceCheck(abc.ABC):
     --------
 
     The following methods called with the ``checkable`` object will be equivalent to calling the function
-    with the ``extracted`` object from ``strcs.Type``
+    with the ``extracted`` object from :class:`strcs.Type`
 
     * ``typing.get_origin``
     * ``typing.get_args``
@@ -91,10 +91,10 @@ class InstanceCheck(abc.ABC):
         "Either the extracted type from the original or it's ``typing.get_origin`` value if that's not a type"
 
         original: object
-        "The original object wrapped by the ``strcs.Type``"
+        "The original object wrapped by the :class:`strcs.Type`"
 
         extracted: object
-        "The extracted object from the ``strcs.Type``"
+        "The extracted object from the :class:`strcs.Type`"
 
         optional: bool
         "True if the value being wrapped is a ``typing.Optional`` or Union with ``None``"
@@ -103,13 +103,13 @@ class InstanceCheck(abc.ABC):
         "A tuple of the types in the union if it's a union, otherwise ``None``"
 
         disassembled: "Type"
-        "The original ``strcs.Type`` object"
+        "The original :class:`strcs.Type` object"
 
         without_optional: object
-        "The original object given to ``strcs.Type`` without a wrapping ``Optional``"
+        "The original object given to :class:`strcs.Type` without a wrapping ``Optional``"
 
         without_annotation: object
-        "The original object given to ``strcs.Type`` without a wrapping ``typing.Annotation``"
+        "The original object given to :class:`strcs.Type` without a wrapping ``typing.Annotation``"
 
     @classmethod
     def matches(

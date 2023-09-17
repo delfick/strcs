@@ -15,7 +15,7 @@ def _get_type() -> type["Type"]:
 @attrs.define(order=True)
 class ScoreOrigin:
     """
-    A container used by ``strcs.Score`` for data related to the MRO of a type
+    A container used by :class:`strcs.Score` for data related to the MRO of a type
     """
 
     # The order of the fields matter
@@ -119,7 +119,7 @@ class Score:
     @classmethod
     def create(cls, typ: "Type") -> "Score":
         """
-        Used to create a score for a given ``strcs.Type``. This is used by the ``score`` property on the ``strcs.Type`` object.
+        Used to create a score for a given :class:`strcs.Type`. This is used by the ``score`` property on the :class:`strcs.Type` object.
         """
         return cls(
             union=tuple(ut.score for ut in typ.nonoptional_union_types),

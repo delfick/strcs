@@ -72,7 +72,7 @@ class Field(tp.Generic[T]):
     "The class that was being inspected to make this field"
 
     disassembled_type: "Type[T]"
-    "The type of the field in a ``strcs.Type`` object"
+    "The type of the field in a :class:`strcs.Type` object"
 
     kind: int = attrs.field(
         default=inspect.Parameter.POSITIONAL_OR_KEYWORD.value, repr=kind_name_repr
@@ -101,7 +101,7 @@ class Field(tp.Generic[T]):
     @property
     def type(self) -> object:
         """
-        Return the original object used to make the ``strcs.Type`` in the ``disassembled_type`` field.
+        Return the original object used to make the :class:`strcs.Type` in the ``disassembled_type`` field.
         """
         return self.disassembled_type.original
 
@@ -129,7 +129,7 @@ class Field(tp.Generic[T]):
 
 def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     """
-    Given some class, return a sequence of ``strcs.Field`` objects.
+    Given some class, return a sequence of :class:`strcs.Field` objects.
 
     Done by looking at the signature of the object as if it were a callable.
     """
@@ -165,7 +165,7 @@ def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
 
 def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     """
-    Given some attrs type, return a sequence of ``strcs.Field`` objects.
+    Given some attrs type, return a sequence of :class:`strcs.Field` objects.
 
     Take into account when a field has ``default`` or ``factory`` options.
 
@@ -217,7 +217,7 @@ def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
 
 def fields_from_dataclasses(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     """
-    Given some dataclasses.dataclass type return a sequence of ``strcs.Field`` objects.
+    Given some dataclasses.dataclass type return a sequence of :class:`strcs.Field` objects.
 
     Take into account when fields have ``default`` or ``default_factory`` options.
     """

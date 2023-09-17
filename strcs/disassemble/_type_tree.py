@@ -68,7 +68,7 @@ class MRO:
         type_cache = strcs.TypeCache()
         mro = strcs.MRO.create(my_code.my_class, type_cache)
 
-    Or via the ``mro`` property on a ``strcs.Type`` instance:
+    Or via the ``mro`` property on a :class:`strcs.Type` instance:
 
     .. code-block:: python
 
@@ -299,7 +299,7 @@ class MRO:
             assert typ2.mro.signature_for_display == "int"
             assert typ3.mro.signature_for_display == "str"
 
-        It is used by ``strcs.Type`` in it's ``for_display`` method to give a
+        It is used by :class:`strcs.Type` in it's ``for_display`` method to give a
         string representation of the object it is wrapping.
         """
         found_with_missing: set[type] = set()
@@ -328,7 +328,7 @@ class MRO:
     @memoized_property
     def raw_fields(self) -> tp.Sequence[Field]:
         """
-        Return a sequence of ``strcs.Field`` objects representing all the
+        Return a sequence of :class:`strcs.Field` objects representing all the
         annotated fields on the class, including those it receives from it's
         ancestors.
 
@@ -364,7 +364,7 @@ class MRO:
     @memoized_property
     def fields(self) -> tp.Sequence[Field]:
         """
-        Return a sequence of ``strcs.Field`` objects representing the fields
+        Return a sequence of :class:`strcs.Field` objects representing the fields
         on the object, after resolving the type vars.
 
         Type vars are resolved by understanding how type variables are filled out
