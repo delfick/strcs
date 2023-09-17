@@ -1,15 +1,13 @@
 import fnmatch
-import functools
 import inspect
-import operator
-import types
 import typing as tp
 from collections.abc import Mapping
 
+import attrs
 import cattrs
-from attrs import define
 
 from . import errors
+from .disassemble import Type, TypeCache
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
@@ -55,7 +53,7 @@ class Narrower:
         assert Narrower(obj).narrow("a.b*") == {"a.b": {"f": 6}, "a.bc": True}
     """
 
-    @define
+    @attrs.define
     class Further:
         value: object
         patterns: list[str]
@@ -129,90 +127,6 @@ class Narrower:
         return progress.collect(self.narrow)
 
 
-class IsAnnotated(tp.Protocol):
-    __args__: tuple
-
-    def copy_with(self, args: tuple) -> type:
-        ...
-
-    @classmethod
-    def has(self, typ: object) -> tp.TypeGuard["IsAnnotated"]:
-        return tp.get_origin(typ) is tp.Annotated and hasattr(typ, "__args__")
-
-
-def extract_type(typ: object) -> tuple[bool, object, type]:
-    """
-    Given some type, return a tuple of (optional, type_or_annotated, type)
-
-    So str would return (False, str, str)
-
-    list[str] would return (False, list[str], list)
-
-    whereas tp.Optional[str] would return (True, str, str)
-
-    and str | bool would return (False, str | bool, str | bool)
-
-    but tp.Optional[str | bool] would return (True, str | bool, str | bool)
-
-    And tp.Annotated[list, "things"] would return (False, tp.Annotated[list, "things"], list)
-
-    but tp.Annotated[list | None, "things"] would return (True, tp.Annotated[list, "things"], list)
-    """
-    original = typ
-    annotated: IsAnnotated | None = None
-
-    if IsAnnotated.has(typ):
-        annotated = typ
-        typ = typ.__args__[0]
-
-    def origin_or_type(typ: object) -> object:
-        orig = tp.get_origin(typ)
-        if not isinstance(orig, type) or orig in (None, types.UnionType, tp.Union):
-            return typ
-        else:
-            return orig
-
-    optional = False
-    extracted = typ
-    if tp.get_origin(typ) in (types.UnionType, tp.Union):
-        if type(None) in tp.get_args(typ):
-            optional = True
-
-            remaining = tuple(a for a in tp.get_args(typ) if a not in (types.NoneType,))
-            if len(remaining) == 1:
-                extracted = remaining[0]
-                typ = origin_or_type(extracted)
-            else:
-                typ = functools.reduce(operator.or_, remaining)
-                extracted = typ
-    else:
-        typ = origin_or_type(typ)
-
-    class InstanceCheckMeta(type):
-        def __repr__(self) -> str:
-            return repr(typ)
-
-        def __instancecheck__(self, obj: object) -> bool:
-            return isinstance(obj, typ)  # type:ignore
-
-        def __eq__(self, o: object) -> bool:
-            return o == typ
-
-    ret: object = extracted
-    if annotated is not None:
-        ret = annotated.copy_with((extracted,))
-
-    class InstanceCheck(metaclass=InstanceCheckMeta):
-        _typ = typ
-        _original = original
-        _optional = optional
-        _returning = ret
-        __args__ = getattr(typ, "__args__", None)
-        __origin__ = getattr(typ, "__args__", None)
-
-    return optional, ret, InstanceCheck
-
-
 class Meta:
     """
     A store for holding data and cattrs converter
@@ -235,7 +149,7 @@ class Meta:
         data: dict[str, object] | None = None,
         converter: cattrs.Converter | None = None,
     ):
-        self.converter = converter or cattrs.Converter()
+        self.converter = converter or cattrs.GenConverter()
         self.data = data if data is not None else {}
 
     def clone(
@@ -270,7 +184,12 @@ class Meta:
         self.data.update(data)
 
     def find_by_type(
-        self, typ: object, data: tp.Mapping[str, object] | type[Empty] = Empty
+        self,
+        typ: object,
+        data: tp.Mapping[str, object] | type[Empty] = Empty,
+        *,
+        remove_nones: bool = True,
+        type_cache: TypeCache | None,
     ) -> tuple[bool, dict[str, object]]:
         """
         Return (optional, found)
@@ -278,6 +197,9 @@ class Meta:
         Where optional is True if the type is a tp.Optional and found is a dictionary
         of names in Meta to the found data for that name, which matches the specified type
         """
+        if type_cache is None:
+            type_cache = TypeCache()
+
         if data is Empty:
             data = self.data
 
@@ -286,10 +208,12 @@ class Meta:
         if typ is object:
             return False, data
 
-        optional, _, typ = extract_type(typ)
+        disassembled = Type.create(typ, cache=type_cache, expect=object)
+        optional = disassembled.optional
+        typ = disassembled.checkable
         available: dict[str, object] = {n: v for n, v in data.items() if isinstance(v, typ)}
 
-        remove_bools = typ == int
+        remove_bools = typ == int and typ != bool
         ags = getattr(typ, "__args__", None)
         if ags:
             if int in ags and bool not in ags:
@@ -298,17 +222,24 @@ class Meta:
         if remove_bools:
             available = {n: v for n, v in available.items() if not isinstance(v, bool)}
 
+        if remove_nones:
+            available = {n: v for n, v in available.items() if v is not None}
+
         return optional, available
 
-    def retrieve_patterns(self, typ: object, *patterns: str) -> dict[str, object]:
+    def retrieve_patterns(
+        self, typ: object, *patterns: str, type_cache: TypeCache | None
+    ) -> dict[str, object]:
         """
         Retrieve a dictionary of key to value for this patterns restrictions.
         """
+        if type_cache is None:
+            type_cache = TypeCache()
         data = self.data
         if patterns:
             data = Narrower(data).narrow(*patterns)
 
-        _, found = self.find_by_type(typ, data=data)
+        _, found = self.find_by_type(typ, data=data, type_cache=type_cache)
         return found
 
     @tp.overload
@@ -318,12 +249,18 @@ class Meta:
         *patterns: str,
         default: object = inspect._empty,
         refined_type: None = None,
+        type_cache: TypeCache | None,
     ) -> T:
         ...
 
     @tp.overload
     def retrieve_one(
-        self, typ: object, *patterns: str, default: object = inspect._empty, refined_type: T
+        self,
+        typ: object,
+        *patterns: str,
+        default: object = inspect._empty,
+        refined_type: T,
+        type_cache: TypeCache | None,
     ) -> T:
         ...
 
@@ -333,6 +270,7 @@ class Meta:
         *patterns: str,
         default: object = inspect._empty,
         refined_type: T | None = None,
+        type_cache: TypeCache | None,
     ) -> object:
         """
         Retrieve a single value for this type and patterns restrictions
@@ -344,6 +282,9 @@ class Meta:
 
         Raise an error if we can't find exactly one value
         """
+        if type_cache is None:
+            type_cache = TypeCache()
+
         data = self.data
         if patterns:
             with_patterns = Narrower(data).narrow(*patterns)
@@ -352,7 +293,7 @@ class Meta:
             elif default is not inspect._empty:
                 return tp.cast(T, default)
 
-        optional, found = self.find_by_type(typ, data=data)
+        optional, found = self.find_by_type(typ, data=data, type_cache=type_cache)
 
         if patterns and data and not found and not optional:
             raise errors.FoundWithWrongType(patterns=list(patterns), want=typ)

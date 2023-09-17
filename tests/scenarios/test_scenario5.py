@@ -1,7 +1,7 @@
 # coding: spec
 
+import attrs
 import cattrs
-from attrs import define
 
 import strcs
 
@@ -9,7 +9,7 @@ reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
 
-@define
+@attrs.define
 class Sentences:
     one: str
     two: str
@@ -17,7 +17,7 @@ class Sentences:
 
 
 @creator(Sentences)
-def create_sentences(value: object) -> dict | None:
+def create_sentences(value: object, /) -> dict | None:
     if not isinstance(value, str):
         return None
     parts = value.split(",")

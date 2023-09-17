@@ -3,7 +3,7 @@
 import secrets
 import typing as tp
 
-from attrs import define
+import attrs
 
 import strcs
 
@@ -11,24 +11,24 @@ reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
 
-@define
+@attrs.define
 class Itself:
     one: int
 
 
-@define
+@attrs.define
 class Other:
     one: Itself
     two: Itself
 
 
-@define
+@attrs.define
 class Part:
     one: int
     identity: tp.Annotated[str, strcs.FromMeta("identity")]
 
 
-@define
+@attrs.define
 class Thing:
     part1: Part
     part2: Part
@@ -45,7 +45,9 @@ def create_other(value: object, /, _register: strcs.CreateRegister) -> dict | No
 
 
 @creator(Itself)
-def create_itself(value: object, want: type, /, _register: strcs.CreateRegister) -> Itself | None:
+def create_itself(
+    value: object, want: strcs.Type, /, _register: strcs.CreateRegister
+) -> Itself | None:
     if not isinstance(value, int):
         return None
 
@@ -54,7 +56,7 @@ def create_itself(value: object, want: type, /, _register: strcs.CreateRegister)
 
 @creator(Thing)
 def create_thing(
-    value: list[int], want: type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
+    value: list[int], want: strcs.Type, /, _register: strcs.CreateRegister, _meta: strcs.Meta
 ) -> Thing:
     """Production quality would ensure value is indeed a list with two integers!!"""
     return _register.create(

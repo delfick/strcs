@@ -7,6 +7,7 @@
    strcs/features/meta
    strcs/features/creators
    strcs/features/annotations
+   strcs/features/disassembled
 
 .. _strcs:
 
@@ -132,7 +133,7 @@ Here is a contrived example that shows a couple features. Read the
 
     # The meta object may also be given a custom cattrs Converter. In this case
     # we do not and a blank one is made for us.
-    meta = strcs.Meta({"renderer": renderer})
+    meta = reg.meta({"renderer": renderer})
 
     # First pass has no excluded authors
     images = reg.create(Images, configuration, meta=meta)

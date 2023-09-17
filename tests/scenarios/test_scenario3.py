@@ -2,7 +2,7 @@
 
 import typing as tp
 
-from attrs import define
+import attrs
 
 import strcs
 
@@ -10,13 +10,13 @@ reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
 
-@define(frozen=True)
-class AdditionAnnotation(strcs.MergedAnnotation):
+@attrs.define(frozen=True)
+class AdditionAnnotation(strcs.MergedMetaAnnotation):
     addition: int
 
 
-@define(frozen=True)
-class MultiplicationAnnotation(strcs.MergedAnnotation):
+@attrs.define(frozen=True)
+class MultiplicationAnnotation(strcs.MergedMetaAnnotation):
     multiply_by: int
 
 
@@ -26,14 +26,14 @@ def change(value: object, /, addition: int = 0, multiply_by: int = 1) -> float |
     return float((value + addition) * multiply_by)
 
 
-@define
+@attrs.define
 class Thing:
     base: tp.Annotated[float, change]
     raised: tp.Annotated[float, strcs.Ann(AdditionAnnotation(addition=30), change)]
     elevated: tp.Annotated[float, strcs.Ann(AdditionAnnotation(addition=40), change)]
 
 
-@define
+@attrs.define
 class Things:
     once: Thing
     twice: tp.Annotated[Thing, MultiplicationAnnotation(multiply_by=2)]
@@ -41,7 +41,7 @@ class Things:
 
 
 @creator(Thing)
-def create_thing(value: object) -> dict | None:
+def create_thing(value: object, /) -> dict | None:
     if not isinstance(value, (int, float)):
         return None
     return {"base": value, "raised": value + 0.1, "elevated": value + 0.2}

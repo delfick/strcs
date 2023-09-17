@@ -2,8 +2,8 @@
 
 import typing as tp
 
+import attrs
 import pytest
-from attrs import define
 
 import strcs
 
@@ -11,18 +11,18 @@ reg = strcs.CreateRegister(auto_resolve_string_annotations=False)
 creator = reg.make_decorator()
 
 
-@define(frozen=True)
-class MultiplyAnnotation(strcs.MergedAnnotation):
+@attrs.define(frozen=True)
+class MultiplyAnnotation(strcs.MergedMetaAnnotation):
     multiply: int
 
 
-@define
+@attrs.define
 class SubOther:
     other: "Other"
     another: tp.Annotated["Other", MultiplyAnnotation(multiply=2)]
 
 
-@define
+@attrs.define
 class Other:
     sub: SubOther | None
     val: int
@@ -54,7 +54,7 @@ describe "Fails to create if the types are strings":
         ):
             reg.create(Other, 3)
 
-        strcs.resolve_types(SubOther)
+        strcs.resolve_types(SubOther, type_cache=reg)
 
         other = reg.create(Other, 3)
         assert isinstance(other, Other)
