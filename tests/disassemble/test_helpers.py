@@ -651,7 +651,7 @@ describe "extract_annotation":
         assert extract_annotation(tp.Annotated[int, "stuff"]) == (
             int,
             tp.Annotated[int, "stuff"],
-            "stuff",
+            ("stuff",),
         )
         assert extract_annotation(int) == (int, None, None)
         assert extract_annotation(tp.Optional[tp.Annotated[int, "stuff"]]) == (
@@ -665,9 +665,9 @@ describe "extract_annotation":
             None,
         )
 
-    it "returns inner most annotation when nested":
+    it "returns multiple annotation":
         assert extract_annotation(tp.Annotated[tp.Annotated[int, "other"], "stuff"]) == (
             int,
             tp.Annotated[int, "other", "stuff"],
-            "other",
+            ("other", "stuff"),
         )

@@ -79,14 +79,19 @@ class Type(tp.Generic[T]):
 
         optional_inner = False
         optional_outer, typ = extract_optional(typ)
-        extracted, annotated, annotation = extract_annotation(typ)
+        extracted, annotated, annotations = extract_annotation(typ)
 
-        if annotation is not None:
+        if annotations is not None:
             optional_inner, extracted = extract_optional(extracted)
             typ = extracted
 
-        if annotation is None and optional_outer:
-            extracted, annotated, annotation = extract_annotation(typ)
+        if annotations is None and optional_outer:
+            extracted, annotated, annotations = extract_annotation(typ)
+
+        annotation = None
+        if annotations is not None:
+            # TODO: Support multiple annotations
+            annotation = annotations[0]
 
         constructor = tp.cast(tp.Callable[..., Type[U]], cls)
 
