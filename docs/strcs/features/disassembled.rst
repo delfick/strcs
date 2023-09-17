@@ -3,8 +3,26 @@
 Introspecting python types and their annotations
 ================================================
 
+Within the ``strcs`` package are a bunch of code for understanding python
+type annotations and class objects. These are used to introspect the types
+that are provided when creating objects and those found on the fields
+of classes.
+
+The main entry point for these helpers is via :class:`strcs.Type` objects which
+use the other helpers to normalise the complexities inherit in the way python
+type annotations work at runtime.
+
+This includes the ability to understand and extract from optionals and annotations,
+the ability to understand type vars and how they work across inheritance, the
+ability to order type annotations by complexity, and the ability to determine
+the fields defined by a class.
+
 Types
 -----
+
+.. autoclass:: strcs.Type
+   :members:
+   :member-order: bysource
 
 .. autoclass:: strcs.TypeCache
 
