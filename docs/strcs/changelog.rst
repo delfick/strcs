@@ -3,6 +3,18 @@
 Changelog
 ---------
 
+.. _release-0.3.0:
+
+0.3.0 - TBD
+    * Introduced a number of helpers for introspecting type annotations
+    * Introduced new ``strcs.Type`` class for representing types and creators
+      now take these objects.
+    * Can now create and use creators for generics so that when using the register
+      to create an object, the filled type vars of the provided type are
+      understood and respected.
+    * Updated dependencies
+    * Converted packaging to hatchling
+
 .. _release-0.2.0:
 
 0.2.0 - 30 October 2022
