@@ -3,6 +3,15 @@
 Introspecting python types and their annotations
 ================================================
 
+.. autoclass:: strcs.Field
+    :members:
+
+.. autofunction:: strcs.disassemble.fields_from_class
+
+.. autofunction:: strcs.disassemble.fields_from_attrs
+
+.. autofunction:: strcs.disassemble.fields_from_dataclasses
+
 .. autoclass:: strcs.disassemble.IsAnnotated
 
 .. autofunction:: strcs.disassemble.extract_optional

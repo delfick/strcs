@@ -20,13 +20,28 @@ def _get_type() -> type["Type"]:
 
 @attrs.define
 class Default:
+    """
+    A callable object used to hold and return some static value
+    """
+
     value: object | None
 
     def __call__(self) -> object | None:
         return self.value
 
 
-def kind_name(kind: int) -> str:
+def kind_name_repr(kind: int) -> str:
+    """
+    Given an inspect.Parameter object, return a string repr for it's name
+
+    .. code-block:: python
+
+        from strcs.disassemble import kind_name_repr
+        import inspect
+
+
+        assert kind_name_repr(inspect.Parameter.VAR_POSITIONAL) == repr("variadic positional")
+    """
     known = (
         inspect.Parameter.KEYWORD_ONLY,
         inspect.Parameter.VAR_POSITIONAL,
@@ -38,21 +53,42 @@ def kind_name(kind: int) -> str:
 
     for k in known:
         if k.value == kind:
-            return f"'{k.description}'"
+            return repr(k.description)
 
     return "<UNKNOWN_KIND>"
 
 
 @attrs.define
 class Field(tp.Generic[T]):
+    """
+    A container representing a single field on a class. Used to replicate the field functionality used in
+    attrs and dataclasses.
+    """
+
     name: str
+    "The name of the field"
+
     owner: object
+    "The class that was being inspected to make this field"
+
     disassembled_type: "Type[T]"
-    kind: int = attrs.field(default=inspect.Parameter.POSITIONAL_OR_KEYWORD.value, repr=kind_name)
+    "The type of the field in a ``strcs.Type`` object"
+
+    kind: int = attrs.field(
+        default=inspect.Parameter.POSITIONAL_OR_KEYWORD.value, repr=kind_name_repr
+    )
+    "The inspect.Parameter kind of the field"
+
     default: tp.Callable[[], object | None] | None = attrs.field(default=None)
+    "A callable returning the default value for the field"
+
     original_owner: object = attrs.field(default=attrs.Factory(lambda s: s.owner, takes_self=True))
+    "The class that originally defined this field"
 
     def with_replaced_type(self, typ: "Type[U]") -> "Field[U]":
+        """
+        Return a clone of this field, but with the provided type.
+        """
         return Field[U](
             name=self.name,
             owner=self.owner,
@@ -64,9 +100,15 @@ class Field(tp.Generic[T]):
 
     @property
     def type(self) -> object:
+        """
+        Return the original object used to make the ``strcs.Type`` in the ``disassembled_type`` field.
+        """
         return self.disassembled_type.original
 
     def clone(self) -> "Field[T]":
+        """
+        Return a clone of this object.
+        """
         return self.with_replaced_type(self.disassembled_type)
 
     @kind.validator
@@ -86,6 +128,11 @@ class Field(tp.Generic[T]):
 
 
 def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
+    """
+    Given some class, return a sequence of ``strcs.Field`` objects.
+
+    Done by looking at the signature of the object as if it were a callable.
+    """
     result: list[Field] = []
     try:
         signature = inspect.signature(typ)
@@ -117,6 +164,13 @@ def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
 
 
 def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
+    """
+    Given some attrs type, return a sequence of ``strcs.Field`` objects.
+
+    Take into account when a field has ``default`` or ``factory`` options.
+
+    Also take into account field aliases, as well as underscore and double underscore prefixed fields.
+    """
     result: list[Field] = []
     for field in attrs.fields(typ):
         if not field.init:
@@ -162,6 +216,11 @@ def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
 
 
 def fields_from_dataclasses(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
+    """
+    Given some dataclasses.dataclass type return a sequence of ``strcs.Field`` objects.
+
+    Take into account when fields have ``default`` or ``default_factory`` options.
+    """
     result: list[Field] = []
     for field in dataclasses.fields(typ):
         if not field.init:

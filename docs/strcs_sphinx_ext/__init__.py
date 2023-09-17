@@ -45,6 +45,8 @@ def process_signature(
         return "()", "strcs.Creator"
     elif name == "strcs.MRO":
         return "", ""
+    elif name == "strcs.Field":
+        return "", ""
     elif name == "strcs.disassemble.IsAnnotated":
         return "", ""
 

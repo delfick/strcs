@@ -8,7 +8,7 @@ from ._fields import (
     fields_from_attrs,
     fields_from_class,
     fields_from_dataclasses,
-    kind_name,
+    kind_name_repr,
 )
 from ._instance_check import InstanceCheck, InstanceCheckMeta
 from ._score import Score, ScoreOrigin
@@ -27,7 +27,7 @@ __all__ = [
     "fields_from_attrs",
     "fields_from_class",
     "fields_from_dataclasses",
-    "kind_name",
+    "kind_name_repr",
     "InstanceCheck",
     "InstanceCheckMeta",
     "Score",
