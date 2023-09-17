@@ -3,6 +3,30 @@
 Introspecting python types and their annotations
 ================================================
 
+Types
+-----
+
+.. autoclass:: strcs.TypeCache
+
+.. autoclass:: strcs.MRO
+    :members:
+
+.. autoclass:: strcs.InstanceCheck
+    :members:
+    :undoc-members:
+
+Extraction
+----------
+
+.. autoclass:: strcs.disassemble.IsAnnotated
+
+.. autofunction:: strcs.disassemble.extract_optional
+
+.. autofunction:: strcs.disassemble.extract_annotation
+
+Fields
+------
+
 .. autoclass:: strcs.Field
     :members:
 
@@ -11,19 +35,6 @@ Introspecting python types and their annotations
 .. autofunction:: strcs.disassemble.fields_from_attrs
 
 .. autofunction:: strcs.disassemble.fields_from_dataclasses
-
-.. autoclass:: strcs.disassemble.IsAnnotated
-
-.. autofunction:: strcs.disassemble.extract_optional
-
-.. autofunction:: strcs.disassemble.extract_annotation
-
-.. autoclass:: strcs.MRO
-    :members:
-
-.. autoclass:: strcs.InstanceCheck
-    :members:
-    :undoc-members:
 
 Scores
 ------

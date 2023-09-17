@@ -6,6 +6,34 @@ if tp.TYPE_CHECKING:
 
 
 class TypeCache(MutableMapping[object, "Type"]):
+    """
+    The ``TypeCache`` is used to memoize the ``strcs.Type`` objects that get created
+    because the creation of ``strcs.Type`` objects is very deterministic.
+
+    It can be treated like a mutable mapping:
+
+    .. code-block:: python
+
+        # Note though that most usage should be about passing around a type cache
+        # and not needing to interact with it directly.
+
+        type_cache = strcs.TypeCache()
+
+        typ = strcs.Type.create(int, cache=type_cache)
+
+        assert type_cache[int] is typ
+        assert int in type_cache
+        assert list(type_cache) == [(type, int)]
+
+        # Can delete individual types
+        del type_cache[int]
+
+        assert int not in type_cache
+
+        # Can clear all types
+        type_cache.clear()
+    """
+
     def __init__(self):
         self.cache = {}
 
