@@ -323,7 +323,7 @@ describe "MRO":
         class One(tp.Generic[T, U]):
             pass
 
-        with pytest.raises(TypeError, match="Too few arguments"):
+        with pytest.raises(TypeError, match="Too few (arguments|parameters)"):
 
             class Two(One[int]):  # type: ignore[type-arg]
                 pass
