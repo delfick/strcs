@@ -288,21 +288,12 @@ class Type(tp.Generic[T]):
     def has_fields(self) -> bool:
         return self.fields_getter is not None
 
-    @memoized_property
+    @property
     def fields_from(self) -> object:
         if self.is_union:
             return self.extracted
-
-        origin = self.origin
-        if (
-            not isinstance(self.extracted, type)
-            or (not attrs.has(self.extracted) and not dataclasses.is_dataclass(self.extracted))
-            and origin
-        ):
-            if origin not in union_types:
-                return origin
-
-        return self.extracted
+        else:
+            return self.origin
 
     @memoized_property
     def fields_getter(self) -> tp.Callable[..., tp.Sequence[Field]] | None:
