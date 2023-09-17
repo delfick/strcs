@@ -143,7 +143,7 @@ def create_checkable(disassembled: "Type") -> type[InstanceCheck]:
         Meta.union_types = tp.cast(tuple[type[InstanceCheck]], check_against)
         Checker = _checker_union(disassembled, check_against, Meta)
     else:
-        check_against_single: type | None = disassembled.origin
+        check_against_single: type | None = disassembled.origin_type
         if Meta.extracted is None:
             check_against_single = None
 

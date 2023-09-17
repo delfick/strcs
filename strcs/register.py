@@ -163,7 +163,7 @@ class CreateRegister:
 
             register: tp.ClassVar[CreateRegister]
 
-            def __init__(self, typ: object, *, assume_unchanged_converted=True):
+            def __init__(self, typ: object, *, assume_unchanged_converted: bool = True):
                 self.original = typ
                 self.assume_unchanged_converted = assume_unchanged_converted
 

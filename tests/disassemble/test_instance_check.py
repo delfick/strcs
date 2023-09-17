@@ -288,6 +288,56 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == Mine
         assert db.checkable.Meta.without_annotation == Mine
 
+    it "can find instances and subclasses of NewType objects", type_cache: strcs.TypeCache:
+
+        class Mine:
+            pass
+
+        MineT = tp.NewType("MineT", Mine)
+
+        db = Type.create(MineT, expect=MineT, cache=type_cache)
+        assert not isinstance(23, db.checkable)
+        assert not isinstance(23.4, db.checkable)
+        assert not isinstance("asdf", db.checkable)
+        assert isinstance(Mine(), db.checkable)
+
+        class Child(Mine):
+            pass
+
+        assert isinstance(Child(), db.checkable)
+        assert issubclass(Child, db.checkable)
+
+        class MyInt(int):
+            pass
+
+        assert not issubclass(MyInt, db.checkable)
+
+        class Other:
+            pass
+
+        assert not isinstance(Other(), db.checkable)
+        assert not issubclass(Other, db.checkable)
+
+        assert isinstance(db.checkable, InstanceCheckMeta)
+        assert isinstance(db.checkable, type)
+        assert isinstance(db.checkable, Type.create(type, cache=type_cache).checkable)
+
+        assert issubclass(db.checkable, InstanceCheck)
+        assert not issubclass(db.checkable, type)
+        assert not issubclass(type, db.checkable)
+        assert not issubclass(Type.create(type, cache=type_cache).checkable, db.checkable)
+        assert not issubclass(db.checkable, Type.create(type, cache=type_cache).checkable)
+        assert not isinstance(db.checkable, int)
+        assert not isinstance(db.checkable, Type.create(int, cache=type_cache).checkable)
+        assert not issubclass(db.checkable, Other)
+        assert not issubclass(db.checkable, Type.create(Other, cache=type_cache).checkable)
+
+        assert db.checkable.Meta.typ == MineT
+        assert db.checkable.Meta.original == MineT
+        assert not db.checkable.Meta.optional
+        assert db.checkable.Meta.without_optional == MineT
+        assert db.checkable.Meta.without_annotation == MineT
+
     it "can instantiate the provided type", type_cache: strcs.TypeCache:
         checkable = Type.create(dict[str, bool], cache=type_cache).checkable
         made = tp.cast(tp.Callable, checkable)([("1", True), ("2", False)])

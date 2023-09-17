@@ -63,6 +63,7 @@ class Type(tp.Generic[T]):
         """
 
         score = Score(
+            type_alias_name="",
             union=(),
             annotated=False,
             typevars=(),
@@ -81,7 +82,10 @@ class Type(tp.Generic[T]):
     "The original object being wrapped"
 
     extracted: T
-    "The extracted type if this object is optional or annotated"
+    "The extracted type if this object is optional or annotated or a ``typing.NewType`` object"
+
+    type_alias: tp.NewType | None
+    "The type alias used to reference this type if created with one"
 
     optional_inner: bool
     "True when the object is an annotated optional"
@@ -128,12 +132,18 @@ class Type(tp.Generic[T]):
         if annotations is None and optional_outer:
             extracted, annotated, annotations = extract_annotation(typ)
 
+        type_alias: tp.NewType | None = None
+        if isinstance(extracted, tp.NewType):
+            type_alias = extracted
+            extracted = extracted.__supertype__
+
         constructor = tp.cast(tp.Callable[..., Type[U]], cls)
 
         made = constructor(
             cache=cache,
             original=original,
             extracted=extracted,
+            type_alias=type_alias,
             optional_inner=optional_inner,
             optional_outer=optional_outer,
             annotated=annotated,
@@ -179,11 +189,19 @@ class Type(tp.Generic[T]):
         if isinstance(o, Type):
             o = o.original
 
+        other_alias: tp.NewType | None = None
+        if isinstance(o, tp.NewType):
+            other_alias = o
+            o = other_alias.__supertype__
+
         if (
             o == self.original
             or (self.is_annotated and o == self.extracted)
             or (self.optional and o is None)
         ):
+            return True
+
+        if self.type_alias is not None and other_alias == self.type_alias:
             return True
 
         if type(o) in union_types:
@@ -312,6 +330,13 @@ class Type(tp.Generic[T]):
         return self.annotations is not None
 
     @property
+    def is_type_alias(self) -> bool:
+        """
+        True if this object is a ``typing.NewType`` object
+        """
+        return self.type_alias is not None
+
+    @property
     def optional(self) -> bool:
         """
         True if this object has either inner or outer optional
@@ -330,9 +355,11 @@ class Type(tp.Generic[T]):
         return MRO.create(self.extracted, type_cache=self.cache)
 
     @memoized_property
-    def origin(self) -> type:
+    def origin(self) -> type | tp.NewType:
         """
-        If ``typing.get_origin(self.extracted)`` is a python type, then return that.
+        if this type was created using a ``tp.NewType`` object, then that is returned.
+
+        Otherwise if ``typing.get_origin(self.extracted)`` is a python type, then return that.
 
         Otherwise if ``self.extracted`` is a python type then return that.
 
@@ -340,6 +367,9 @@ class Type(tp.Generic[T]):
 
         This is memoized.
         """
+        if self.type_alias:
+            return self.type_alias
+
         origin = tp.get_origin(self.extracted)
         if isinstance(origin, type):
             return origin
@@ -348,6 +378,20 @@ class Type(tp.Generic[T]):
             return self.extracted
 
         return type(self.extracted)
+
+    @memoized_property
+    def origin_type(self) -> type:
+        """
+        Gets the result of ``self.origin``. If the result is a ``tp.NewType`` then the
+        type represented by that alias is returned, otherwise the origin is.
+
+        This is memoized.
+        """
+        origin = self.origin
+        if isinstance(origin, tp.NewType):
+            return origin.__supertype__
+        else:
+            return origin
 
     @memoized_property
     def is_union(self) -> bool:
@@ -366,7 +410,7 @@ class Type(tp.Generic[T]):
 
         This is memoized.
         """
-        return self.reassemble(self.extracted, with_optional=False)
+        return self.reassemble(self.type_alias or self.extracted, with_optional=False)
 
     @memoized_property
     def without_annotation(self) -> object:
@@ -375,7 +419,7 @@ class Type(tp.Generic[T]):
 
         This is memoized.
         """
-        return self.reassemble(self.extracted, with_annotation=False)
+        return self.reassemble(self.type_alias or self.extracted, with_annotation=False)
 
     @memoized_property
     def nonoptional_union_types(self) -> tuple["Type", ...]:

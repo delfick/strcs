@@ -81,6 +81,7 @@ from .args_extractor import ArgsExtractor
 from .disassemble import Type, TypeCache, instantiate
 from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
+from .standard import builtin_types
 
 if tp.TYPE_CHECKING:
     from .register import CreateRegister
@@ -196,7 +197,8 @@ class WrappedCreator(tp.Generic[T]):
         converter = create_args.converter
 
         if self.assume_unchanged_converted and want.is_type_for(value):
-            return tp.cast(T, value)
+            if want.origin_type not in builtin_types:
+                return tp.cast(T, value)
 
         try:
             args = ArgsExtractor(
