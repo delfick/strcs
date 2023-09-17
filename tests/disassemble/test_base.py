@@ -84,7 +84,7 @@ describe "Type":
         assert disassembled.checkable == nun and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert disassembled.annotated is None
         assert not disassembled.is_annotated
         assert disassembled.without_annotation is None
@@ -111,7 +111,7 @@ describe "Type":
         assert disassembled.checkable == type(None) and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation == 1
+        assert disassembled.annotations == (1,)
         assert disassembled.annotated is provided
         assert disassembled.is_annotated
         assert disassembled.without_annotation == type(None)
@@ -138,7 +138,7 @@ describe "Type":
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert disassembled.annotated is None
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == int
@@ -165,7 +165,7 @@ describe "Type":
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert disassembled.annotated is None
         assert disassembled.mro.all_vars == ()
         assert not disassembled.is_annotated
@@ -202,7 +202,7 @@ describe "Type":
             and checkable == str
             and isinstance(checkable, InstanceCheckMeta)
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert disassembled.annotated is None
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == provided
@@ -239,7 +239,7 @@ describe "Type":
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert disassembled.annotated is None
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == int | str
@@ -268,7 +268,7 @@ describe "Type":
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert disassembled.annotated is None
         assert not disassembled.is_annotated
         assert disassembled.without_annotation == int | str | None
@@ -299,7 +299,7 @@ describe "Type":
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.without_annotation == int | None
@@ -327,7 +327,7 @@ describe "Type":
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == int
@@ -357,7 +357,7 @@ describe "Type":
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == int | None
@@ -384,7 +384,7 @@ describe "Type":
         assert disassembled.checkable == list and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.mro.all_vars == (int,)
@@ -414,7 +414,7 @@ describe "Type":
         assert disassembled.checkable == list and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.mro.all_vars == (int,)
@@ -442,7 +442,7 @@ describe "Type":
         assert disassembled.checkable == dict and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.mro.all_vars == (str, int)
@@ -472,7 +472,7 @@ describe "Type":
         assert disassembled.checkable == dict and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.mro.all_vars == (str, int)
@@ -503,7 +503,7 @@ describe "Type":
         assert disassembled.checkable == dict and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.mro.all_vars == (str, int)
@@ -534,7 +534,7 @@ describe "Type":
         assert disassembled.checkable == dict and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is tp.Annotated[dict[str, int], anno]
         assert disassembled.mro.all_vars == (str, int)
@@ -568,7 +568,7 @@ describe "Type":
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.without_annotation == Thing
@@ -614,7 +614,7 @@ describe "Type":
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.without_annotation == Thing
@@ -660,7 +660,7 @@ describe "Type":
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.without_annotation == Thing
@@ -701,7 +701,7 @@ describe "Type":
         assert disassembled.extracted == D
         assert disassembled.origin == D
         assert disassembled.checkable == D and isinstance(disassembled.checkable, InstanceCheckMeta)
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.mro.all_vars == (str, int)
@@ -751,7 +751,7 @@ describe "Type":
         assert disassembled.checkable == Tree and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is None
+        assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
         assert disassembled.mro.typevars == OrderedDict(
@@ -801,7 +801,7 @@ describe "Type":
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == Thing
@@ -851,7 +851,7 @@ describe "Type":
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == Thing | None
@@ -901,7 +901,7 @@ describe "Type":
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.mro.all_vars == (int, str)
@@ -952,7 +952,7 @@ describe "Type":
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.mro.all_vars == (strcs.Type.Missing, strcs.Type.Missing)
@@ -1003,7 +1003,7 @@ describe "Type":
         assert disassembled.checkable == Thing and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
-        assert disassembled.annotation is anno
+        assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.mro.all_vars == (strcs.Type.Missing, strcs.Type.Missing)

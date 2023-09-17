@@ -92,7 +92,7 @@ class Type(tp.Generic[T]):
     annotated: IsAnnotated | None
     "The typing.Annotated object if this object is annotated"
 
-    annotation: object | None
+    annotations: Sequence[object] | None
     "The metadata in the annotation if the object is a typing.Annotated"
 
     @classmethod
@@ -128,11 +128,6 @@ class Type(tp.Generic[T]):
         if annotations is None and optional_outer:
             extracted, annotated, annotations = extract_annotation(typ)
 
-        annotation = None
-        if annotations is not None:
-            # TODO: Support multiple annotations
-            annotation = annotations[0]
-
         constructor = tp.cast(tp.Callable[..., Type[U]], cls)
 
         made = constructor(
@@ -142,7 +137,7 @@ class Type(tp.Generic[T]):
             optional_inner=optional_inner,
             optional_outer=optional_outer,
             annotated=annotated,
-            annotation=annotation,
+            annotations=annotations,
         )
 
         cache[original] = made
@@ -226,12 +221,14 @@ class Type(tp.Generic[T]):
         if self.optional_inner:
             result = f"{result} | None"
 
-        if self.annotated:
-            if isinstance(self.annotation, str):
-                annotation = json.dumps(self.annotation, default=repr)
-            else:
-                annotation = str(self.annotation)
-            result = f"Annotated[{result}, {annotation}]"
+        if self.annotations:
+            items: list[str] = []
+            for item in self.annotations:
+                if isinstance(item, str):
+                    items.append(json.dumps(item, default=repr))
+                else:
+                    items.append(str(item))
+            result = f"Annotated[{result}, {', '.join(items)}]"
 
         if self.optional_outer:
             result = f"{result} | None"
@@ -312,7 +309,7 @@ class Type(tp.Generic[T]):
         """
         True if this object was annotated
         """
-        return self.annotation is not None
+        return self.annotations is not None
 
     @property
     def optional(self) -> bool:
@@ -565,6 +562,9 @@ class Type(tp.Generic[T]):
         or a simple callable then a :class:`strcs.Ann` instance is made from it
         and that is returned.
 
+        Note that currently only the first value in the annotation will be looked
+        at.
+
         This is memoized.
         """
         from ..annotations import (
@@ -576,15 +576,18 @@ class Type(tp.Generic[T]):
         )
 
         ann: AdjustableMeta[T] | AdjustableCreator[T] | None = None
-        if self.annotation is not None:
-            if isinstance(self.annotation, AdjustableMeta):
-                ann = self.annotation
-            elif isinstance(self.annotation, (MetaAnnotation, MergedMetaAnnotation)):
-                ann = Ann[T](self.annotation)
-            elif isinstance(self.annotation, AdjustableCreator):
-                ann = self.annotation
-            elif callable(self.annotation):
-                ann = Ann[T](creator=self.annotation)
+        if self.annotations is not None:
+            # TODO: support multiple annotations
+            annotation = self.annotations[0]
+
+            if isinstance(annotation, AdjustableMeta):
+                ann = annotation
+            elif isinstance(annotation, (MetaAnnotation, MergedMetaAnnotation)):
+                ann = Ann[T](annotation)
+            elif isinstance(annotation, AdjustableCreator):
+                ann = annotation
+            elif callable(annotation):
+                ann = Ann[T](creator=annotation)
 
         return ann
 
