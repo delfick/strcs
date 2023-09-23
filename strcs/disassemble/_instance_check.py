@@ -7,7 +7,7 @@ if tp.TYPE_CHECKING:
     from ._base import Type
 
 
-class InstanceCheckMeta(type):
+class InstanceCheckMeta(abc.ABCMeta):
     """The base type for the metclass given to the Checkable class"""
 
     pass
@@ -190,15 +190,8 @@ def _checker_union(
         def __class__(self) -> type:
             return type(M.extracted)
 
-    class CombinedMeta(CheckerMeta, abc.ABCMeta):
-        pass
-
-    class Checker(InstanceCheck, metaclass=CombinedMeta):
-        def __new__(mcls, *args, **kwargs):
-            raise ValueError(f"Cannot instantiate a union type: {check_against}")
-
         @classmethod
-        def __subclasshook__(cls, C: type) -> bool:
+        def __subclasscheck__(cls, C: type) -> bool:
             if C == CombinedMeta:
                 return True
 
@@ -206,6 +199,13 @@ def _checker_union(
                 if isinstance(C.Meta.typ, type):
                     C = C.Meta.typ
             return issubclass(C, tuple(check_against))
+
+    class CombinedMeta(CheckerMeta, abc.ABCMeta):
+        pass
+
+    class Checker(InstanceCheck, metaclass=CombinedMeta):
+        def __new__(mcls, *args, **kwargs):
+            raise ValueError(f"Cannot instantiate a union type: {check_against}")
 
         @classmethod
         def matches(
@@ -288,15 +288,8 @@ def _checker_single(
         def __class__(self) -> type:
             return type(M.extracted)
 
-    class CombinedMeta(CheckerMeta, abc.ABCMeta):
-        pass
-
-    class Checker(InstanceCheck, metaclass=CombinedMeta):
-        def __new__(mcls, *args, **kwargs):
-            return check_against(*args, **kwargs)
-
         @classmethod
-        def __subclasshook__(cls, C: type) -> bool:
+        def __subclasscheck__(cls, C: type) -> bool:
             if C == CombinedMeta:
                 return True
 
@@ -317,6 +310,13 @@ def _checker_single(
                         return False
 
             return True
+
+    class CombinedMeta(CheckerMeta, abc.ABCMeta):
+        pass
+
+    class Checker(InstanceCheck, metaclass=CombinedMeta):
+        def __new__(mcls, *args, **kwargs):
+            return check_against(*args, **kwargs)
 
         @classmethod
         def matches(
