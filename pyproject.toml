@@ -36,6 +36,9 @@ include = [
     "/strcs",
 ]
 
+[tool.hatch.build]
+include = ["strcs/*"]
+
 [tool.black]
 line-length = 100
 include = '(\.py|^venv)$'
