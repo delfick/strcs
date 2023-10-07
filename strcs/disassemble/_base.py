@@ -382,7 +382,7 @@ class Type(tp.Generic[T]):
         return self.reassemble(self.extracted, with_annotation=False)
 
     @memoized_property
-    def nonoptional_union_types(self) -> tuple["Type", ...]:
+    def nonoptional_union_types(self) -> tuple["Type[object]", ...]:
         """
         Return a tuple of :class:`strcs.Type` objects represented by this object
         except for any ``None``.
