@@ -134,7 +134,7 @@ class CreateStructureHook:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type.create(typ, cache=self.type_cache)
+            want = self.type_cache.disassemble(typ)
 
         normal_creator = want.func_from(list(self.register.register.items()))
 
@@ -157,10 +157,8 @@ class CreateStructureHook:
                 creator = want.ann.adjusted_creator(creator, self.register, want, self.type_cache)
             if meta is not self.meta:
                 return self.register.create(
-                    Type.create(
-                        want.without_annotation,
-                        expect=type(want.extracted),
-                        cache=self.type_cache,
+                    self.type_cache.disassemble.typed(
+                        type(want.extracted), want.without_annotation
                     ),
                     value,
                     meta=meta,

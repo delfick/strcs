@@ -3,6 +3,14 @@
 Changelog
 ---------
 
+.. _release-0.4.0:
+
+0.4.0 - TBD
+    * Add a ``disassemble`` method to the type cache and implemented ``disassemble``
+      on ``strcs.Type`` using it. Note that the signature also changes to no
+      longer have an "expect" but also it's smarter about the resulting Type
+      it returns.
+
 .. _release-0.3.0:
 
 0.3.0 - 17 September 2023

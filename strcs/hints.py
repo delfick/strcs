@@ -305,9 +305,7 @@ def resolve_types(
                     value = tp.ForwardRef(value, is_argument=False, is_class=True)
 
                 if name in allfields:
-                    from .disassemble import Type
-
-                    disassembled = Type.create(value, cache=type_cache, expect=object)
+                    disassembled = type_cache.disassemble(value)
 
                     resolved = resolve_type(disassembled.extracted, base_globals, base_locals)
                     if value != resolved and value in type_cache:

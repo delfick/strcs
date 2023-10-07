@@ -3,7 +3,6 @@ import dataclasses
 import itertools
 import sys
 import textwrap
-import types
 import typing as tp
 
 import attrs
@@ -12,10 +11,7 @@ import pytest
 import strcs
 from strcs import Type
 
-
-@pytest.fixture()
-def type_cache() -> strcs.TypeCache:
-    return strcs.TypeCache()
+Disassembler = strcs.disassemble.Disassembler
 
 
 T = tp.TypeVar("T")
@@ -35,9 +31,9 @@ describe "Type":
 
         assert got == want
 
-    it "works on None", type_cache: strcs.TypeCache:
+    it "works on None", Dis: Disassembler:
         provided = None
-        disassembled = Type.create(provided, expect=type(None), cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -60,9 +56,9 @@ describe "Type":
         """,
         )
 
-    it "doesn't overcome python limitations with annotating None and thinks we annotated type of None", type_cache: strcs.TypeCache:
+    it "doesn't overcome python limitations with annotating None and thinks we annotated type of None", Dis: Disassembler:
         provided = tp.Annotated[None, 1]
-        disassembled = Type.create(provided, expect=type(None), cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -85,9 +81,9 @@ describe "Type":
         """,
         )
 
-    it "works on simple type", type_cache: strcs.TypeCache:
+    it "works on simple type", Dis: Disassembler:
         provided = int
-        disassembled = Type.create(provided, expect=int, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -110,9 +106,9 @@ describe "Type":
         """,
         )
 
-    it "works on a union", type_cache: strcs.TypeCache:
+    it "works on a union", Dis: Disassembler:
         provided = int | str
-        disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -169,11 +165,11 @@ describe "Type":
         )
 
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
-    it "works on a complicated union", type_cache: strcs.TypeCache:
+    it "works on a complicated union", Dis: Disassembler:
         provided = tp.Union[
             tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
         ]
-        disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -295,9 +291,9 @@ describe "Type":
         )
 
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
-    it "works on a typing union", type_cache: strcs.TypeCache:
+    it "works on a typing union", Dis: Disassembler:
         provided = tp.Union[int, str]
-        disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -369,9 +365,9 @@ describe "Type":
         """,
         )
 
-    it "works on an optional union", type_cache: strcs.TypeCache:
+    it "works on an optional union", Dis: Disassembler:
         provided = int | str | None
-        disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -427,9 +423,9 @@ describe "Type":
         """,
         )
 
-    it "works on optional simple type", type_cache: strcs.TypeCache:
+    it "works on optional simple type", Dis: Disassembler:
         provided = int | None
-        disassembled = Type.create(provided, expect=int, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -452,10 +448,10 @@ describe "Type":
         """,
         )
 
-    it "works on annotated simple type", type_cache: strcs.TypeCache:
+    it "works on annotated simple type", Dis: Disassembler:
         anno = "hello"
         provided = tp.Annotated[int, anno]
-        disassembled = Type.create(provided, expect=int, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -478,10 +474,10 @@ describe "Type":
         """,
         )
 
-    it "works on optional annotated simple type", type_cache: strcs.TypeCache:
+    it "works on optional annotated simple type", Dis: Disassembler:
         anno = "hello"
         provided = tp.Annotated[tp.Optional[int], anno]
-        disassembled = Type.create(provided, expect=int, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -504,9 +500,9 @@ describe "Type":
         """,
         )
 
-    it "works on builtin container to simple type", type_cache: strcs.TypeCache:
+    it "works on builtin container to simple type", Dis: Disassembler:
         provided = list[int]
-        disassembled = Type.create(provided, expect=list, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -545,9 +541,9 @@ describe "Type":
         """,
         )
 
-    it "works on optional builtin container to simple type", type_cache: strcs.TypeCache:
+    it "works on optional builtin container to simple type", Dis: Disassembler:
         provided = list[int] | None
-        disassembled = Type.create(provided, expect=list, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -586,9 +582,9 @@ describe "Type":
         """,
         )
 
-    it "works on builtin container to multiple simple types", type_cache: strcs.TypeCache:
+    it "works on builtin container to multiple simple types", Dis: Disassembler:
         provided = dict[str, int]
-        disassembled = Type.create(provided, expect=dict, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -643,9 +639,9 @@ describe "Type":
         """,
         )
 
-    it "works on optional builtin container to multiple simple types", type_cache: strcs.TypeCache:
+    it "works on optional builtin container to multiple simple types", Dis: Disassembler:
         provided = tp.Optional[dict[str, int]]
-        disassembled = Type.create(provided, expect=dict, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -700,10 +696,10 @@ describe "Type":
         """,
         )
 
-    it "works on annotated optional builtin container to multiple simple types", type_cache: strcs.TypeCache:
+    it "works on annotated optional builtin container to multiple simple types", Dis: Disassembler:
         anno = "stuff"
         provided = tp.Annotated[tp.Optional[dict[str, int]], anno]
-        disassembled = Type.create(provided, expect=dict, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -758,10 +754,10 @@ describe "Type":
         """,
         )
 
-    it "works on optional annotated builtin container to multiple simple types", type_cache: strcs.TypeCache:
+    it "works on optional annotated builtin container to multiple simple types", Dis: Disassembler:
         anno = "stuff"
         provided = tp.Optional[tp.Annotated[dict[str, int], anno]]
-        disassembled = Type.create(provided, expect=dict, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -816,7 +812,7 @@ describe "Type":
         """,
         )
 
-    it "works on an attrs class", type_cache: strcs.TypeCache:
+    it "works on an attrs class", Dis: Disassembler:
 
         @attrs.define
         class Thing:
@@ -824,7 +820,7 @@ describe "Type":
             two: str
 
         provided = Thing
-        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -847,7 +843,7 @@ describe "Type":
         """,
         )
 
-    it "works on an dataclasses class", type_cache: strcs.TypeCache:
+    it "works on an dataclasses class", Dis: Disassembler:
 
         @dataclasses.dataclass
         class Thing:
@@ -855,7 +851,7 @@ describe "Type":
             two: str
 
         provided = Thing
-        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -878,7 +874,7 @@ describe "Type":
         """,
         )
 
-    it "works on a normal class", type_cache: strcs.TypeCache:
+    it "works on a normal class", Dis: Disassembler:
 
         class Thing:
             def __init__(self, one: int, two: str):
@@ -886,7 +882,7 @@ describe "Type":
                 self.two = two
 
         provided = Thing
-        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -909,13 +905,13 @@ describe "Type":
         """,
         )
 
-    it "works on inherited generic container", type_cache: strcs.TypeCache:
+    it "works on inherited generic container", Dis: Disassembler:
 
         class D(dict[str, int]):
             pass
 
         provided = D
-        disassembled = Type.create(provided, expect=D, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -974,7 +970,7 @@ describe "Type":
         """,
         )
 
-    it "works on class with complicated hierarchy", type_cache: strcs.TypeCache:
+    it "works on class with complicated hierarchy", Dis: Disassembler:
 
         class Thing(tp.Generic[T, U]):
             def __init__(self, one: int, two: str):
@@ -998,7 +994,7 @@ describe "Type":
                 self.four = four
 
         provided = Tree
-        disassembled = Type.create(provided, expect=Tree, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -1093,7 +1089,7 @@ describe "Type":
         """,
         )
 
-    it "works on an annotated class", type_cache: strcs.TypeCache:
+    it "works on an annotated class", Dis: Disassembler:
 
         @attrs.define
         class Thing:
@@ -1103,7 +1099,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[Thing, anno]
-        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -1126,7 +1122,7 @@ describe "Type":
         """,
         )
 
-    it "works on an optional annotated class", type_cache: strcs.TypeCache:
+    it "works on an optional annotated class", Dis: Disassembler:
 
         @dataclasses.dataclass
         class Thing:
@@ -1136,7 +1132,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing], anno]
-        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -1159,7 +1155,7 @@ describe "Type":
         """,
         )
 
-    it "works on an optional annotated generic class", type_cache: strcs.TypeCache:
+    it "works on an optional annotated generic class", Dis: Disassembler:
 
         @dataclasses.dataclass
         class Thing(tp.Generic[T, U]):
@@ -1169,7 +1165,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
-        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -1228,7 +1224,7 @@ describe "Type":
         """,
         )
 
-    it "works on an optional annotated generic class without concrete types", type_cache: strcs.TypeCache:
+    it "works on an optional annotated generic class without concrete types", Dis: Disassembler:
 
         @attrs.define
         class Thing(tp.Generic[T, U]):
@@ -1238,7 +1234,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing], anno]
-        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """
@@ -1281,7 +1277,7 @@ describe "Type":
         """,
         )
 
-    it "works on an optional annotated generic class with concrete types", type_cache: strcs.TypeCache:
+    it "works on an optional annotated generic class with concrete types", Dis: Disassembler:
 
         @attrs.define
         class Thing(tp.Generic[T, U]):
@@ -1291,7 +1287,7 @@ describe "Type":
         anno = "blah"
 
         provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
-        disassembled = Type.create(provided, expect=Thing, cache=type_cache)
+        disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
             """

@@ -40,7 +40,7 @@ describe "resolve_types":
 
         assert len(type_cache) == 0
 
-        strcs.Type.create(Thing, expect=object, cache=type_cache)
+        type_cache.disassemble(Thing)
 
         assert len(type_cache) > 0
 

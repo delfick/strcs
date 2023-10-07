@@ -262,11 +262,11 @@ class WrappedCreator(tp.Generic[T]):
                 return tp.cast(T, value)
             else:
                 if not isinstance(res, Mapping) and issubclass(
-                    want.checkable, Type.create(type(res), cache=self.type_cache).checkable
+                    want.checkable, self.type_cache.disassemble(type(res)).checkable
                 ):
                     raise errors.SupertypeNotValid(
                         want=want.checkable,
-                        got=Type.create(type(res), cache=self.type_cache).checkable,
+                        got=self.type_cache.disassemble(type(res)).checkable,
                         reason="A Super type is not a valid value to convert",
                     )
 

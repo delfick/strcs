@@ -85,6 +85,7 @@ class CreateRegister:
         self.last_meta = last_meta
         self.last_type = last_type
         self.type_cache = type_cache
+        self.disassemble = type_cache.disassemble
         self.skip_creator = skip_creator
         self.auto_resolve_string_annotations = auto_resolve_string_annotations
 
@@ -107,18 +108,13 @@ class CreateRegister:
         )
 
     def __setitem__(self, specification: type[T] | Type[T], creator: ConvertFunction[T]) -> None:
-        self.register[Type.create(specification, cache=self.type_cache)] = creator
+        self.register[self.type_cache.disassemble(specification)] = creator
 
     def __contains__(self, typ: type | Type[T]) -> bool:
         if not isinstance(typ, (type, Type)):
             raise ValueError("Can only check against types or Type instances")
 
-        return (
-            Type.create(typ, expect=object, cache=self.type_cache).func_from(
-                list(self.register.items())
-            )
-            is not None
-        )
+        return self.type_cache.disassemble(typ).func_from(list(self.register.items())) is not None
 
     def make_decorator(self) -> Creator:
         """
@@ -172,17 +168,17 @@ class CreateRegister:
             ) -> ConvertDefinition[T] | None:
 
                 if not isinstance(self.original, Type):
-                    typ: Type[T] = Type.create(self.original, cache=register.type_cache)
+                    typ = register.type_cache.disassemble(self.original)
                 else:
                     typ = self.original
 
                 self.wrapped = WrappedCreator[T](
-                    typ,
+                    tp.cast(Type[T], typ),
                     func,
                     type_cache=register.type_cache,
                     assume_unchanged_converted=self.assume_unchanged_converted,
                 )
-                self.typ = typ
+                self.typ = tp.cast(Type[T], typ)
                 self.func = self.wrapped.func
 
                 register[typ] = self.wrapped
@@ -210,7 +206,7 @@ class CreateRegister:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type.create(typ, cache=self.type_cache)
+            want = self.type_cache.disassemble(typ)
 
         return CreateStructureHook.structure(
             register=self,
@@ -243,7 +239,7 @@ class CreateRegister:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = Type.create(tp.Annotated[typ, ann], cache=self.type_cache)
+            want = tp.cast(Type[T], self.type_cache.disassemble(tp.Annotated[typ, ann]))
 
         return CreateStructureHook.structure(
             register=self,

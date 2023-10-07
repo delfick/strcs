@@ -77,7 +77,7 @@ class MRO:
 
 
         type_cache = strcs.TypeCache()
-        typ = strcs.Type.create(my_code.my_class, cache=type_cache)
+        typ = type_cache.disassemble(my_code.my_class)
         mro = typ.mro
     """
 
@@ -108,7 +108,7 @@ class MRO:
         mro = () if origin is None or not hasattr(origin, "__mro__") else origin.__mro__
 
         orig_bases = HasOrigBases.determine_orig_bases(origin, mro)
-        bases = [Type.create(base, expect=object, cache=type_cache) for base in orig_bases]
+        bases = [type_cache.disassemble(base) for base in orig_bases]
 
         return cls(
             _start=start, _origin=origin, _args=args, _mro=mro, _bases=bases, _type_cache=type_cache
@@ -157,7 +157,7 @@ class MRO:
                 pass
 
             type_cache = strcs.TypeCache()
-            typevars = strcs.Type.create(Two, cache=type_cache).mro.typevars
+            typevars = type_cache.disassemble(Two).mro.typevars
 
         Will result in having:
 
@@ -242,7 +242,7 @@ class MRO:
         result: list[Type | type[Type.Missing]] = []
         typevars = list(self.typevars.items())
         if self.args and not typevars and self.origin not in union_types:
-            return tuple(Type.create(arg, cache=self.type_cache) for arg in self.args)
+            return tuple(self.type_cache.disassemble(arg) for arg in self.args)
 
         found: set[tuple[type, tp.TypeVar | int]] = set()
 
@@ -258,7 +258,7 @@ class MRO:
 
             typed: Type | type[Type.Missing]
             if value is not Type.Missing:
-                typed = Type.create(value, cache=self.type_cache)
+                typed = self.type_cache.disassemble(value)
             else:
                 typed = Type.Missing
 
@@ -291,9 +291,9 @@ class MRO:
 
 
             type_cache = strcs.TypeCache()
-            typ1 = strcs.Type.create(One, cache=type_cache)
-            typ2 = strcs.Type.create(One[int], cache=type_cache)
-            typ3 = strcs.Type.create(Two[str], cache=type_cache)
+            typ1 = type_cache.disassemble(One)
+            typ2 = type_cache.disassemble(One[int])
+            typ3 = type_cache.disassemble(Two[str])
 
             assert typ1.mro.signature_for_display == "~T"
             assert typ2.mro.signature_for_display == "int"
@@ -321,7 +321,7 @@ class MRO:
             if value is Type.Missing:
                 result.append(repr(tv))
             else:
-                result.append(Type.create(value, cache=self.type_cache).for_display())
+                result.append(self.type_cache.disassemble(value).for_display())
 
         return ", ".join(result)
 
@@ -340,7 +340,7 @@ class MRO:
         """
         result: list[Field] = []
         for cls in reversed(self.mro):
-            disassembled = Type.create(cls, expect=object, cache=self.type_cache)
+            disassembled = self.type_cache.disassemble.typed(object, cls)
             fields = disassembled.raw_fields
 
             for field in fields:
@@ -352,7 +352,7 @@ class MRO:
 
                         f.default = field.default
                         f.kind = field.kind
-                        f.disassembled_type = Type.create(field.type, cache=self.type_cache)
+                        f.disassembled_type = self.type_cache.disassemble(field.type)
                         f.owner = cls
                         found = True
                         break
@@ -376,7 +376,7 @@ class MRO:
 
         for field in self.raw_fields:
             field_type = field.type
-            field_type_info = Type.create(field_type, expect=object, cache=self.type_cache)
+            field_type_info = self.type_cache.disassemble(field_type)
 
             extracted = field_type_info.extracted
             if isinstance(extracted, tp.TypeVar):
@@ -384,7 +384,7 @@ class MRO:
 
             if isinstance(field_type, tp.TypeVar):
                 replacement = typevars[
-                    (Type.create(field.original_owner, cache=self.type_cache).checkable, field_type)
+                    (self.type_cache.disassemble(field.original_owner).checkable, field_type)
                 ]
                 if isinstance(replacement, self.Referal):
                     replacement = replacement.value
@@ -394,7 +394,7 @@ class MRO:
                     field_type = object
 
             field_type = field_type_info.reassemble(field_type)
-            fields.append(field.with_replaced_type(Type.create(field_type, cache=self.type_cache)))
+            fields.append(field.with_replaced_type(self.type_cache.disassemble(field_type)))
 
         return fields
 
@@ -433,8 +433,8 @@ class MRO:
 
 
             type_cache = strcs.TypeCache()
-            typ1 = strcs.Type.create(One[B], cache=type_cache)
-            typ2 = strcs.Type.create(One[C], cache=type_cache)
+            typ1 = type_cache.disassemble(One[B])
+            typ2 = type_cache.disassemble(One[C])
 
             assert typ1.mro.find_subtypes(A) == (B, )
             assert typ2.mro.find_subtypes(A) == (C, )
@@ -455,11 +455,11 @@ class MRO:
                     f"The type has less typevars ({len(self.typevars)}) than wanted ({len(want)})"
                 )
 
-            typ = Type.create(typevars[(owner, tv)], expect=object, cache=self.type_cache)
+            typ = self.type_cache.disassemble(typevars[(owner, tv)])
 
             if not issubclass(
                 typ.checkable,
-                Type.create(wa, cache=self.type_cache).checkable,
+                self.type_cache.disassemble(wa).checkable,
             ):
                 raise ValueError(
                     f"The concrete type {typ} is not a subclass of what was asked for {wa}"

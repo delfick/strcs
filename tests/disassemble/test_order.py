@@ -7,26 +7,23 @@ import pytest
 
 import strcs
 
-
-@pytest.fixture()
-def type_cache() -> strcs.TypeCache:
-    return strcs.TypeCache()
+Disassembler = strcs.disassemble.Disassembler
 
 
 class Sorter:
     @classmethod
-    def make_fixture(cls) -> tp.Callable[[strcs.TypeCache], "Sorter"]:
+    def make_fixture(cls) -> tp.Callable[[Disassembler], "Sorter"]:
         @pytest.fixture
-        def fixture(type_cache: strcs.TypeCache) -> Sorter:
-            return cls(type_cache)
+        def fixture(Dis: Disassembler) -> Sorter:
+            return cls(Dis)
 
         return fixture
 
-    def __init__(self, type_cache: strcs.TypeCache):
-        self.type_cache = type_cache
+    def __init__(self, Dis: Disassembler):
+        self.Dis = Dis
 
     def make_type(self, original: object | type) -> strcs.Type:
-        return strcs.Type.create(original, cache=self.type_cache)
+        return self.Dis(original)
 
     def assert_reverse_order(self, *to_sort: object) -> None:
         types: list[strcs.Type] = [self.make_type(original) for original in to_sort]

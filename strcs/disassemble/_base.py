@@ -49,6 +49,8 @@ class Type(tp.Generic[T]):
 
         typ = strcs.Type.create(int, cache=type_cache)
         typ2 = strcs.Type.create(int | None, cache=type_cache)
+        typ3 = type_cache.disassemble(int | None)
+        typ4 = typ.disassemble(int | None)
 
         ...
     """
@@ -76,6 +78,15 @@ class Type(tp.Generic[T]):
     _memoized_cache: dict[str, object] = attrs.field(
         init=False, factory=lambda: {}, repr=False, order=False, hash=False
     )
+
+    disassemble: "Disassembler" = attrs.field(
+        init=False,
+        default=attrs.Factory(lambda s: s.cache.disassemble, takes_self=True),
+        repr=False,
+        order=False,
+        hash=False,
+    )
+    """Object for creating new Type classes without having to pass around the type cache"""
 
     original: object
     "The original object being wrapped"
@@ -275,13 +286,6 @@ class Type(tp.Generic[T]):
 
         return self.score >= other.score
 
-    def disassemble(self, expect: type[U], typ: object) -> "Type[U]":
-        """
-        Return a new :class:`strcs.Type` for the provided object using the
-        type cache on this instance.
-        """
-        return Type.create(typ, expect=expect, cache=self.cache)
-
     def reassemble(
         self, resolved: object, *, with_annotation: bool = True, with_optional: bool = True
     ) -> object:
@@ -394,7 +398,7 @@ class Type(tp.Generic[T]):
             for origin in origins:
                 if origin is None:
                     continue
-                ds.append(self.disassemble(object, origin))
+                ds.append(self.disassemble(origin))
 
             union = tuple(sorted(ds, key=lambda d: d.score, reverse=True))
 
@@ -546,7 +550,7 @@ class Type(tp.Generic[T]):
         if isinstance(value, type):
             subclass_of = value
         else:
-            subclass_of = self.disassemble(object, type(value)).checkable
+            subclass_of = self.disassemble(type(value)).checkable
         return issubclass(subclass_of, self.checkable)
 
     @memoized_property
@@ -659,3 +663,37 @@ class Type(tp.Generic[T]):
         This is memoized.
         """
         return create_checkable(self)
+
+
+class Disassembler(tp.Protocol):
+    """
+    Used to disassemble some type using an existing type cache
+    """
+
+    type_cache: "TypeCache"
+
+    @tp.overload
+    def __call__(self, typ: type[U]) -> "Type[U]":
+        ...
+
+    @tp.overload
+    def __call__(self, typ: Type[U]) -> "Type[U]":
+        ...
+
+    @tp.overload
+    def __call__(self, typ: object) -> "Type[object]":
+        ...
+
+    def __call__(self, typ: type[U] | object) -> "Type[U] | Type[object]":
+        """
+        Used to disassemble some type using an existing type cache
+
+        Pass in expect to alter the type that the static type checker sees
+        """
+
+    def typed(self, expect: type[U], typ: object) -> "Type[U]":
+        """
+        Return a new :class:`strcs.Type` for the provided object using this
+        type cache and the expected type.
+        """
+        ...

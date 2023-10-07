@@ -2,7 +2,43 @@ import typing as tp
 from collections.abc import MutableMapping
 
 if tp.TYPE_CHECKING:
-    from ._base import Type
+    from ._base import Disassembler, Type
+
+U = tp.TypeVar("U")
+
+
+class _TypeCacheDisassembler:
+    def __init__(self, type_cache: "TypeCache"):
+        from ._base import Type
+
+        self.Type = Type
+        self.type_cache = type_cache
+
+    @tp.overload
+    def __call__(self, typ: type[U]) -> "Type[U]":
+        ...
+
+    @tp.overload
+    def __call__(self, typ: "Type[U]") -> "Type[U]":
+        ...
+
+    @tp.overload
+    def __call__(self, typ: object) -> "Type[object]":
+        ...
+
+    def __call__(self, typ: type[U] | object) -> "Type[U] | Type[object]":
+        """
+        Return a new :class:`strcs.Type` for the provided object using this
+        type cache
+        """
+        return self.Type.create(typ, expect=object, cache=self.type_cache)
+
+    def typed(self, expect: type[U], typ: object) -> "Type[U]":
+        """
+        Return a new :class:`strcs.Type` for the provided object using this
+        type cache and the expected type.
+        """
+        return self.Type.create(typ, expect=expect, cache=self.type_cache)
 
 
 class TypeCache(MutableMapping[object, "Type"]):
@@ -19,7 +55,7 @@ class TypeCache(MutableMapping[object, "Type"]):
 
         type_cache = strcs.TypeCache()
 
-        typ = strcs.Type.create(int, cache=type_cache)
+        typ = type_cache.disassemble(int)
 
         assert type_cache[int] is typ
         assert int in type_cache
@@ -34,8 +70,12 @@ class TypeCache(MutableMapping[object, "Type"]):
         type_cache.clear()
     """
 
-    def __init__(self):
-        self.cache = {}
+    disassemble: "Disassembler"
+    """Used to create new Types using this type cache"""
+
+    def __init__(self) -> None:
+        self.cache: dict[tuple[type, object], "Type"] = {}
+        self.disassemble = _TypeCacheDisassembler(self)
 
     def key(self, o: object) -> tuple[type, object]:
         return (type(o), o)

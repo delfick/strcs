@@ -85,7 +85,7 @@ describe "Register":
         assert Thing not in creg
         creg[Thing] = thing_maker
         assert Thing in creg
-        assert creg.register == {strcs.Type.create(Thing, cache=creg.type_cache): thing_maker}
+        assert creg.register == {creg.disassemble(Thing): thing_maker}
 
         assert Stuff not in creg
         creg[Stuff] = stuff_maker
@@ -93,8 +93,8 @@ describe "Register":
         assert Thing in creg
 
         assert creg.register == {
-            strcs.Type.create(Thing, cache=creg.type_cache): thing_maker,
-            strcs.Type.create(Stuff, cache=creg.type_cache): stuff_maker,
+            creg.disassemble(Thing): thing_maker,
+            creg.disassemble(Stuff): stuff_maker,
         }
 
     describe "can use the converters":
@@ -111,7 +111,7 @@ describe "Register":
             thing_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     strcs.NotSpecified,
-                    strcs.Type.create(Thing, cache=creg.type_cache),
+                    creg.disassemble(Thing),
                     IsMeta.test(),
                     IsConverter.test(),
                     creg,
@@ -128,7 +128,7 @@ describe "Register":
             stuff_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     strcs.NotSpecified,
-                    strcs.Type.create(Stuff, cache=creg.type_cache),
+                    creg.disassemble(Stuff),
                     IsMeta.test(),
                     IsConverter.test(),
                     creg,
@@ -163,7 +163,7 @@ describe "Register":
             thing_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     value,
-                    strcs.Type.create(Thing, cache=creg.type_cache),
+                    creg.disassemble(Thing),
                     IsMeta.test(),
                     IsConverter.test(),
                     creg,
@@ -200,7 +200,7 @@ describe "Register":
             stuff_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     {"one": 45, "two": 76},
-                    strcs.Type.create(Stuff, cache=creg.type_cache),
+                    creg.disassemble(Stuff),
                     IsMeta.test(),
                     IsConverter.test(),
                     creg,
@@ -299,7 +299,7 @@ describe "Register":
             shape_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     strcs.NotSpecified,
-                    strcs.Type.create(Square, cache=creg.type_cache),
+                    creg.disassemble(Square),
                     meta,
                     IsConverter.test(),
                     creg,
@@ -315,7 +315,7 @@ describe "Register":
             shape_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     strcs.NotSpecified,
-                    strcs.Type.create(Triangle, cache=creg.type_cache),
+                    creg.disassemble(Triangle),
                     meta,
                     IsConverter.test(),
                     creg,
@@ -331,7 +331,7 @@ describe "Register":
             shape_maker.assert_called_once_with(
                 strcs.CreateArgs(
                     strcs.NotSpecified,
-                    strcs.Type.create(Shape, cache=creg.type_cache),
+                    creg.disassemble(Shape),
                     meta,
                     IsConverter.test(),
                     creg,

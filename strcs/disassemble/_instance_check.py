@@ -136,7 +136,7 @@ def create_checkable(disassembled: "Type") -> type[InstanceCheck]:
 
     if tp.get_origin(Meta.extracted) in union_types:
         check_against = tuple(
-            disassembled.disassemble(object, a).checkable for a in tp.get_args(Meta.extracted)
+            disassembled.disassemble(a).checkable for a in tp.get_args(Meta.extracted)
         )
 
         Meta.typ = Meta.extracted
@@ -303,7 +303,7 @@ def _checker_single(
             if not issubclass(C, check_against):
                 return False
 
-            want = disassembled.disassemble(object, C)
+            want = disassembled.disassemble(C)
             for w, g in zip(want.mro.all_vars, disassembled.mro.all_vars):
                 if isinstance(w, Type) and isinstance(g, Type):
                     if not issubclass(w.checkable, g.checkable):

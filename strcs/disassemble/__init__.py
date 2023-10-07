@@ -1,4 +1,4 @@
-from ._base import Type
+from ._base import Disassembler, Type
 from ._cache import TypeCache
 from ._creation import fill, instantiate
 from ._extract import IsAnnotated, extract_annotation, extract_optional
@@ -15,6 +15,7 @@ from ._score import Score, ScoreOrigin
 from ._type_tree import MRO, HasOrigBases
 
 __all__ = [
+    "Disassembler",
     "Type",
     "TypeCache",
     "IsAnnotated",

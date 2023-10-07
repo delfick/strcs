@@ -9,23 +9,7 @@ import pytest
 import strcs
 from strcs.disassemble import MRO
 
-
-class Disassembler:
-    def __init__(self, type_cache: strcs.TypeCache):
-        self.type_cache = type_cache
-
-    def __call__(self, typ: object) -> strcs.Type:
-        return strcs.Type.create(typ, cache=self.type_cache)
-
-
-@pytest.fixture()
-def type_cache() -> strcs.TypeCache:
-    return strcs.TypeCache()
-
-
-@pytest.fixture()
-def Dis(type_cache: strcs.TypeCache) -> Disassembler:
-    return Disassembler(type_cache)
+Disassembler = strcs.disassemble.Disassembler
 
 
 describe "assumptions":

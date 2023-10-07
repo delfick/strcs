@@ -1,12 +1,15 @@
 # coding: spec
 
 import inspect
+import typing as tp
 from unittest import mock
 
 import cattrs
 import pytest
 
 import strcs
+
+T = tp.TypeVar("T")
 
 
 @pytest.fixture()
@@ -36,13 +39,13 @@ class IsRegister:
     def __init__(
         self,
         reg: strcs.CreateRegister,
-        last_type: type,
+        last_type: type[T],
         last_meta: strcs.Meta,
         skip_creator: strcs.ConvertDefinition,
     ):
         self.reg = reg
         self.got: object | None = None
-        self.last_type = strcs.Type.create(last_type, expect=object, cache=reg.type_cache)
+        self.last_type = reg.disassemble(last_type)
         self.last_meta = last_meta
         self.skip_creator = skip_creator
 
@@ -73,7 +76,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -91,7 +94,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -109,7 +112,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -118,7 +121,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [
             val,
-            strcs.Type.create(mock.Mock, cache=creg.type_cache),
+            creg.disassemble(object),
         ]
 
     it "can get arbitrary values from meta", meta: strcs.Meta, creg: strcs.CreateRegister:
@@ -130,7 +133,7 @@ describe "ArgsExtractor":
 
         def func(
             value: object, want: strcs.Type, /, other: Other, blah: int, stuff: str
-        ) -> strcs.ConvertResponse[object]:
+        ) -> strcs.ConvertResponse[Other]:
             ...
 
         val = mock.Mock(name="val")
@@ -142,7 +145,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(Other, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(Other),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -150,7 +153,7 @@ describe "ArgsExtractor":
         )
         assert extractor.extract() == [
             val,
-            strcs.Type.create(Other, cache=creg.type_cache),
+            creg.disassemble(Other),
             o,
             12,
             "one",
@@ -158,13 +161,13 @@ describe "ArgsExtractor":
 
         def func2(
             value: object, /, other: Other, blah: int, stuff: str
-        ) -> strcs.ConvertResponse[object]:
+        ) -> strcs.ConvertResponse[Other]:
             ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(Other, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(Other),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -172,13 +175,13 @@ describe "ArgsExtractor":
         )
         assert extractor.extract() == [val, o, 12, "one"]
 
-        def func3(other: Other, blah: int, stuff: str) -> strcs.ConvertResponse[object]:
+        def func3(other: Other, blah: int, stuff: str) -> strcs.ConvertResponse[Other]:
             ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(Other, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(Other),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -186,13 +189,13 @@ describe "ArgsExtractor":
         )
         assert extractor.extract() == [o, 12, "one"]
 
-        def func4(other: Other) -> strcs.ConvertResponse[object]:
+        def func4(other: Other) -> strcs.ConvertResponse[Other]:
             ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func4),
             value=val,
-            want=strcs.Type.create(Other, cache=creg.type_cache),
+            want=creg.disassemble(Other),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -209,7 +212,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -224,7 +227,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -239,7 +242,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -257,7 +260,7 @@ describe "ArgsExtractor":
 
         def func(
             value: object, want: strcs.Type, /, other, blah, stuff
-        ) -> strcs.ConvertResponse[object]:
+        ) -> strcs.ConvertResponse[Other]:
             ...
 
         val = mock.Mock(name="val")
@@ -268,7 +271,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(Other, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(Other),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -276,7 +279,7 @@ describe "ArgsExtractor":
         )
         assert extractor.extract() == [
             val,
-            strcs.Type.create(Other, cache=creg.type_cache),
+            creg.disassemble(Other),
             o,
             12,
             "one",
@@ -292,7 +295,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=converter,
             register=creg,
@@ -307,7 +310,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=converter,
             register=creg,
@@ -322,7 +325,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=converter,
             register=creg,
@@ -333,14 +336,14 @@ describe "ArgsExtractor":
 
     it "can get us the register object", meta: strcs.Meta, creg: strcs.CreateRegister:
 
-        def func(_register) -> strcs.ConvertResponse[object]:
+        def func(_register) -> strcs.ConvertResponse[mock.Mock]:
             ...
 
         val = mock.Mock(name="val")
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(mock.Mock),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -349,13 +352,13 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [IsRegister(creg, mock.Mock, meta, func)]
 
-        def func2(_register: strcs.CreateRegister) -> strcs.ConvertResponse[object]:
+        def func2(_register: strcs.CreateRegister) -> strcs.ConvertResponse[mock.Mock]:
             ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(mock.Mock),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -364,13 +367,13 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [IsRegister(creg, mock.Mock, meta, func2)]
 
-        def func3(val, /, _register: strcs.CreateRegister) -> strcs.ConvertResponse[object]:
+        def func3(val, /, _register: strcs.CreateRegister) -> strcs.ConvertResponse[mock.Mock]:
             ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(mock.Mock),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -397,13 +400,13 @@ describe "ArgsExtractor":
 
         def func(
             _register, register, _meta, meta, _converter, converter
-        ) -> strcs.ConvertResponse[object]:
+        ) -> strcs.ConvertResponse[mock.Mock]:
             ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=register1.type_cache),
+            want=register1.disassemble(mock.Mock),
             meta=meta1,
             converter=converter1,
             register=register1,
@@ -426,13 +429,13 @@ describe "ArgsExtractor":
             meta: strcs.Meta,
             _converter: cattrs.Converter,
             converter: cattrs.Converter,
-        ) -> strcs.ConvertResponse[object]:
+        ) -> strcs.ConvertResponse[mock.Mock]:
             ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=register1.type_cache),
+            want=register1.disassemble(mock.Mock),
             meta=meta1,
             converter=converter1,
             register=register1,
@@ -455,13 +458,13 @@ describe "ArgsExtractor":
             meta: strcs.Meta,
             _converter: str,
             converter: cattrs.Converter,
-        ) -> strcs.ConvertResponse[object]:
+        ) -> strcs.ConvertResponse[mock.Mock]:
             ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
             value=val,
-            want=strcs.Type.create(mock.Mock, expect=object, cache=register1.type_cache),
+            want=register1.disassemble(mock.Mock),
             meta=meta1,
             converter=converter1,
             register=register1,
@@ -481,7 +484,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
             value=mock.Mock(name="val"),
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,
@@ -502,7 +505,7 @@ describe "ArgsExtractor":
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
             value=mock.Mock(name="val"),
-            want=strcs.Type.create(mock.Mock, expect=object, cache=creg.type_cache),
+            want=creg.disassemble(object),
             meta=meta,
             converter=cattrs.Converter(),
             register=creg,

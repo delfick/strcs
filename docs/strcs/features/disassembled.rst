@@ -25,6 +25,9 @@ Types
    :member-order: bysource
 
 .. autoclass:: strcs.TypeCache
+   :members: disassemble
+
+.. autoprotocol:: strcs.disassemble.Disassembler
 
 .. autoclass:: strcs.MRO
     :members:

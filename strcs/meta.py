@@ -7,7 +7,7 @@ import attrs
 import cattrs
 
 from . import errors
-from .disassemble import Type, TypeCache
+from .disassemble import TypeCache
 
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
@@ -208,7 +208,7 @@ class Meta:
         if typ is object:
             return False, data
 
-        disassembled = Type.create(typ, cache=type_cache, expect=object)
+        disassembled = type_cache.disassemble(typ)
         optional = disassembled.optional
         typ = disassembled.checkable
         available: dict[str, object] = {n: v for n, v in data.items() if isinstance(v, typ)}

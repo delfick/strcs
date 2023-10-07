@@ -235,7 +235,7 @@ class Ann(tp.Generic[T]):
                 clone = meta.clone()
                 for field in attrs.fields(self.meta.__class__):  # type:ignore
                     if not field.name.startswith("_"):
-                        optional = Type.create(field.type, cache=type_cache).optional
+                        optional = type_cache.disassemble(field.type).optional
                         val = getattr(self.meta, field.name)
                         if not optional or val is not None:
                             clone[field.name] = val

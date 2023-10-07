@@ -7,7 +7,7 @@ import typing as tp
 import attrs
 import pytest
 
-from strcs import Field, Type, TypeCache
+import strcs
 from strcs.disassemble import (
     Default,
     IsAnnotated,
@@ -18,26 +18,10 @@ from strcs.disassemble import (
     fields_from_dataclasses,
 )
 
-
-class Disassembler:
-    def __init__(self, type_cache: TypeCache):
-        self.type_cache = type_cache
-
-    def __call__(self, typ: object) -> Type:
-        return Type.create(typ, cache=self.type_cache)
+Disassembler = strcs.disassemble.Disassembler
 
 
-@pytest.fixture()
-def type_cache() -> TypeCache:
-    return TypeCache()
-
-
-@pytest.fixture()
-def Dis(type_cache: TypeCache) -> Disassembler:
-    return Disassembler(type_cache)
-
-
-def assertParams(got: tp.Sequence[Field], want: list[Field]):
+def assertParams(got: tp.Sequence[strcs.Field], want: list[strcs.Field]):
     print("GOT :")
     for i, g in enumerate(got):
         print("  ", i, ": ", g)
@@ -51,14 +35,14 @@ def assertParams(got: tp.Sequence[Field], want: list[Field]):
 
 describe "fields_from_class":
 
-    it "finds fields from looking at the init on the class when no init", type_cache: TypeCache:
+    it "finds fields from looking at the init on the class when no init", type_cache: strcs.TypeCache:
 
         class Thing:
             pass
 
         assertParams(fields_from_class(type_cache, Thing), [])
 
-    it "finds all kinds of arguments", type_cache: TypeCache, Dis: Disassembler:
+    it "finds all kinds of arguments", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         class Thing:
             def __init__(
@@ -70,31 +54,31 @@ describe "fields_from_class":
         assertParams(
             fields_from_class(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="blah",
                     owner=Thing,
                     disassembled_type=Dis(int),
                     kind=inspect.Parameter.POSITIONAL_ONLY,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     owner=Thing,
                     disassembled_type=Dis(str),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="",
                     disassembled_type=Dis(str),
                     owner=Thing,
                     kind=inspect.Parameter.VAR_POSITIONAL,
                 ),
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(t),
                     owner=Thing,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
-                Field(
+                strcs.Field(
                     name="",
                     disassembled_type=Dis(bool),
                     owner=Thing,
@@ -103,7 +87,7 @@ describe "fields_from_class":
             ],
         )
 
-    it "uses object as type if unknown", type_cache: TypeCache, Dis: Disassembler:
+    it "uses object as type if unknown", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         class Thing:
             def __init__(self, blah, /, stuff, *args, items, **kwargs):
@@ -112,31 +96,31 @@ describe "fields_from_class":
         assertParams(
             fields_from_class(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="blah",
                     disassembled_type=Dis(object),
                     owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_ONLY,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(object),
                     owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="",
                     disassembled_type=Dis(object),
                     owner=Thing,
                     kind=inspect.Parameter.VAR_POSITIONAL,
                 ),
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(object),
                     owner=Thing,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
-                Field(
+                strcs.Field(
                     name="",
                     disassembled_type=Dis(object),
                     owner=Thing,
@@ -145,7 +129,7 @@ describe "fields_from_class":
             ],
         )
 
-    it "finds defaults", type_cache: TypeCache, Dis: Disassembler:
+    it "finds defaults", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         class Thing:
             def __init__(
@@ -162,34 +146,34 @@ describe "fields_from_class":
         assertParams(
             fields_from_class(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="blah",
                     disassembled_type=Dis(int),
                     owner=Thing,
                     default=Default(1),
                     kind=inspect.Parameter.POSITIONAL_ONLY,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     owner=Thing,
                     disassembled_type=Dis(str),
                     default=Default("asdf"),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="",
                     owner=Thing,
                     disassembled_type=Dis(str),
                     kind=inspect.Parameter.VAR_POSITIONAL,
                 ),
-                Field(
+                strcs.Field(
                     name="items",
                     owner=Thing,
                     disassembled_type=Dis(int | None),
                     default=Default(None),
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
-                Field(
+                strcs.Field(
                     name="",
                     owner=Thing,
                     disassembled_type=Dis(int),
@@ -198,7 +182,7 @@ describe "fields_from_class":
             ],
         )
 
-    it "doesn't fail on builtin functions", type_cache: TypeCache:
+    it "doesn't fail on builtin functions", type_cache: strcs.TypeCache:
         with pytest.raises(ValueError):
             inspect.signature(str)
 
@@ -206,7 +190,7 @@ describe "fields_from_class":
 
 describe "fields_from_attrs":
 
-    it "finds no fields on class with no fields", type_cache: TypeCache:
+    it "finds no fields on class with no fields", type_cache: strcs.TypeCache:
 
         @attrs.define
         class Thing:
@@ -214,7 +198,7 @@ describe "fields_from_attrs":
 
         assertParams(fields_from_attrs(type_cache, Thing), [])
 
-    it "finds keyword only fields", type_cache: TypeCache, Dis: Disassembler:
+    it "finds keyword only fields", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @attrs.define
         class Thing:
@@ -225,13 +209,13 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     owner=Thing,
                     disassembled_type=Dis(t),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     owner=Thing,
                     disassembled_type=Dis(bool),
@@ -240,7 +224,7 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "finds defaults", type_cache: TypeCache, Dis: Disassembler:
+    it "finds defaults", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @attrs.define
         class Thing:
@@ -251,14 +235,14 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(t),
                     owner=Thing,
                     default=Default((1, "asdf")),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(bool),
                     owner=Thing,
@@ -268,7 +252,7 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "finds default factories", type_cache: TypeCache, Dis: Disassembler:
+    it "finds default factories", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
@@ -282,14 +266,14 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(t),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(bool),
                     owner=Thing,
@@ -299,7 +283,7 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "excludes fields that aren't in init", type_cache: TypeCache, Dis: Disassembler:
+    it "excludes fields that aren't in init", type_cache: strcs.TypeCache, Dis: Disassembler:
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
@@ -314,14 +298,14 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(t),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(bool),
                     owner=Thing,
@@ -331,7 +315,7 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "renames private variables", type_cache: TypeCache, Dis: Disassembler:
+    it "renames private variables", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @attrs.define
         class Thing:
@@ -341,13 +325,13 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="thing",
                     disassembled_type=Dis(str),
                     owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="other",
                     disassembled_type=Dis(int),
                     owner=Thing,
@@ -360,7 +344,7 @@ describe "fields_from_attrs":
         assert thing._thing == "one"
         assert thing.other == 4
 
-    it "uses aliases", type_cache: TypeCache, Dis: Disassembler:
+    it "uses aliases", type_cache: strcs.TypeCache, Dis: Disassembler:
         if sys.version_info < (3, 11):
             pytest.skip("pep 681 is from python 3.11")
 
@@ -373,19 +357,19 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(str),
                     owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="wat",
                     disassembled_type=Dis(str),
                     owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="blah",
                     disassembled_type=Dis(int),
                     owner=Thing,
@@ -399,7 +383,7 @@ describe "fields_from_attrs":
         assert thing._thing == "blah"
         assert thing.other == 3
 
-    it "excludes default factories that take a self", type_cache: TypeCache, Dis: Disassembler:
+    it "excludes default factories that take a self", type_cache: strcs.TypeCache, Dis: Disassembler:
         factory_one = lambda: (1, "asdf")
         factory_two = lambda instance: True
 
@@ -414,14 +398,14 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(t),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(bool),
                     owner=Thing,
@@ -430,7 +414,7 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "uses object as type if unknown", type_cache: TypeCache, Dis: Disassembler:
+    it "uses object as type if unknown", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @attrs.define
         class Thing:
@@ -440,13 +424,13 @@ describe "fields_from_attrs":
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="blah",
                     disassembled_type=Dis(object),
                     owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(object),
                     owner=Thing,
@@ -457,7 +441,7 @@ describe "fields_from_attrs":
 
 describe "fields_from_dataclasses":
 
-    it "finds no fields on class with no fields", type_cache: TypeCache:
+    it "finds no fields on class with no fields", type_cache: strcs.TypeCache:
 
         @dataclasses.dataclass
         class Thing:
@@ -465,7 +449,7 @@ describe "fields_from_dataclasses":
 
         assertParams(fields_from_dataclasses(type_cache, Thing), [])
 
-    it "finds keyword only fields", type_cache: TypeCache, Dis: Disassembler:
+    it "finds keyword only fields", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @dataclasses.dataclass
         class Thing:
@@ -476,13 +460,13 @@ describe "fields_from_dataclasses":
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     owner=Thing,
                     disassembled_type=Dis(t),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     owner=Thing,
                     disassembled_type=Dis(bool),
@@ -491,7 +475,7 @@ describe "fields_from_dataclasses":
             ],
         )
 
-    it "finds defaults", type_cache: TypeCache, Dis: Disassembler:
+    it "finds defaults", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @dataclasses.dataclass
         class Thing:
@@ -502,14 +486,14 @@ describe "fields_from_dataclasses":
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(t),
                     owner=Thing,
                     default=Default((1, "asdf")),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(bool),
                     owner=Thing,
@@ -519,7 +503,7 @@ describe "fields_from_dataclasses":
             ],
         )
 
-    it "finds default factories", type_cache: TypeCache, Dis: Disassembler:
+    it "finds default factories", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
@@ -533,14 +517,14 @@ describe "fields_from_dataclasses":
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(t),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(bool),
                     owner=Thing,
@@ -550,7 +534,7 @@ describe "fields_from_dataclasses":
             ],
         )
 
-    it "excludes fields that aren't in init", type_cache: TypeCache, Dis: Disassembler:
+    it "excludes fields that aren't in init", type_cache: strcs.TypeCache, Dis: Disassembler:
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
@@ -565,14 +549,14 @@ describe "fields_from_dataclasses":
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="items",
                     disassembled_type=Dis(t),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="stuff",
                     disassembled_type=Dis(bool),
                     owner=Thing,
@@ -582,7 +566,7 @@ describe "fields_from_dataclasses":
             ],
         )
 
-    it "doesn't rename private variables", type_cache: TypeCache, Dis: Disassembler:
+    it "doesn't rename private variables", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @dataclasses.dataclass
         class Thing:
@@ -592,13 +576,13 @@ describe "fields_from_dataclasses":
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
-                Field(
+                strcs.Field(
                     name="_thing",
                     disassembled_type=Dis(str),
                     owner=Thing,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
-                Field(
+                strcs.Field(
                     name="other",
                     disassembled_type=Dis(int),
                     owner=Thing,

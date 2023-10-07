@@ -21,23 +21,7 @@ from strcs.disassemble import (
 
 from .test_helpers import assertParams
 
-
-@pytest.fixture()
-def type_cache() -> strcs.TypeCache:
-    return strcs.TypeCache()
-
-
-class Disassembler:
-    def __init__(self, type_cache: strcs.TypeCache):
-        self.type_cache = type_cache
-
-    def __call__(self, typ: object) -> strcs.Type:
-        return Type.create(typ, cache=self.type_cache)
-
-
-@pytest.fixture()
-def Dis(type_cache: strcs.TypeCache) -> Disassembler:
-    return Disassembler(type_cache)
+Disassembler = strcs.disassemble.Disassembler
 
 
 class Partial:
@@ -720,6 +704,7 @@ describe "Type":
         assert disassembled.for_display() == "D"
 
     it "works on class with complicated hierarchy", type_cache: strcs.TypeCache, Dis: Disassembler:
+        assert isinstance(T, tp.TypeVar)
 
         class Thing(tp.Generic[T, U]):
             def __init__(self, one: int, two: str):
@@ -759,7 +744,10 @@ describe "Type":
                 ((Blah, U), bool),
                 ((Stuff, T), str),
                 ((Thing, T), int),
-                ((Thing, U), strcs.MRO.Referal(owner=Stuff, typevar=T, value=str)),
+                (
+                    (Thing, U),
+                    strcs.MRO.Referal(owner=Stuff, typevar=T, value=str),
+                ),
             ]
         )
         assert disassembled.mro.all_vars == (bool, int, str)
@@ -1048,7 +1036,7 @@ describe "getting fields":
 
         resolve_types(Thing, globals(), locals(), type_cache=type_cache)
 
-        disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
+        disassembled = Dis(Thing)
         assert disassembled.fields == [
             Field(name="stuff", owner=Thing, disassembled_type=Dis(Stuff | None))
         ]
@@ -1059,7 +1047,7 @@ describe "getting fields":
             def __init__(self, one: int, /, two: str, *, three: bool = False, **kwargs):
                 pass
 
-        disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
+        disassembled = Dis(Thing)
         assert disassembled.fields_getter == Partial(fields_from_class, type_cache)
         assert disassembled.fields_from is Thing
         assertParams(
@@ -1101,7 +1089,7 @@ describe "getting fields":
             two: str = "one"
             three: bool = attrs.field(kw_only=True, default=False)
 
-        disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
+        disassembled = Dis(Thing)
         assert disassembled.fields_getter == Partial(fields_from_attrs, type_cache)
         assert disassembled.fields_from is Thing
         assertParams(
@@ -1138,7 +1126,7 @@ describe "getting fields":
             two: str = "one"
             three: bool = dataclasses.field(kw_only=True, default=False)
 
-        disassembled = Type.create(Thing, expect=Thing, cache=type_cache)
+        disassembled = Dis(Thing)
         assert disassembled.fields_getter == Partial(fields_from_dataclasses, type_cache)
         assert disassembled.fields_from is Thing
         assertParams(
@@ -1168,29 +1156,29 @@ describe "getting fields":
         )
 
 describe "annotations":
-    it "can return no annotation", type_cache: strcs.TypeCache:
-        assert Type.create(int, cache=type_cache).ann is None
-        assert Type.create(int | None, cache=type_cache).ann is None
-        assert Type.create(int | str, cache=type_cache).ann is None
-        assert Type.create(int | str | None, cache=type_cache).ann is None
-        assert Type.create(list[int], cache=type_cache).ann is None
-        assert Type.create(list[int] | None, cache=type_cache).ann is None
+    it "can return no annotation", Dis: Disassembler:
+        assert Dis(int).ann is None
+        assert Dis(int | None).ann is None
+        assert Dis(int | str).ann is None
+        assert Dis(int | str | None).ann is None
+        assert Dis(list[int]).ann is None
+        assert Dis(list[int] | None).ann is None
 
         class Thing:
             pass
 
-        assert Type.create(Thing, cache=type_cache).ann is None
+        assert Dis(Thing).ann is None
 
-    it "can return an annotation with new creator", type_cache: strcs.TypeCache:
+    it "can return an annotation with new creator", Dis: Disassembler:
 
         def creator(value: object, /, _meta: strcs.Meta):
             ...
 
-        ann = Type.create(tp.Annotated[int, creator], expect=int, cache=type_cache).ann
+        ann = Dis(tp.Annotated[int, creator]).ann
         assert isinstance(ann, strcs.Ann)
         assert ann.creator is creator
 
-    it "can return an annotation with new adjustable meta", type_cache: strcs.TypeCache:
+    it "can return an annotation with new adjustable meta", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         class AdjustMeta:
             @classmethod
@@ -1200,50 +1188,50 @@ describe "annotations":
                 return meta.clone({"one": 1})
 
         adjustment = AdjustMeta()
-        ann = Type.create(tp.Annotated[int, adjustment], expect=int, cache=type_cache).ann
+        ann = Dis(tp.Annotated[int, adjustment]).ann
         assert ann is adjustment
         assert isinstance(ann, strcs.AdjustableMeta)
 
         meta = strcs.Meta({"two": 2})
-        m = ann.adjusted_meta(meta, Type.create(int, cache=type_cache), type_cache)
+        m = ann.adjusted_meta(meta, Dis(int), type_cache)
         assert m.data == {"one": 1, "two": 2}
         assert meta.data == {"two": 2}
 
-    it "can return an annotation with new MetaAnnotation", type_cache: strcs.TypeCache:
+    it "can return an annotation with new MetaAnnotation", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @attrs.define
         class Info(strcs.MetaAnnotation):
             three: str
 
         info = Info(three="three")
-        ann = Type.create(tp.Annotated[int, info], expect=int, cache=type_cache).ann
+        ann = Dis(tp.Annotated[int, info]).ann
         assert isinstance(ann, strcs.Ann), ann
         assert ann.creator is None
         assert ann.meta is info
 
         meta = strcs.Meta({"two": 2})
-        m = ann.adjusted_meta(meta, Type.create(int, cache=type_cache), type_cache)
+        m = ann.adjusted_meta(meta, Dis(int), type_cache)
         assert m.data == {"__call_defined_annotation__": info, "two": 2}
         assert meta.data == {"two": 2}
 
-    it "can return an annotation with new MergedMetaAnnotation", type_cache: strcs.TypeCache:
+    it "can return an annotation with new MergedMetaAnnotation", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         @attrs.define
         class Info(strcs.MergedMetaAnnotation):
             three: str
 
         info = Info(three="three")
-        ann = Type.create(tp.Annotated[int, info], expect=int, cache=type_cache).ann
+        ann = Dis(tp.Annotated[int, info]).ann
         assert isinstance(ann, strcs.Ann), ann
         assert ann.creator is None
         assert ann.meta is info
 
         meta = strcs.Meta({"two": 2})
-        m = ann.adjusted_meta(meta, Type.create(int, cache=type_cache), type_cache)
+        m = ann.adjusted_meta(meta, Dis(int), type_cache)
         assert m.data == {"three": "three", "two": 2}
         assert meta.data == {"two": 2}
 
-    it "can return an annotation with new Ann", type_cache: strcs.TypeCache:
+    it "can return an annotation with new Ann", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         def creator1(args: strcs.CreateArgs[int]) -> int:
             return 2
@@ -1258,61 +1246,58 @@ describe "annotations":
                 return meta.clone({"one": 1})
 
         a = A(creator=creator2)
-        ann = Type.create(tp.Annotated[int, a], expect=int, cache=type_cache).ann
+        ann = Dis(tp.Annotated[int, a]).ann
         assert isinstance(ann, strcs.Ann), ann
         assert ann is a
 
         meta = strcs.Meta({"two": 2})
-        m = ann.adjusted_meta(meta, Type.create(int, cache=type_cache), type_cache)
+        m = ann.adjusted_meta(meta, Dis(int), type_cache)
         assert m.data == {"one": 1, "two": 2}
         assert meta.data == {"two": 2}
 
         reg = strcs.CreateRegister()
-        assert (
-            ann.adjusted_creator(creator1, reg, Type.create(int, cache=type_cache), type_cache)
-            == creator2
-        )
+        assert ann.adjusted_creator(creator1, reg, Dis(int), type_cache) == creator2
 
 describe "equality":
-    it "matches any Type against Type.Missing", type_cache: strcs.TypeCache:
-        typ = strcs.Type.create(int, expect=object, cache=type_cache)
+    it "matches any Type against Type.Missing", Dis: Disassembler:
+        typ = Dis(int)
         assert typ == strcs.Type.Missing
 
-        typ2 = strcs.Type.create(tp.Annotated[None, 1], expect=object, cache=type_cache)
+        typ2 = Dis(tp.Annotated[None, 1])
         assert typ2 == strcs.Type.Missing
 
         class Thing:
             pass
 
-        typ3 = strcs.Type.create(Thing | None, expect=object, cache=type_cache)
+        typ3 = Dis(Thing | None)
         assert typ3 == strcs.Type.Missing
 
-    it "matches against checkable instances and original type", type_cache: strcs.TypeCache:
-        typ = strcs.Type.create(int, expect=object, cache=type_cache)
+    it "matches against checkable instances and original type", Dis: Disassembler:
+        typ = Dis(int)
         assert typ == int
         assert typ == typ.checkable
 
-        typ2 = strcs.Type.create(int, expect=object, cache=type_cache)
+        typ2 = Dis(int)
         assert typ2 == int
         assert typ2 == typ.checkable
 
         class Thing:
             pass
 
-        typ3 = strcs.Type.create(tp.Annotated[Thing, 1], expect=object, cache=type_cache)
+        typ3 = Dis(tp.Annotated[Thing, 1])
         assert typ3 == Thing
         assert typ3 == typ3.checkable
         assert typ3 != typ2.checkable
         assert typ2 != typ3.checkable
 
-    it "matches against optionals", type_cache: strcs.TypeCache:
-        typ = strcs.Type.create(int, expect=object, cache=type_cache)
+    it "matches against optionals", Dis: Disassembler:
+        typ = Dis(int)
         nun = None
         assert typ != nun
         assert typ == int
         assert typ == typ.checkable
 
-        typ2 = strcs.Type.create(int | None, expect=object, cache=type_cache)
+        typ2 = Dis(int | None)
         assert typ2 == nun
         assert typ2 == int
         assert typ2 == typ.checkable
@@ -1320,22 +1305,22 @@ describe "equality":
         class Thing:
             pass
 
-        typ3 = strcs.Type.create(tp.Annotated[Thing | None, 1], expect=object, cache=type_cache)
+        typ3 = Dis(tp.Annotated[Thing | None, 1])
         assert typ3 == Thing
         assert typ3 == nun
         assert typ3 == typ3.checkable
         assert typ3 != typ2.checkable
         assert typ2 != typ3.checkable
 
-    it "matches against unions and partial unions", type_cache: strcs.TypeCache:
-        typ = strcs.Type.create(int, expect=object, cache=type_cache)
+    it "matches against unions and partial unions", Dis: Disassembler:
+        typ = Dis(int)
         nun = None
         assert typ != nun
         assert typ == int
         assert typ != str
         assert typ == typ.checkable
 
-        typ2 = strcs.Type.create(int | bool | str | None, expect=object, cache=type_cache)
+        typ2 = Dis(int | bool | str | None)
         assert typ2 == nun
         assert typ2 == int
         assert typ2 == str
@@ -1347,9 +1332,7 @@ describe "equality":
         class Thing:
             pass
 
-        typ3 = strcs.Type.create(
-            tp.Annotated[Thing | bool | None, 1], expect=object, cache=type_cache
-        )
+        typ3 = Dis(tp.Annotated[Thing | bool | None, 1])
         assert typ3 == Thing
         assert typ3 == nun
         assert typ3 != str
@@ -1361,7 +1344,7 @@ describe "equality":
 
 describe "Finding provided subtype":
 
-    it "can find the provided subtype", type_cache: strcs.TypeCache:
+    it "can find the provided subtype", Dis: Disassembler:
 
         class Item:
             pass
@@ -1380,15 +1363,15 @@ describe "Finding provided subtype":
         class Container(tp.Generic[I]):
             pass
 
-        container_a = strcs.Type.create(Container[ItemA], expect=object, cache=type_cache)
-        container_b = strcs.Type.create(Container[ItemB], expect=object, cache=type_cache)
-        container_c = strcs.Type.create(Container[ItemC], expect=object, cache=type_cache)
+        container_a = Dis(Container[ItemA])
+        container_b = Dis(Container[ItemB])
+        container_c = Dis(Container[ItemC])
 
         assert container_a.find_generic_subtype(Item) == (ItemA,)
         assert container_b.find_generic_subtype(Item) == (ItemB,)
         assert container_c.find_generic_subtype(Item) == (ItemC,)
 
-    it "can find multiple subtypes", type_cache: strcs.TypeCache:
+    it "can find multiple subtypes", Dis: Disassembler:
 
         class One:
             pass
@@ -1414,13 +1397,13 @@ describe "Finding provided subtype":
         class Container(tp.Generic[O, T]):
             pass
 
-        container_a = strcs.Type.create(Container[OneA, TwoB], expect=object, cache=type_cache)
-        container_b = strcs.Type.create(Container[OneB, TwoB], expect=object, cache=type_cache)
+        container_a = Dis(Container[OneA, TwoB])
+        container_b = Dis(Container[OneB, TwoB])
 
         assert container_a.find_generic_subtype(One, Two) == (OneA, TwoB)
         assert container_b.find_generic_subtype(One, Two) == (OneB, TwoB)
 
-    it "can find a partial number of subtypes", type_cache: strcs.TypeCache:
+    it "can find a partial number of subtypes", Dis: Disassembler:
 
         class One:
             pass
@@ -1446,10 +1429,10 @@ describe "Finding provided subtype":
         class Container(tp.Generic[O, T]):
             pass
 
-        container_a = strcs.Type.create(Container[OneA, TwoA], expect=object, cache=type_cache)
+        container_a = Dis(Container[OneA, TwoA])
         assert container_a.find_generic_subtype(One) == (OneA,)
 
-    it "complains if want too many types", type_cache: strcs.TypeCache:
+    it "complains if want too many types", Dis: Disassembler:
 
         class One:
             pass
@@ -1468,13 +1451,13 @@ describe "Finding provided subtype":
         class Container(tp.Generic[O]):
             pass
 
-        container_a = strcs.Type.create(Container[OneA], expect=object, cache=type_cache)
+        container_a = Dis(Container[OneA])
         with pytest.raises(
             ValueError, match=re.escape("The type has less typevars (1) than wanted (2)")
         ):
             container_a.find_generic_subtype(One, Two)
 
-    it "complains if want wrong subtype", type_cache: strcs.TypeCache:
+    it "complains if want wrong subtype", Dis: Disassembler:
 
         class One:
             pass
@@ -1493,7 +1476,7 @@ describe "Finding provided subtype":
         class Container(tp.Generic[O]):
             pass
 
-        container_a = strcs.Type.create(Container[OneA], expect=object, cache=type_cache)
+        container_a = Dis(Container[OneA])
         with pytest.raises(
             ValueError,
             match="The concrete type <class '[^']+'> is not a subclass of what was asked for <class '[^']+'>",

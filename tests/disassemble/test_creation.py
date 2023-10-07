@@ -8,34 +8,30 @@ import pytest
 import strcs
 from strcs.disassemble import fill, instantiate
 
-
-@pytest.fixture()
-def type_cache() -> strcs.TypeCache:
-    return strcs.TypeCache()
-
+Disassembler = strcs.disassemble.Disassembler
 
 describe "fill":
-    it "turns NotSpecified into an empty dictionary", type_cache: strcs.TypeCache:
+    it "turns NotSpecified into an empty dictionary", Dis: Disassembler:
 
         class Thing:
             pass
 
-        want = strcs.Type.create(Thing, expect=object, cache=type_cache)
+        want = Dis(Thing)
 
         assert fill(want, strcs.NotSpecified) == {}
 
-    it "complains if res is not a mapping", type_cache: strcs.TypeCache:
+    it "complains if res is not a mapping", Dis: Disassembler:
 
         class Thing:
             pass
 
-        want = strcs.Type.create(Thing, expect=object, cache=type_cache)
+        want = Dis(Thing)
 
         for res in (1, 0, True, False, [], [1], set(), lambda: 1, Thing, Thing()):
             with pytest.raises(ValueError, match="Can only fill mappings"):
                 fill(want, res)
 
-    it "fills in annotated or other objects with NotSpecified", type_cache: strcs.TypeCache:
+    it "fills in annotated or other objects with NotSpecified", Dis: Disassembler:
 
         class Two:
             pass
@@ -48,10 +44,10 @@ describe "fill":
             four: int
 
         res = {"four": 1}
-        want = strcs.Type.create(Thing, expect=object, cache=type_cache)
+        want = Dis(Thing)
         assert fill(want, res) == {"one": strcs.NotSpecified, "two": strcs.NotSpecified, "four": 1}
 
-    it "doesn't override fields", type_cache: strcs.TypeCache:
+    it "doesn't override fields", Dis: Disassembler:
 
         class Two:
             pass
@@ -65,28 +61,28 @@ describe "fill":
 
         two = Two()
         res = {"one": 3, "two": two, "three": True, "four": 1}
-        want = strcs.Type.create(Thing, expect=object, cache=type_cache)
+        want = Dis(Thing)
         assert fill(want, res) == {"one": 3, "two": two, "three": True, "four": 1}
 
 describe "instantiate":
-    it "returns None if the result is optional and res is None", type_cache: strcs.TypeCache:
+    it "returns None if the result is optional and res is None", Dis: Disassembler:
 
         class Thing:
             pass
 
-        want = strcs.Type.create(Thing | None, expect=object, cache=type_cache)
+        want = Dis(Thing | None)
         assert instantiate(want, None, cattrs.Converter()) is None
 
-    it "returns None if want None and are None", type_cache: strcs.TypeCache:
-        want = strcs.Type.create(None, expect=object, cache=type_cache)
+    it "returns None if want None and are None", Dis: Disassembler:
+        want = Dis(None)
         assert instantiate(want, None, cattrs.Converter()) is None
 
-    it "complains if res is None and we aren't optional or None", type_cache: strcs.TypeCache:
+    it "complains if res is None and we aren't optional or None", Dis: Disassembler:
 
         class Thing:
             pass
 
-        want = strcs.Type.create(Thing, expect=object, cache=type_cache)
+        want = Dis(Thing)
         with pytest.raises(ValueError, match="Can't instantiate object with None"):
             instantiate(want, None, cattrs.Converter())
 
@@ -174,7 +170,7 @@ describe "creation":
         thing2 = reg.create(Thing)
         assert thing2.two == Two(three=True)
 
-    it "doesn't care for fields on parents not part of the child", type_cache: strcs.TypeCache:
+    it "doesn't care for fields on parents not part of the child", Dis: Disassembler:
         reg = strcs.CreateRegister()
 
         class One:
@@ -187,24 +183,24 @@ describe "creation":
                 super().__init__(one=2, two=two)
                 self.three = three
 
-        want = strcs.Type.create(Two, expect=object, cache=type_cache)
+        want = Dis(Two)
 
         assert want.fields == [
             strcs.Field(
                 name="one",
-                disassembled_type=strcs.Type.create(int, cache=type_cache),
+                disassembled_type=Dis(int),
                 owner=One,
                 original_owner=One,
             ),
             strcs.Field(
                 name="two",
-                disassembled_type=strcs.Type.create(int, cache=type_cache),
+                disassembled_type=Dis(int),
                 owner=Two,
                 original_owner=One,
             ),
             strcs.Field(
                 name="three",
-                disassembled_type=strcs.Type.create(int, cache=type_cache),
+                disassembled_type=Dis(int),
                 owner=Two,
                 original_owner=Two,
             ),
