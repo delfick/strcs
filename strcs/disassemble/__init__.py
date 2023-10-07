@@ -1,5 +1,6 @@
 from ._base import Disassembler, Type
 from ._cache import TypeCache
+from ._comparer import Comparer
 from ._creation import fill, instantiate
 from ._extract import IsAnnotated, extract_annotation, extract_optional
 from ._fields import (
@@ -18,6 +19,7 @@ __all__ = [
     "Disassembler",
     "Type",
     "TypeCache",
+    "Comparer",
     "IsAnnotated",
     "extract_annotation",
     "extract_optional",

@@ -155,6 +155,8 @@ def create_checkable(disassembled: "Type") -> type[InstanceCheck]:
         Checker.__args__ = Meta.extracted.__args__  # type: ignore
     if hasattr(Meta.extracted, "__origin__"):
         Checker.__origin__ = Meta.extracted.__origin__  # type: ignore
+    if hasattr(Meta.extracted, "__parameters__"):
+        Checker.__parameters__ = Meta.extracted.__parameters__  # type: ignore
     if hasattr(Meta.extracted, "__annotations__"):
         Checker.__annotations__ = Meta.extracted.__annotations__  # type: ignore
     if hasattr(Checker.Meta.typ, "__attrs_attrs__"):
@@ -184,7 +186,10 @@ def _checker_union(
             return any(o == ch for ch in check_against)
 
         def __hash__(self) -> int:
-            return hash(M.extracted)
+            if type(M.extracted) is type:
+                return hash(M.extracted)
+            else:
+                return id(disassembled)
 
         @property  # type:ignore
         def __class__(self) -> type:
@@ -282,7 +287,10 @@ def _checker_single(
             return o == check_against
 
         def __hash__(self) -> int:
-            return hash(M.extracted)
+            if type(M.extracted) is type:
+                return hash(M.extracted)
+            else:
+                return id(disassembled)
 
         @property  # type:ignore
         def __class__(self) -> type:
