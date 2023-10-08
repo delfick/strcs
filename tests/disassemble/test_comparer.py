@@ -687,6 +687,26 @@ describe "Comparer":
                     tp.Union[check_against_type, None],
                     True,
                 )
+                yield (
+                    tp.Annotated[Dis(checking).checkable, "asdf"],
+                    tp.Union[check_against_type, None],
+                    True,
+                )
+                yield (
+                    Dis(tp.Annotated[checking_type, "asdf"]),
+                    Dis(tp.Union[check_against_type, None]),
+                    True,
+                )
+                yield (
+                    Dis(tp.Annotated[checking_type, "asdf"]).checkable,
+                    Dis(tp.Union[check_against_type, None]).checkable,
+                    True,
+                )
+                yield (
+                    Dis(Dis(tp.Annotated[checking_type, "asdf"]).checkable),
+                    Dis(Dis(tp.Union[check_against_type, None]).checkable),
+                    True,
+                )
 
             return expander
 

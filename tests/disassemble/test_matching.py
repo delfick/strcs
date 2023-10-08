@@ -197,7 +197,7 @@ describe "Matching a Type":
             del typ
 
             typ = Dis(Stuff)
-            assert typ.func_from(ordered) is mock.sentinel.function_2
+            assert typ.func_from(ordered) is mock.sentinel.function_0
             del typ
 
             typ = Dis(Thing)

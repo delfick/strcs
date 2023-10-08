@@ -19,7 +19,7 @@ from ._fields import (
     fields_from_class,
     fields_from_dataclasses,
 )
-from ._instance_check import InstanceCheck, create_checkable
+from ._instance_check import InstanceCheck, InstanceCheckMeta, create_checkable
 from ._score import Score
 
 if tp.TYPE_CHECKING:
@@ -184,23 +184,38 @@ class Type(tp.Generic[T]):
         if o is Type.Missing:
             return True
 
-        if isinstance(o, InstanceCheck) and hasattr(o, "Meta"):
+        if issubclass(type(o), InstanceCheckMeta) and hasattr(o, "Meta"):
             o = o.Meta.disassembled
 
-        if isinstance(o, Type):
+        if issubclass(type(o), Type) and hasattr(o, "original"):
             o = o.original
 
         if (
             o == self.original
             or (self.is_annotated and o == self.extracted)
             or (self.optional and o is None)
+            or (self.mro.all_vars and o == self.origin)
+            or (self.is_union and o in self.nonoptional_union_types)
         ):
             return True
 
         if type(o) in union_types:
             return len(set(tp.get_args(o)) - set(self.relevant_types)) == 0
         else:
-            return o in self.relevant_types
+            for part in self.relevant_types:
+                disassembled = self.disassemble.typed(object, part)
+                if o == disassembled.original:
+                    return True
+                elif disassembled.is_annotated and o == disassembled.extracted:
+                    return True
+                elif disassembled.optional and o is None:
+                    return True
+                elif disassembled.is_union and o in disassembled.nonoptional_union_types:
+                    return True
+                elif disassembled.mro.all_vars and o == disassembled.origin:
+                    return True
+
+            return False
 
     def for_display(self) -> str:
         """
@@ -533,7 +548,7 @@ class Type(tp.Generic[T]):
         Whether this type represents the type for some object. Uses the
         ``isinstance`` check on the :class:`strcs.InstanceCheck` for this object.
         """
-        return isinstance(instance, self.checkable)
+        return self.cache.comparer.isinstance(instance, self)
 
     def is_equivalent_type_for(self, value: object) -> tp.TypeGuard[T]:
         """
@@ -638,11 +653,11 @@ class Type(tp.Generic[T]):
         not considered matches. In the second pass they are.
         """
         for want, func in sorted(options, key=lambda pair: pair[0], reverse=True):
-            if self.checkable.matches(want.checkable):
+            if self.cache.comparer.matches(self, want):
                 return func
 
         for want, func in sorted(options, key=lambda pair: pair[0], reverse=True):
-            if self.checkable.matches(want.checkable, subclasses=True):
+            if self.cache.comparer.matches(self, want, subclasses=True):
                 return func
 
         return None

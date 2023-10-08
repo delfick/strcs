@@ -1022,6 +1022,60 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing[int, str] | None, "blah"]'
 
+    it "doesn't confuse int and boolean", Dis: Disassembler, type_cache: strcs.TypeCache:
+
+        def clear() -> None:
+            type_cache.clear()
+
+        for provided, origin in (
+            (True, bool),
+            (1, int),
+            (clear, None),
+            (1, int),
+            (True, bool),
+            (clear, None),
+            (False, bool),
+            (0, int),
+            (clear, None),
+            (0, int),
+            (False, bool),
+            (clear, None),
+            (True, bool),
+            (1, int),
+        ):
+            if provided is clear:
+                clear()
+                continue
+
+            disassembled = Type.create(provided, expect=bool, cache=type_cache)
+            assert disassembled.original is provided
+            assert disassembled.optional is False
+            assert disassembled.extracted is provided
+            assert disassembled.origin == origin
+
+            checkable = disassembled.checkable
+            assert checkable.Meta.original is provided
+            assert checkable.Meta.typ is origin
+
+            assert disassembled.checkable == origin and isinstance(
+                disassembled.checkable, InstanceCheckMeta
+            )
+            assert disassembled.annotations is None
+            assert disassembled.annotated is None
+            assert not disassembled.is_annotated
+            assert disassembled.without_annotation is provided
+            assert disassembled.without_optional is provided
+            assert disassembled.nonoptional_union_types == ()
+            assert disassembled.fields == []
+            assert disassembled.fields_from is origin
+            assert disassembled.fields_getter is None
+            assert not attrs.has(disassembled.checkable)
+            assert not dataclasses.is_dataclass(disassembled.checkable)
+            assert not disassembled.is_type_for(1)
+            assert not disassembled.is_type_for(True)
+            assert not disassembled.is_type_for(None)
+            assert not disassembled.is_equivalent_type_for(bool)
+
 describe "getting fields":
 
     it "works when there is a chain", type_cache: strcs.TypeCache, Dis: Disassembler:
