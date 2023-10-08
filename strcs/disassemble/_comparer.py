@@ -42,6 +42,106 @@ class Distilled:
     def invalid(cls, original: object) -> "Distilled":
         return cls(original=original, is_valid=False)
 
+    @classmethod
+    def create(
+        cls, classinfo: object, *, comparer: "Comparer", _chain: list[object] | None = None
+    ) -> "Distilled":
+        from ._base import Type
+
+        if _chain is None:
+            _chain = []
+        else:
+            _chain = list(_chain)
+
+        if classinfo in _chain:
+            return cls.invalid(classinfo)
+
+        optional: bool = False
+
+        while (
+            issubclass(classinfo_type := type(classinfo), (InstanceCheckMeta, Type))
+            or tp.get_origin(classinfo) is tp.Annotated
+        ):
+            if issubclass(classinfo_type, InstanceCheckMeta):
+                assert hasattr(classinfo, "Meta")
+                assert hasattr(classinfo.Meta, "original")
+                optional = optional or classinfo.Meta.optional
+                classinfo = classinfo.Meta.original
+            elif issubclass(classinfo_type, Type):
+                assert hasattr(classinfo, "extracted")
+                assert hasattr(classinfo, "optional")
+                optional = optional or classinfo.optional
+                classinfo = classinfo.extracted
+            elif tp.get_origin(classinfo) is tp.Annotated:
+                args = tp.get_args(classinfo)
+                assert len(args) > 0
+                classinfo = args[0]
+
+        if classinfo is None:
+            return cls.valid(type(None))
+
+        disassembled = comparer.type_cache.disassemble(classinfo)
+        optional = optional or disassembled.optional
+        _chain.append(classinfo)
+
+        if disassembled.is_union:
+            classinfo = disassembled.nonoptional_union_types
+        elif disassembled.mro.all_vars:
+            classinfo = disassembled.origin
+        elif isinstance(classinfo, tuple) and type(None) in classinfo:
+            classinfo = tuple(part for part in classinfo if part is not type(None))
+            if len(classinfo) == 1:
+                classinfo = classinfo[0]
+        elif type(classinfo) in union_types:
+            classinfo = tp.get_args(classinfo)
+
+        result: object
+
+        if isinstance(classinfo, tuple):
+            found = tuple(cls.create(part, comparer=comparer, _chain=_chain) for part in classinfo)
+
+            flat: list[object] = []
+
+            def expand(got: object) -> None:
+                if isinstance(got, tuple):
+                    for part in got:
+                        if part not in flat:
+                            expand(part)
+                else:
+                    flat.append(got)
+
+            expand(tuple(part.original for part in found))
+            if len(flat) == 1:
+                result = flat[0]
+            else:
+                result = tuple(flat)
+            is_valid = all(part.is_valid for part in found)
+        else:
+            checkable = getattr(classinfo, "checkable", classinfo)
+            Meta = getattr(checkable, "Meta", None)
+            if Meta and (extracted := getattr(Meta, "extracted", None)) is not None:
+                classinfo = extracted
+
+            if not isinstance(classinfo, type):
+                distilled = cls.create(classinfo, comparer=comparer, _chain=_chain)
+            else:
+                distilled = cls.valid(classinfo)
+
+            result = distilled.original
+            is_valid = distilled.is_valid
+
+        if isinstance(result, tuple) and type(None) in result:
+            optional = True
+
+        if optional and result not in (None, type(None)):
+            if not isinstance(result, tuple):
+                result = (result, type(None))
+            else:
+                result = tuple(part for part in result if part is not type(None))
+                result = tuple((*result, type(None)))
+
+        return cls(original=result, is_valid=is_valid)
+
 
 class _ClassInfo:
     """
@@ -130,102 +230,8 @@ class Comparer:
     def __init__(self, type_cache: "TypeCache"):
         self.type_cache = type_cache
 
-    def distill(self, classinfo: object, _chain: list[object] | None = None) -> Distilled:
-        from ._base import Type
-
-        if _chain is None:
-            _chain = []
-        else:
-            _chain = list(_chain)
-
-        if classinfo in _chain:
-            return Distilled.invalid(classinfo)
-
-        optional: bool = False
-
-        while (
-            issubclass(classinfo_type := type(classinfo), (InstanceCheckMeta, Type))
-            or tp.get_origin(classinfo) is tp.Annotated
-        ):
-            if issubclass(classinfo_type, InstanceCheckMeta):
-                assert hasattr(classinfo, "Meta")
-                assert hasattr(classinfo.Meta, "original")
-                optional = optional or classinfo.Meta.optional
-                classinfo = classinfo.Meta.original
-            elif issubclass(classinfo_type, Type):
-                assert hasattr(classinfo, "extracted")
-                assert hasattr(classinfo, "optional")
-                optional = optional or classinfo.optional
-                classinfo = classinfo.extracted
-            elif tp.get_origin(classinfo) is tp.Annotated:
-                args = tp.get_args(classinfo)
-                assert len(args) > 0
-                classinfo = args[0]
-
-        if classinfo is None:
-            return Distilled.valid(type(None))
-
-        disassembled = self.type_cache.disassemble(classinfo)
-        optional = optional or disassembled.optional
-        _chain.append(classinfo)
-
-        if disassembled.is_union:
-            classinfo = disassembled.nonoptional_union_types
-        elif disassembled.mro.all_vars:
-            classinfo = disassembled.origin
-        elif isinstance(classinfo, tuple) and type(None) in classinfo:
-            classinfo = tuple(part for part in classinfo if part is not type(None))
-            if len(classinfo) == 1:
-                classinfo = classinfo[0]
-        elif type(classinfo) in union_types:
-            classinfo = tp.get_args(classinfo)
-
-        result: object
-
-        if isinstance(classinfo, tuple):
-            found = tuple(self.distill(part, _chain=_chain) for part in classinfo)
-
-            flat: list[object] = []
-
-            def expand(got: object) -> None:
-                if isinstance(got, tuple):
-                    for part in got:
-                        if part not in flat:
-                            expand(part)
-                else:
-                    flat.append(got)
-
-            expand(tuple(part.original for part in found))
-            if len(flat) == 1:
-                result = flat[0]
-            else:
-                result = tuple(flat)
-            is_valid = all(part.is_valid for part in found)
-        else:
-            checkable = getattr(classinfo, "checkable", classinfo)
-            Meta = getattr(checkable, "Meta", None)
-            if Meta and (extracted := getattr(Meta, "extracted", None)) is not None:
-                classinfo = extracted
-
-            if not isinstance(classinfo, type):
-                distilled = self.distill(classinfo, _chain=_chain)
-            else:
-                distilled = Distilled.valid(classinfo)
-
-            result = distilled.original
-            is_valid = distilled.is_valid
-
-        if isinstance(result, tuple) and type(None) in result:
-            optional = True
-
-        if optional and result not in (None, type(None)):
-            if not isinstance(result, tuple):
-                result = (result, type(None))
-            else:
-                result = tuple(part for part in result if part is not type(None))
-                result = tuple((*result, type(None)))
-
-        return Distilled(original=result, is_valid=is_valid)
+    def distill(self, classinfo: object) -> Distilled:
+        return Distilled.create(classinfo, comparer=self)
 
     def issubclass(self, comparing: object, comparing_to: object) -> bool:
         all_vars = self.type_cache.disassemble(comparing).mro.all_vars
