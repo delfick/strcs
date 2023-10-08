@@ -351,41 +351,136 @@ describe "Comparer":
                 pass
 
             for option in (Thing, Thing[int]):
-                for with_extra, expected in (
-                    (tp.Union[option, None], (Thing, type(None))),
-                    (tp.Annotated[option, "asdf"], Thing),
-                    (tp.Union[tp.Annotated[option, "asdf"], None], (Thing, type(None))),
+                for with_extra, expected, expected_generic in (
+                    (tp.Union[option, None], (Thing, type(None)), tp.Optional[option]),
+                    (tp.Annotated[option, "asdf"], Thing, option),
+                    (
+                        tp.Union[tp.Annotated[option, "asdf"], None],
+                        (Thing, type(None)),
+                        tp.Optional[option],
+                    ),
                     (
                         tp.Union[tp.Annotated[tp.Union[option, None], "asdf"], None],
                         (Thing, type(None)),
+                        tp.Optional[option],
                     ),
                 ):
-                    assert comparer.distill(with_extra) == Distilled.valid(expected)
-                    assert comparer.distill(Dis(with_extra)) == Distilled.valid(expected)
-                    assert comparer.distill(Dis(with_extra).checkable) == Distilled.valid(expected)
+                    assert comparer.distill(with_extra) == Distilled.valid(
+                        expected, as_generic=expected_generic
+                    )
+                    assert comparer.distill(Dis(with_extra)) == Distilled.valid(
+                        expected, as_generic=expected_generic
+                    )
+                    assert comparer.distill(Dis(with_extra).checkable) == Distilled.valid(
+                        expected, as_generic=expected_generic
+                    )
                     assert comparer.distill(
                         tp.Union[Dis(with_extra).checkable, None]
-                    ) == Distilled.valid((Thing, type(None)))
+                    ) == Distilled.valid((Thing, type(None)), as_generic=tp.Optional[option])
+
+        it "returns tuple of generics", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+            T = tp.TypeVar("T")
+
+            class Thing(tp.Generic[T]):
+                pass
+
+            U = tp.TypeVar("U")
+
+            class Stuff(tp.Generic[U]):
+                pass
+
+            for option in (Thing | Stuff, Stuff[int] | Thing[str]):
+                for with_extra, expected, expected_generic in (
+                    (tp.Union[option, None], (Thing, Stuff, type(None)), tp.Optional[option]),
+                    (tp.Annotated[option, "asdf"], (Thing, Stuff), option),
+                    (
+                        tp.Union[tp.Annotated[option, "asdf"], None],
+                        (Thing, Stuff, type(None)),
+                        tp.Optional[option],
+                    ),
+                    (
+                        tp.Union[tp.Annotated[tp.Union[option, None], "asdf"], None],
+                        (Thing, Stuff, type(None)),
+                        tp.Optional[option],
+                    ),
+                ):
+                    assert comparer.distill(with_extra) == Distilled.valid(
+                        expected, as_generic=expected_generic
+                    )
+                    assert comparer.distill(Dis(with_extra)) == Distilled.valid(
+                        expected, as_generic=expected_generic
+                    )
+                    assert comparer.distill(Dis(with_extra).checkable) == Distilled.valid(
+                        expected, as_generic=expected_generic
+                    )
+                    assert comparer.distill(
+                        tp.Union[Dis(with_extra).checkable, None]
+                    ) == Distilled.valid((Thing, Stuff, type(None)), as_generic=tp.Optional[option])
+
+        it "returns tuple of complex generics", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+            T = tp.TypeVar("T")
+
+            class Thing(tp.Generic[T]):
+                pass
+
+            U = tp.TypeVar("U")
+
+            class Stuff(tp.Generic[U]):
+                pass
+
+            typ1: strcs.Type[object] = Dis(tp.Annotated[Thing[int], "adf"])
+            typ2: object = tp.Annotated[typ1.checkable, "asdf"]
+            typ3: strcs.Type[object] = Dis(Dis(typ2).checkable)
+            typ4: object = tp.Union[typ3.checkable, str]
+
+            typ5: object = Stuff[dict]
+            typ6: strcs.Type[object] = Dis(tp.Annotated[typ5, "asdf"])
+            typ7: object = tp.Optional[typ6.checkable]
+            typ8: object = Dis(typ7).checkable
+
+            typ9: object = Thing[typ6.checkable]  # type:ignore[name-defined]
+
+            assert comparer.distill(tp.Union[typ4, typ8, bool, typ9]) == Distilled(
+                original=(Thing, Stuff, bool, str, type(None)),
+                is_valid=True,
+                as_generic=tp.Union[
+                    str,
+                    bool,
+                    Stuff[dict],
+                    Thing[int],
+                    Thing[typ6.checkable],  # type: ignore[name-defined]
+                    type(None),
+                ],
+            )
 
         it "says complex stuff is valid when it is", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
             provided = tp.Union[
                 tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
             ]
-            assert comparer.distill(provided) == Distilled.valid((str, int, list, type(None)))
+            assert comparer.distill(provided) == Distilled.valid(
+                (str, int, list, type(None)), as_generic=tp.Optional[str | int | list[int]]
+            )
 
             assert comparer.distill(tp.Union[provided, dict]) == Distilled.valid(
-                (str, int, list, dict, type(None))
+                (str, int, list, dict, type(None)),
+                as_generic=tp.Optional[str | int | list[int] | dict],
             )
 
             assert comparer.distill(Dis(tp.Union[provided, dict])) == Distilled.valid(
-                (str, int, list, dict, type(None))
+                (str, int, list, dict, type(None)),
+                as_generic=tp.Optional[str | int | list[int] | dict],
             )
 
             assert comparer.distill(
                 tp.Union[Dis(tp.Union[provided, dict]).checkable, None]
-            ) == Distilled.valid((str, int, list, dict, type(None)))
+            ) == Distilled.valid(
+                (str, int, list, dict, type(None)),
+                as_generic=tp.Optional[str | int | list[int] | dict],
+            )
 
-            assert comparer.distill(tp.Union[list[int], list[str]]) == Distilled.valid(list)
+            assert comparer.distill(tp.Union[list[int], list[str]]) == Distilled.valid(
+                list, as_generic=list[int] | list[str]
+            )
 
         it "says tuples of not types are invalid", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
             assert comparer.distill((1, [], list)) == Distilled.invalid((1, [], list))
@@ -731,13 +826,6 @@ describe "Comparer":
                                 subclasses=subclasses,
                                 allow_missing_typevars=allow_missing_typevars,
                             ):
-                                breakpoint()
-                                comparer.matches(
-                                    None,
-                                    check_against,
-                                    subclasses=subclasses,
-                                    allow_missing_typevars=allow_missing_typevars,
-                                )
                                 raise AssertionError(if_error)
                         if match:
                             if not comparer.matches(

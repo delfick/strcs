@@ -173,7 +173,6 @@ describe "Making the projects":
         assert container2.item.two == 5
         assert container2.item.four
 
-    @pytest.mark.xfail
     it "can complain about asking for the wrong subtype":
         with pytest.raises(strcs.errors.UnableToConvert) as e:
             reg.create(Container[ItemOne], {"category": "two"})
@@ -183,7 +182,6 @@ describe "Making the projects":
             == "Expected <class 'tests.scenarios.test_scenario1.ItemTwo'> to be an <class 'tests.scenarios.test_scenario1.ItemOne'>"
         )
 
-    @pytest.mark.xfail
     it "can complain about not asking for a subtype":
         with pytest.raises(strcs.errors.UnableToConvert) as e:
             reg.create(Container)
