@@ -2,6 +2,9 @@ import functools
 import operator
 import typing as tp
 
+import attrs
+
+from ..errors import NotValidType
 from ..standard import union_types
 from ._instance_check import InstanceCheckMeta
 
@@ -12,6 +15,34 @@ if tp.TYPE_CHECKING:
     VarCollection = tuple[Type | type[Type.Missing], ...]
 
 
+@attrs.define
+class Distilled:
+    original: object
+    is_valid: bool
+
+    @property
+    def classinfo(self) -> type | tuple[type, ...]:
+        if not self.is_valid:
+            raise NotValidType()
+        return tp.cast(type | tuple[type, ...], self.original)
+
+    @property
+    def as_tuple(self) -> tuple[type, ...]:
+        classinfo = self.classinfo
+        if not isinstance(classinfo, tuple):
+            return (classinfo,)
+        else:
+            return classinfo
+
+    @classmethod
+    def valid(cls, original: object) -> "Distilled":
+        return cls(original=original, is_valid=True)
+
+    @classmethod
+    def invalid(cls, original: object) -> "Distilled":
+        return cls(original=original, is_valid=False)
+
+
 class _ClassInfo:
     """
     Used to do isinstance and issubclass checks against the underlying types of some object.
@@ -20,12 +51,11 @@ class _ClassInfo:
     @classmethod
     def create(cls, classinfo: object, comparer: "Comparer"):
         comparing_all_vars = comparer.type_cache.disassemble(classinfo).mro.all_vars
-        classinfo, is_valid_classinfo = comparer.distill(classinfo)
+        distilled = comparer.distill(classinfo)
         return cls(
             _comparer=comparer,
             _comparing_all_vars=comparing_all_vars,
-            _compare_to=classinfo,
-            _is_valid_classinfo=is_valid_classinfo,
+            _compare_to=distilled,
         )
 
     def __init__(
@@ -33,38 +63,37 @@ class _ClassInfo:
         *,
         _comparer: "Comparer",
         _comparing_all_vars: "VarCollection",
-        _compare_to: object,
-        _is_valid_classinfo: bool,
+        _compare_to: Distilled,
     ):
         self.comparer = _comparer
         self.compare_to = _compare_to
         self.comparing_all_vars = _comparing_all_vars
-        self._is_valid_classinfo = _is_valid_classinfo
-
-    def is_valid_classinfo(self, classinfo: object) -> tp.TypeGuard[type]:
-        return classinfo is self.compare_to and self._is_valid_classinfo
 
     def isinstance(self, obj: object) -> bool:
         compare_to = self.compare_to
         if compare_to in (None, type(None)) and obj is None:
             return True
-        if not self.is_valid_classinfo(compare_to):
+        if not compare_to.is_valid:
             return False
-        return isinstance(obj, compare_to)
+        return isinstance(obj, compare_to.classinfo)
 
     def issubclass(self, comparing: object, *, all_vars: "VarCollection") -> bool:
         compare_to = self.compare_to
-        if not self.is_valid_classinfo(compare_to):
+        if not compare_to.is_valid:
             return False
 
-        as_type, _ = self.comparer.distill(comparing)
+        distilled = self.comparer.distill(comparing)
+        if not distilled.is_valid:
+            return False
+
+        as_type = self.comparer.distill(comparing).original
         if isinstance(as_type, tuple) and len(as_type) == 2 and as_type[1] is type(None):
             as_type = as_type[0]
 
         if not isinstance(as_type, type):
             return False
 
-        if not issubclass(as_type, compare_to):
+        if not issubclass(as_type, compare_to.as_tuple):
             return False
 
         if all_vars:
@@ -101,7 +130,7 @@ class Comparer:
     def __init__(self, type_cache: "TypeCache"):
         self.type_cache = type_cache
 
-    def distill(self, classinfo: object, _chain: list[object] | None = None) -> tuple[object, bool]:
+    def distill(self, classinfo: object, _chain: list[object] | None = None) -> Distilled:
         from ._base import Type
 
         if _chain is None:
@@ -110,7 +139,7 @@ class Comparer:
             _chain = list(_chain)
 
         if classinfo in _chain:
-            return classinfo, False
+            return Distilled.invalid(classinfo)
 
         optional: bool = False
 
@@ -134,7 +163,7 @@ class Comparer:
                 classinfo = args[0]
 
         if classinfo is None:
-            return type(None), True
+            return Distilled.valid(type(None))
 
         disassembled = self.type_cache.disassemble(classinfo)
         optional = optional or disassembled.optional
@@ -166,14 +195,25 @@ class Comparer:
                 else:
                     flat.append(got)
 
-            expand(tuple(part for part, _ in found))
+            expand(tuple(part.original for part in found))
             if len(flat) == 1:
                 result = flat[0]
             else:
                 result = tuple(flat)
-            is_valid = all(valid for _, valid in found)
+            is_valid = all(part.is_valid for part in found)
         else:
-            result, is_valid = self._distill_one(classinfo, _chain=_chain)
+            checkable = getattr(classinfo, "checkable", classinfo)
+            Meta = getattr(checkable, "Meta", None)
+            if Meta and (extracted := getattr(Meta, "extracted", None)) is not None:
+                classinfo = extracted
+
+            if not isinstance(classinfo, type):
+                distilled = self.distill(classinfo, _chain=_chain)
+            else:
+                distilled = Distilled.valid(classinfo)
+
+            result = distilled.original
+            is_valid = distilled.is_valid
 
         if isinstance(result, tuple) and type(None) in result:
             optional = True
@@ -185,22 +225,7 @@ class Comparer:
                 result = tuple(part for part in result if part is not type(None))
                 result = tuple((*result, type(None)))
 
-        return result, is_valid
-
-    def _distill_one(
-        self, classinfo: object, _chain: list[object] | None = None
-    ) -> tuple[object, bool]:
-        checkable = getattr(classinfo, "checkable", classinfo)
-        Meta = getattr(checkable, "Meta", None)
-        if Meta and (extracted := getattr(Meta, "extracted", None)) is not None:
-            classinfo = extracted
-
-        if not isinstance(classinfo, type):
-            classinfo, is_valid = self.distill(classinfo, _chain=_chain)
-        else:
-            is_valid = True
-
-        return classinfo, is_valid
+        return Distilled(original=result, is_valid=is_valid)
 
     def issubclass(self, comparing: object, comparing_to: object) -> bool:
         all_vars = self.type_cache.disassemble(comparing).mro.all_vars
@@ -216,41 +241,39 @@ class Comparer:
         subclasses: bool = False,
         allow_missing_typevars: bool = False,
     ) -> bool:
-        checking, checking_is_valid = self.distill(checking)
-        check_against, check_against_is_valid = self.distill(check_against)
+        chck = self.distill(checking)
+        chck_against = self.distill(check_against)
 
-        if check_against_is_valid and (checking == () or not checking_is_valid):
+        if chck_against.is_valid and (chck.original == () or not chck.is_valid):
             if subclasses:
-                return isinstance(
-                    checking,
-                    check_against,  # type:ignore[arg-type]
-                )
+                return isinstance(chck.original, chck_against.classinfo)
             else:
-                if not isinstance(check_against, tuple):
-                    check_against = (check_against,)
-                return type(checking) in check_against
+                against = chck_against.original
+                if not isinstance(against, tuple):
+                    against = (against,)
+                return type(chck.original) in against
 
-        if not checking_is_valid:
-            return checking == check_against
+        if not chck.is_valid:
+            return chck.classinfo == chck_against.classinfo
 
-        if isinstance(checking, tuple) and checking:
-            if all(isinstance(part, type) for part in checking):
-                checking = functools.reduce(operator.or_, checking)
-            elif len(checking) == 2 and checking[1] in (None, type(None)):
-                checking = tp.Optional[self.type_cache.disassemble(checking[0]).checkable]
+        chck_type = chck.original
+        if isinstance(chck_type, tuple) and chck_type:
+            if all(isinstance(part, type) for part in chck_type):
+                chck_type = functools.reduce(operator.or_, chck_type)
+            elif len(chck_type) == 2 and chck_type[1] in (None, type(None)):
+                chck_type = tp.Optional[self.type_cache.disassemble(chck_type[0]).checkable]
 
-        if (
-            isinstance(check_against, tuple)
-            and check_against
-            and all(isinstance(part, type) for part in check_against)
-        ):
-            if all(isinstance(part, type) for part in check_against):
-                check_against = functools.reduce(operator.or_, check_against)
-            elif len(check_against) == 2 and check_against[1] in (None, type(None)):
-                check_against = tp.Optional[self.type_cache.disassemble(check_against[0]).checkable]
+        chck_against_type = chck_against.original
+        if isinstance(chck_against_type, tuple) and chck_against_type:
+            if all(isinstance(part, type) for part in chck_against_type):
+                chck_against_type = functools.reduce(operator.or_, chck_against_type)
+            elif len(chck_against_type) == 2 and chck_against_type[1] in (None, type(None)):
+                chck_against_type = tp.Optional[
+                    self.type_cache.disassemble(chck_against_type[0]).checkable
+                ]
 
-        check_against = self.type_cache.disassemble(check_against)
-        checking = self.type_cache.disassemble(checking)
+        check_against = self.type_cache.disassemble(chck_against_type)
+        checking = self.type_cache.disassemble(chck_type)
 
         if (
             check_against.is_union
@@ -346,7 +369,10 @@ class Comparer:
         else:
             if not (
                 (matching_dis.fields_from == matching_to_dis.fields_from)
-                or (type(self.distill(matching_dis.fields_from)[0]) == matching_to_dis.fields_from)
+                or (
+                    type(self.distill(matching_dis.fields_from).original)
+                    == matching_to_dis.fields_from
+                )
             ):
                 return False
 

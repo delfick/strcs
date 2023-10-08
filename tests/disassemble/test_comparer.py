@@ -9,6 +9,7 @@ import pytest
 
 import strcs
 
+Distilled = strcs.disassemble.Distilled
 Disassembler = strcs.disassemble.Disassembler
 
 
@@ -86,7 +87,7 @@ describe "Comparer":
                 Dis(tp.Annotated[type(None), "asdf"]),
                 Dis(type(None)).checkable,
             ):
-                assert comparer.distill(dis) == (type(None), True)
+                assert comparer.distill(dis) == Distilled.valid(type(None))
 
         it "can get the type when already a type", comparer: strcs.disassemble.Comparer:
 
@@ -94,27 +95,28 @@ describe "Comparer":
                 pass
 
             for typ in (int, str, bool, dict, list, set, Thing):
-                assert comparer.distill(typ) == (typ, True)
+                assert comparer.distill(typ) == Distilled(original=typ, is_valid=True)
 
         it "can distil a tuple", comparer: strcs.disassemble.Comparer:
-            assert comparer.distill(()) == ((), True)
-            assert comparer.distill((1,)) == (1, False)
-            assert comparer.distill((int,)) == (int, True)
-            assert comparer.distill((int, str)) == ((int, str), True)
+            assert comparer.distill(()) == Distilled.valid(())
+            assert comparer.distill((1,)) == Distilled.invalid(1)
+            assert comparer.distill((int,)) == Distilled.valid(int)
+            assert comparer.distill((int, str)) == Distilled.valid((int, str))
 
         it "can turn an optional in to a tuple", comparer: strcs.disassemble.Comparer:
-            assert comparer.distill(tp.Optional[int]) == ((int, type(None)), True)
-            assert comparer.distill(tp.Optional[int | str]) == ((str, int, type(None)), True)
-            assert comparer.distill(tp.Annotated[tp.Optional[int | str], "asdf"]) == (
-                (str, int, type(None)),
-                True,
+            assert comparer.distill(tp.Optional[int]) == Distilled.valid((int, type(None)))
+            assert comparer.distill(tp.Optional[int | str]) == Distilled.valid(
+                (str, int, type(None))
             )
             assert comparer.distill(
+                tp.Annotated[tp.Optional[int | str], "asdf"]
+            ) == Distilled.valid((str, int, type(None)))
+            assert comparer.distill(
                 tp.Annotated[tp.Optional[int | tp.Annotated[str, "asdf"]], "asdf"]
-            ) == ((str, int, type(None)), True)
+            ) == Distilled.valid((str, int, type(None)))
             assert comparer.distill(
                 tp.Annotated[tp.Optional[int | tp.Annotated[str | None, "asdf"]], "asdf"]
-            ) == ((str, int, type(None)), True)
+            ) == Distilled.valid((str, int, type(None)))
 
         it "doesn't confuse int and boolean", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
 
@@ -140,14 +142,14 @@ describe "Comparer":
                 if thing is clear:
                     clear()
                     continue
-                assert comparer.distill(thing)[0] is thing
-                assert comparer.distill(Dis(thing))[0] is thing
-                assert comparer.distill(Dis(thing).checkable)[0] is thing
+                assert comparer.distill(thing).original is thing
+                assert comparer.distill(Dis(thing)).original is thing
+                assert comparer.distill(Dis(thing).checkable).original is thing
                 chck = Dis(thing).checkable
                 want = tp.Annotated[chck, "asdf"]  # type: ignore[valid-type]
                 assert hasattr(want, "__args__")
                 assert want.__args__[0] is chck
-                assert comparer.distill(want)[0] is thing
+                assert comparer.distill(want).original is thing
 
         it "can resolve to the original type", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
 
@@ -171,21 +173,21 @@ describe "Comparer":
                 (Thing, Exact()),
                 (Thing | None, Optional()),
             ):
-                assert comparer.distill(thing)[0] == expect
-                assert comparer.distill(Dis(thing))[0] == expect
-                assert comparer.distill(Dis(Dis(thing)))[0] == expect
-                assert comparer.distill(Dis(Dis(thing)).checkable)[0] == expect
-                assert comparer.distill(Dis(Dis(Dis(thing)).checkable))[0] == expect
+                assert comparer.distill(thing).original == expect
+                assert comparer.distill(Dis(thing)).original == expect
+                assert comparer.distill(Dis(Dis(thing))).original == expect
+                assert comparer.distill(Dis(Dis(thing)).checkable).original == expect
+                assert comparer.distill(Dis(Dis(Dis(thing)).checkable)).original == expect
                 assert (
                     comparer.distill(
                         tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
-                    )[0]
+                    ).original
                     == expect
                 )
                 assert (
                     comparer.distill(
                         Dis(tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"])
-                    )[0]
+                    ).original
                     == expect
                 )
                 assert (
@@ -193,7 +195,7 @@ describe "Comparer":
                         Dis(
                             tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
                         ).checkable
-                    )[0]
+                    ).original
                     == expect
                 )
                 assert (
@@ -203,7 +205,7 @@ describe "Comparer":
                                 tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
                             ).checkable
                         )
-                    )[0]
+                    ).original
                     == expect
                 )
 
@@ -230,21 +232,21 @@ describe "Comparer":
                 (Thing[int], Exact()),
                 (Thing[int] | None, Optional()),
             ):
-                assert comparer.distill(thing)[0] == expect
-                assert comparer.distill(Dis(thing))[0] == expect
-                assert comparer.distill(Dis(Dis(thing)))[0] == expect
-                assert comparer.distill(Dis(Dis(thing)).checkable)[0] == expect
-                assert comparer.distill(Dis(Dis(Dis(thing)).checkable))[0] == expect
+                assert comparer.distill(thing).original == expect
+                assert comparer.distill(Dis(thing)).original == expect
+                assert comparer.distill(Dis(Dis(thing))).original == expect
+                assert comparer.distill(Dis(Dis(thing)).checkable).original == expect
+                assert comparer.distill(Dis(Dis(Dis(thing)).checkable)).original == expect
                 assert (
                     comparer.distill(
                         tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
-                    )[0]
+                    ).original
                     == expect
                 )
                 assert (
                     comparer.distill(
                         Dis(tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"])
-                    )[0]
+                    ).original
                     == expect
                 )
                 assert (
@@ -252,7 +254,7 @@ describe "Comparer":
                         Dis(
                             tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
                         ).checkable
-                    )[0]
+                    ).original
                     == expect
                 )
                 assert (
@@ -262,7 +264,7 @@ describe "Comparer":
                                 tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
                             ).checkable
                         )
-                    )[0]
+                    ).original
                     == expect
                 )
 
@@ -272,24 +274,19 @@ describe "Comparer":
                 pass
 
             for typ in (int, str, bool, dict, list, set, Thing):
-                assert comparer.distill(Dis(typ)) == (typ, True)
-                assert comparer.distill(Dis(tp.Union[typ, None])) == ((typ, type(None)), True)
-                assert comparer.distill(Dis(tp.Annotated[tp.Union[typ, None], "asdf"])) == (
-                    (typ, type(None)),
-                    True,
+                assert comparer.distill(Dis(typ)) == Distilled.valid(typ)
+                assert comparer.distill(Dis(tp.Union[typ, None])) == Distilled.valid(
+                    (typ, type(None))
                 )
+                assert comparer.distill(
+                    Dis(tp.Annotated[tp.Union[typ, None], "asdf"])
+                ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
                     tp.Union[Dis(tp.Annotated[tp.Union[typ, None], "asdf"]).checkable, None]
-                ) == (
-                    (typ, type(None)),
-                    True,
-                )
+                ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
                     tp.Union[Dis(tp.Annotated[typ, "asdf"]).checkable, None]
-                ) == (
-                    (typ, type(None)),
-                    True,
-                )
+                ) == Distilled.valid((typ, type(None)))
 
         it "can get the type from a strcs.InstanceCheck of a type", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
 
@@ -297,29 +294,19 @@ describe "Comparer":
                 pass
 
             for typ in (int, str, bool, dict, list, set, Thing):
-                assert comparer.distill(Dis(typ).checkable) == (typ, True)
-                assert comparer.distill(Dis(tp.Union[typ, None]).checkable) == (
-                    (typ, type(None)),
-                    True,
+                assert comparer.distill(Dis(typ).checkable) == Distilled.valid(typ)
+                assert comparer.distill(Dis(tp.Union[typ, None]).checkable) == Distilled.valid(
+                    (typ, type(None))
                 )
                 assert comparer.distill(
                     Dis(tp.Annotated[tp.Union[typ, None], "asdf"]).checkable
-                ) == (
-                    (typ, type(None)),
-                    True,
-                )
+                ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
                     tp.Union[Dis(tp.Annotated[tp.Union[typ, None], "asdf"]).checkable, None]
-                ) == (
-                    (typ, type(None)),
-                    True,
-                )
+                ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
                     Dis(tp.Union[tp.Annotated[typ, "asdf"], None]).checkable
-                ) == (
-                    (typ, type(None)),
-                    True,
-                )
+                ) == Distilled.valid((typ, type(None)))
 
         it "can get the type from strcs.Type of strcs.Type of strcs.Type of type", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
 
@@ -334,27 +321,28 @@ describe "Comparer":
 
             for dis in (dis1, dis2, dis3, dis4, dis5):
                 if dis in (dis1, dis2):
-                    assert comparer.distill(dis) == (Thing, True)
+                    assert comparer.distill(dis) == Distilled.valid(Thing)
                 else:
-                    assert comparer.distill(dis) == ((Thing, type(None)), True)
+                    assert comparer.distill(dis) == Distilled.valid((Thing, type(None)))
 
             for dis in (dis1, dis2, dis3, dis4, dis5):
                 comparer.type_cache.clear()
                 if dis in (dis1, dis2):
-                    assert comparer.distill(dis) == (Thing, True)
+                    assert comparer.distill(dis) == Distilled.valid(Thing)
                 else:
-                    assert comparer.distill(dis) == ((Thing, type(None)), True)
+                    assert comparer.distill(dis) == Distilled.valid((Thing, type(None)))
 
         it "says tuples of types are valid", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
             typ = int | str | bool
-            assert comparer.distill(typ) == ((bool, str, int), True)
-            assert comparer.distill(tp.Union[typ, None]) == ((bool, str, int, type(None)), True)
-            assert comparer.distill(tp.Annotated[tp.Union[typ, None], "asdf"]) == (
-                (bool, str, int, type(None)),
-                True,
+            assert comparer.distill(typ) == Distilled.valid((bool, str, int))
+            assert comparer.distill(tp.Union[typ, None]) == Distilled.valid(
+                (bool, str, int, type(None))
+            )
+            assert comparer.distill(tp.Annotated[tp.Union[typ, None], "asdf"]) == Distilled.valid(
+                (bool, str, int, type(None))
             )
 
-            assert comparer.distill((str, dict, list)) == ((str, dict, list), True)
+            assert comparer.distill((str, dict, list)) == Distilled.valid((str, dict, list))
 
         it "returns class of generics", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
             T = tp.TypeVar("T")
@@ -372,44 +360,39 @@ describe "Comparer":
                         (Thing, type(None)),
                     ),
                 ):
-                    assert comparer.distill(with_extra) == (expected, True)
-                    assert comparer.distill(Dis(with_extra)) == (expected, True)
-                    assert comparer.distill(Dis(with_extra).checkable) == (expected, True)
-                    assert comparer.distill(tp.Union[Dis(with_extra).checkable, None]) == (
-                        (Thing, type(None)),
-                        True,
-                    )
+                    assert comparer.distill(with_extra) == Distilled.valid(expected)
+                    assert comparer.distill(Dis(with_extra)) == Distilled.valid(expected)
+                    assert comparer.distill(Dis(with_extra).checkable) == Distilled.valid(expected)
+                    assert comparer.distill(
+                        tp.Union[Dis(with_extra).checkable, None]
+                    ) == Distilled.valid((Thing, type(None)))
 
         it "says complex stuff is valid when it is", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
             provided = tp.Union[
                 tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
             ]
-            result, is_valid = comparer.distill(provided)
-            assert comparer.distill(provided) == ((str, int, list, type(None)), True)
+            assert comparer.distill(provided) == Distilled.valid((str, int, list, type(None)))
 
-            assert comparer.distill(tp.Union[provided, dict]) == (
-                (str, int, list, dict, type(None)),
-                True,
+            assert comparer.distill(tp.Union[provided, dict]) == Distilled.valid(
+                (str, int, list, dict, type(None))
             )
 
-            assert comparer.distill(Dis(tp.Union[provided, dict])) == (
-                (str, int, list, dict, type(None)),
-                True,
+            assert comparer.distill(Dis(tp.Union[provided, dict])) == Distilled.valid(
+                (str, int, list, dict, type(None))
             )
 
-            assert comparer.distill(tp.Union[Dis(tp.Union[provided, dict]).checkable, None]) == (
-                (str, int, list, dict, type(None)),
-                True,
-            )
+            assert comparer.distill(
+                tp.Union[Dis(tp.Union[provided, dict]).checkable, None]
+            ) == Distilled.valid((str, int, list, dict, type(None)))
 
-            assert comparer.distill(tp.Union[list[int], list[str]]) == (list, True)
+            assert comparer.distill(tp.Union[list[int], list[str]]) == Distilled.valid(list)
 
         it "says tuples of not types are invalid", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
-            assert comparer.distill((1, [], list)) == ((1, [], list), False)
+            assert comparer.distill((1, [], list)) == Distilled.invalid((1, [], list))
 
         it "says not types are invalid", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
-            assert comparer.distill(1) == (1, False)
-            assert comparer.distill([]) == ([], False)
+            assert comparer.distill(1) == Distilled.invalid(1)
+            assert comparer.distill([]) == Distilled.invalid([])
 
         it "can follow chains to not types", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
             dis1 = Dis({})
@@ -418,11 +401,11 @@ describe "Comparer":
             dis4 = Dis(dis3)
 
             for dis in (dis1, dis2, dis3, dis4):
-                assert comparer.distill(dis) == ({}, False)
+                assert comparer.distill(dis) == Distilled.invalid({})
 
             for dis in (dis1, dis2, dis3, dis4):
                 comparer.type_cache.clear()
-                assert comparer.distill(dis) == ({}, False)
+                assert comparer.distill(dis) == Distilled.invalid({})
 
     describe "issubclass":
         it "can say no for obviously incorrect things", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
