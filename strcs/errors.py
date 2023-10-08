@@ -117,3 +117,8 @@ class SupertypeNotValid(StructuresError):
     want: object
     got: object
     reason: str
+
+
+@attrs.define
+class NotValidType(StructuresError):
+    pass
