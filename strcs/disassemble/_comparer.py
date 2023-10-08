@@ -19,6 +19,7 @@ if tp.TYPE_CHECKING:
 class Distilled:
     original: object
     is_valid: bool
+    as_generic: object | None = None
 
     @property
     def classinfo(self) -> type | tuple[type, ...]:
@@ -35,16 +36,21 @@ class Distilled:
             return classinfo
 
     @classmethod
-    def valid(cls, original: object) -> "Distilled":
-        return cls(original=original, is_valid=True)
+    def valid(cls, original: object, as_generic: object | None = None) -> "Distilled":
+        return cls(original=original, is_valid=True, as_generic=as_generic)
 
     @classmethod
-    def invalid(cls, original: object) -> "Distilled":
-        return cls(original=original, is_valid=False)
+    def invalid(cls, original: object, as_generic: object | None = None) -> "Distilled":
+        return cls(original=original, is_valid=False, as_generic=as_generic)
 
     @classmethod
     def create(
-        cls, classinfo: object, *, comparer: "Comparer", _chain: list[object] | None = None
+        cls,
+        classinfo: object,
+        *,
+        as_generic: object | None = None,
+        comparer: "Comparer",
+        _chain: list[object] | None = None,
     ) -> "Distilled":
         from ._base import Type
 
@@ -78,15 +84,25 @@ class Distilled:
                 classinfo = args[0]
 
         if classinfo is None:
-            return cls.valid(type(None))
+            return cls.valid(type(None), as_generic=as_generic)
 
         disassembled = comparer.type_cache.disassemble(classinfo)
         optional = optional or disassembled.optional
         _chain.append(classinfo)
 
+        as_generic: object | None = None
+
         if disassembled.is_union:
             classinfo = disassembled.nonoptional_union_types
         elif disassembled.mro.all_vars:
+            as_generic = disassembled.extracted
+            if (
+                issubclass(type(as_generic), (InstanceCheckMeta, Type))
+                or tp.get_origin(as_generic) is tp.Annotated
+            ):
+                as_generic = cls.create(
+                    as_generic, comparer=comparer, _chain=list(_chain)
+                ).as_generic
             classinfo = disassembled.origin
         elif isinstance(classinfo, tuple) and type(None) in classinfo:
             classinfo = tuple(part for part in classinfo if part is not type(None))
@@ -98,7 +114,10 @@ class Distilled:
         result: object
 
         if isinstance(classinfo, tuple):
-            found = tuple(cls.create(part, comparer=comparer, _chain=_chain) for part in classinfo)
+            found = tuple(
+                cls.create(part, comparer=comparer, as_generic=as_generic, _chain=_chain)
+                for part in classinfo
+            )
 
             flat: list[object] = []
 
@@ -107,15 +126,18 @@ class Distilled:
                     for part in got:
                         if part not in flat:
                             expand(part)
-                else:
+                elif got is not None:
                     flat.append(got)
 
-            expand(tuple(part.original for part in found))
-            if len(flat) == 1:
-                result = flat[0]
-            else:
-                result = tuple(flat)
             is_valid = all(part.is_valid for part in found)
+
+            expand(tuple(part.original for part in found))
+            result = flat[0] if len(flat) == 1 else tuple(flat)
+
+            if any(part.as_generic for part in found):
+                flat.clear()
+                expand(tuple(part.as_generic or part.original for part in found))
+                as_generic = flat[0] if len(flat) == 1 else functools.reduce(operator.or_, flat)
         else:
             checkable = getattr(classinfo, "checkable", classinfo)
             Meta = getattr(checkable, "Meta", None)
@@ -123,12 +145,33 @@ class Distilled:
                 classinfo = extracted
 
             if not isinstance(classinfo, type):
-                distilled = cls.create(classinfo, comparer=comparer, _chain=_chain)
+                distilled = cls.create(
+                    classinfo, comparer=comparer, as_generic=as_generic, _chain=_chain
+                )
+                result = distilled.original
+                is_valid = distilled.is_valid
+                as_generic = distilled.as_generic
             else:
-                distilled = cls.valid(classinfo)
+                result = classinfo
+                is_valid = True
+                distilled = cls.valid(classinfo, as_generic=as_generic)
 
-            result = distilled.original
-            is_valid = distilled.is_valid
+        if is_valid:
+            if tp.get_origin(as_generic) in union_types:
+                as_generic = functools.reduce(
+                    operator.or_,
+                    sorted(
+                        tp.get_args(as_generic),
+                        key=lambda part: comparer.type_cache.disassemble(part).score,
+                    ),
+                )
+            if isinstance(classinfo, tuple):
+                classinfo = tuple(
+                    sorted(
+                        tp.get_args(classinfo),
+                        key=lambda part: comparer.type_cache.disassemble(part).score,
+                    )
+                )
 
         if isinstance(result, tuple) and type(None) in result:
             optional = True
@@ -140,7 +183,10 @@ class Distilled:
                 result = tuple(part for part in result if part is not type(None))
                 result = tuple((*result, type(None)))
 
-        return cls(original=result, is_valid=is_valid)
+        if optional and as_generic is not None and is_valid:
+            as_generic = tp.Optional[as_generic]
+
+        return cls(original=result, as_generic=as_generic, is_valid=is_valid)
 
 
 class _ClassInfo:
@@ -262,14 +308,14 @@ class Comparer:
         if not chck.is_valid:
             return chck.classinfo == chck_against.classinfo
 
-        chck_type = chck.original
+        chck_type = chck.as_generic or chck.original
         if isinstance(chck_type, tuple) and chck_type:
             if all(isinstance(part, type) for part in chck_type):
                 chck_type = functools.reduce(operator.or_, chck_type)
             elif len(chck_type) == 2 and chck_type[1] in (None, type(None)):
                 chck_type = tp.Optional[self.type_cache.disassemble(chck_type[0]).checkable]
 
-        chck_against_type = chck_against.original
+        chck_against_type = chck_against.as_generic or chck_against.original
         if isinstance(chck_against_type, tuple) and chck_against_type:
             if all(isinstance(part, type) for part in chck_against_type):
                 chck_against_type = functools.reduce(operator.or_, chck_against_type)
@@ -389,7 +435,7 @@ class Comparer:
             if isinstance(mtv, Type) and isinstance(mttv, Type):
                 if not self.matches(mtv, mttv, subclasses=subclasses):
                     return False
-            elif mtv is Type.Missing and not allow_missing_typevars:
+            elif mtv is Type.Missing and mttv is not Type.Missing and not allow_missing_typevars:
                 return False
 
         return True
