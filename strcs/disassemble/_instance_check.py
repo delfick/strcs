@@ -42,14 +42,8 @@ class InstanceCheck(abc.ABC):
     * ``type``
     * ``hash``
 
-    The ``checkable.matches`` method will check that another type is equivalent depending on the options provided.
-
-    * ``subclass=True``: If a subclass can be counted as matching
-    * ``allow_missing_typevars``: If an unfilled generic counts as matching a filled generic
-    * For unions, it ill match another union if there is a complete overlap in items between both unions
-
-    For classes or unions that are only one type with None
-    ------------------------------------------------------
+    For objects that aren't unions or an optional type
+    --------------------------------------------------
 
     For these, the ``check_against`` will be the return of ``disassembled.origin``
 
@@ -99,7 +93,7 @@ class InstanceCheck(abc.ABC):
         optional: bool
         "True if the value being wrapped is a ``typing.Optional`` or Union with ``None``"
 
-        union_types: tuple[type["InstanceCheck"]] | None
+        union_types: tuple["Type", ...] | None
         "A tuple of the types in the union if it's a union, otherwise ``None``"
 
         disassembled: "Type"
@@ -111,85 +105,77 @@ class InstanceCheck(abc.ABC):
         without_annotation: object
         "The original object given to :class:`strcs.Type` without a wrapping ``typing.Annotation``"
 
-    @classmethod
-    def matches(
-        cls,
-        other: type["InstanceCheck"],
-        subclasses: bool = False,
-        allow_missing_typevars: bool = True,
-    ) -> bool:
-        """
-        Used to determine if this is equivalent to another object.
-        """
-        raise NotImplementedError()
-
 
 def create_checkable(disassembled: "Type") -> type[InstanceCheck]:
     class Meta(InstanceCheck.Meta):
         original = disassembled.original
-        extracted = disassembled.extracted
+        extracted = disassembled.without_annotation
         optional = disassembled.optional
         without_optional = disassembled.without_optional
         without_annotation = disassembled.without_annotation
 
     Meta.disassembled = disassembled
+    check_against: object | None
 
     if tp.get_origin(Meta.extracted) in union_types:
-        check_against = tuple(
-            disassembled.disassemble(a).checkable for a in tp.get_args(Meta.extracted)
-        )
+        check_against = tuple(disassembled.disassemble(a) for a in tp.get_args(Meta.extracted))
+
+        reprstr = " | ".join(repr(c) for c in check_against)
 
         Meta.typ = Meta.extracted
-        Meta.union_types = tp.cast(tuple[type[InstanceCheck]], check_against)
-        Checker = _checker_union(disassembled, check_against, Meta)
+        Meta.union_types = check_against
     else:
-        check_against_single: type | None = disassembled.origin
-        if Meta.extracted is None:
-            check_against_single = None
+        check_against = None if Meta.extracted is None else disassembled.origin
+
+        reprstr = repr(check_against)
 
         Meta.typ = disassembled.origin
         Meta.union_types = None
-        Checker = _checker_single(disassembled, check_against_single, Meta)
 
-    if hasattr(Meta.extracted, "__args__"):
-        Checker.__args__ = Meta.extracted.__args__  # type: ignore
-    if hasattr(Meta.extracted, "__origin__"):
-        Checker.__origin__ = Meta.extracted.__origin__  # type: ignore
-    if hasattr(Meta.extracted, "__parameters__"):
-        Checker.__parameters__ = Meta.extracted.__parameters__  # type: ignore
-    if hasattr(Meta.extracted, "__annotations__"):
-        Checker.__annotations__ = Meta.extracted.__annotations__  # type: ignore
-    if hasattr(Checker.Meta.typ, "__attrs_attrs__"):
-        Checker.__attrs_attrs__ = Checker.Meta.typ.__attrs_attrs__  # type:ignore
-    if hasattr(Checker.Meta.typ, "__dataclass_fields__"):
-        Checker.__dataclass_fields__ = Checker.Meta.typ.__dataclass_fields__  # type:ignore
+    Checker = _create_checker(disassembled, check_against, Meta, reprstr)
+
+    typ = disassembled.origin
+    extracted = Meta.extracted
+
+    if hasattr(extracted, "__args__"):
+        Checker.__args__ = extracted.__args__  # type: ignore
+    if hasattr(extracted, "__origin__"):
+        Checker.__origin__ = extracted.__origin__  # type: ignore
+    if hasattr(extracted, "__parameters__"):
+        Checker.__parameters__ = extracted.__parameters__  # type: ignore
+    if hasattr(extracted, "__annotations__"):
+        Checker.__annotations__ = extracted.__annotations__  # type: ignore
+    if hasattr(typ, "__attrs_attrs__"):
+        Checker.__attrs_attrs__ = typ.__attrs_attrs__  # type:ignore
+    if hasattr(typ, "__dataclass_fields__"):
+        Checker.__dataclass_fields__ = typ.__dataclass_fields__  # type:ignore
 
     return Checker
 
 
-def _checker_union(
+def _create_checker(
     disassembled: "Type",
-    check_against: tp.Sequence[type],
+    check_against: object,
     M: type[InstanceCheck.Meta],
+    reprstr: str,
 ) -> type[InstanceCheck]:
-
-    reprstr = " | ".join(repr(c) for c in check_against)
+    comparer = disassembled.cache.comparer
 
     class CheckerMeta(InstanceCheckMeta):
         def __repr__(self) -> str:
             return reprstr
 
         def __instancecheck__(self, obj: object) -> bool:
-            return (obj is None and disassembled.optional) or isinstance(obj, tuple(check_against))
+            return comparer.isinstance(obj, M.original)
 
         def __eq__(self, o: object) -> bool:
-            return any(o == ch for ch in check_against)
+            return o == disassembled or o is type(M.extracted)
 
         def __hash__(self) -> int:
             if type(M.extracted) is type:
                 return hash(M.extracted)
             else:
-                return id(disassembled)
+                return id(self)
 
         @property  # type:ignore
         def __class__(self) -> type:
@@ -200,159 +186,16 @@ def _checker_union(
             if C == CombinedMeta:
                 return True
 
-            if hasattr(C, "Meta") and issubclass(C.Meta, InstanceCheck.Meta):
-                if isinstance(C.Meta.typ, type):
-                    C = C.Meta.typ
-            return issubclass(C, tuple(check_against))
+            return comparer.issubclass(C, M.original)
 
     class CombinedMeta(CheckerMeta, abc.ABCMeta):
         pass
 
     class Checker(InstanceCheck, metaclass=CombinedMeta):
         def __new__(mcls, *args, **kwargs):
-            raise ValueError(f"Cannot instantiate a union type: {check_against}")
-
-        @classmethod
-        def matches(
-            cls,
-            other: type[InstanceCheck],
-            subclasses: bool = False,
-            allow_missing_typevars=False,
-        ) -> bool:
-            if cls.Meta.union_types is None or other.Meta.union_types is None:
-                return False
-
-            if subclasses:
-                # I want it so that everything in cls is a subclass of other
-                if not all(issubclass(typ, other) for typ in cls.Meta.union_types):
-                    return False
-
-                # And for all types in other to have a matching subclass in cls
-                if not all(
-                    any(issubclass(cls_typ, other_typ) for cls_typ in cls.Meta.union_types)
-                    for other_typ in other.Meta.union_types
-                ):
-                    return False
-
-                return True
-            else:
-                for typ in cls.Meta.union_types:
-                    found = False
-                    for other_typ in other.Meta.union_types:
-                        if typ.matches(other_typ):
-                            found = True
-                            break
-                    if not found:
-                        return False
-
-                if len(cls.Meta.union_types) == len(other.Meta.union_types):
-                    return True
-
-                for typ in other.Meta.union_types:
-                    found = False
-                    for cls_typ in cls.Meta.union_types:
-                        if other_typ.matches(cls_typ):
-                            found = True
-                            break
-                    if not found:
-                        return False
-
-                return True
-
-        Meta = M
-
-    return Checker
-
-
-def _checker_single(
-    disassembled: "Type",
-    check_against: object | None,
-    M: type[InstanceCheck.Meta],
-) -> type[InstanceCheck]:
-    from ._base import Type
-
-    class CheckerMeta(InstanceCheckMeta):
-        def __repr__(self) -> str:
-            return repr(check_against)
-
-        def __instancecheck__(self, obj: object) -> bool:
-            if check_against is None:
-                return obj is None
-
-            return (obj is None and disassembled.optional) or isinstance(
-                obj, tp.cast(type, check_against)
-            )
-
-        def __eq__(self, o: object) -> bool:
-            return o == check_against
-
-        def __hash__(self) -> int:
-            if type(M.extracted) is type:
-                return hash(M.extracted)
-            else:
-                return id(disassembled)
-
-        @property  # type:ignore
-        def __class__(self) -> type:
-            return type(M.extracted)
-
-        @classmethod
-        def __subclasscheck__(cls, C: type) -> bool:
-            if C == CombinedMeta:
-                return True
-
-            if not isinstance(check_against, type):
-                return False
-
-            if hasattr(C, "Meta") and issubclass(C.Meta, InstanceCheck.Meta):
-                if isinstance(C.Meta.typ, type):
-                    C = C.Meta.typ
-
-            if not issubclass(C, check_against):
-                return False
-
-            want = disassembled.disassemble(C)
-            for w, g in zip(want.mro.all_vars, disassembled.mro.all_vars):
-                if isinstance(w, Type) and isinstance(g, Type):
-                    if not issubclass(w.checkable, g.checkable):
-                        return False
-
-            return True
-
-    class CombinedMeta(CheckerMeta, abc.ABCMeta):
-        pass
-
-    class Checker(InstanceCheck, metaclass=CombinedMeta):
-        def __new__(mcls, *args, **kwargs):
-            return check_against(*args, **kwargs)
-
-        @classmethod
-        def matches(
-            cls,
-            other: type[InstanceCheck],
-            subclasses: bool = False,
-            allow_missing_typevars=False,
-        ) -> bool:
-            if subclasses:
-                if not issubclass(cls, other):
-                    return False
-
-                for ctv, otv in zip(
-                    cls.Meta.disassembled.mro.all_vars,
-                    other.Meta.disassembled.mro.all_vars,
-                ):
-                    if isinstance(ctv, Type) and isinstance(otv, Type):
-                        if not ctv.checkable.matches(otv.checkable, subclasses=True):
-                            return False
-                    elif otv is Type.Missing and not allow_missing_typevars:
-                        return False
-
-                return True
-            else:
-                return (
-                    cls.Meta.typ == other.Meta.typ
-                    and cls.Meta.disassembled.mro.all_vars == other.Meta.disassembled.mro.all_vars
-                )
+            if callable(check_against):
+                return check_against(*args, **kwargs)
+            raise ValueError(f"Cannot instantiate this type: {check_against}")
 
         Meta = M
 

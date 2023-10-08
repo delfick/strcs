@@ -1,6 +1,8 @@
 import typing as tp
 from collections.abc import MutableMapping
 
+from ._comparer import Comparer
+
 if tp.TYPE_CHECKING:
     from ._base import Disassembler, Type
 
@@ -76,6 +78,7 @@ class TypeCache(MutableMapping[object, "Type"]):
     def __init__(self) -> None:
         self.cache: dict[tuple[type, object], "Type"] = {}
         self.disassemble = _TypeCacheDisassembler(self)
+        self.comparer = Comparer(self)
 
     def key(self, o: object) -> tuple[type, object]:
         return (type(o), o)

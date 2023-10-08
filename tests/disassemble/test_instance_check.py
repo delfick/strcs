@@ -191,7 +191,7 @@ describe "InstanceCheck":
         assert not issubclass(db.checkable, NotMyInt)
         assert not issubclass(db.checkable, Dis(NotMyInt).checkable)
 
-        assert db.checkable.Meta.typ == int
+        assert db.checkable.Meta.typ == int | None
         assert db.checkable.Meta.original == int | None
         assert db.checkable.Meta.optional
         assert db.checkable.Meta.without_optional == int
@@ -230,7 +230,7 @@ describe "InstanceCheck":
         assert not issubclass(db.checkable, NotMyInt)
         assert not issubclass(db.checkable, Dis(NotMyInt).checkable)
 
-        assert db.checkable.Meta.typ == int
+        assert db.checkable.Meta.typ == int | None
         assert db.checkable.Meta.original == tp.Annotated[int | None, "stuff"]
         assert db.checkable.Meta.optional
         assert db.checkable.Meta.without_optional == tp.Annotated[int, "stuff"]
@@ -311,7 +311,7 @@ describe "InstanceCheck":
         assert checkable.Meta.without_annotation == Thing
 
         constructor: tp.Callable = Dis(int | str).checkable
-        with pytest.raises(ValueError, match="Cannot instantiate a union type"):
+        with pytest.raises(ValueError, match="Cannot instantiate this type"):
             constructor(1)
 
     it "can get repr", Dis: Disassembler:
@@ -344,9 +344,9 @@ describe "InstanceCheck":
             (Two[int], repr(Two)),
             (Three, repr(Three)),
             (int | str, f"{repr(int)} | {repr(str)}"),
-            (int | None, repr(int)),
+            (int | None, f"{repr(int)} | {repr(type(None))}"),
             (tp.Union[int, str], f"{repr(int)} | {repr(str)}"),
-            (tp.Union[bool, None], repr(bool)),
+            (tp.Union[bool, None], f"{repr(bool)} | {repr(type(None))}"),
             (One | int, f"{repr(One)} | {repr(int)}"),
         ]
         for thing, expected in examples:
@@ -357,12 +357,15 @@ describe "InstanceCheck":
 
         assert tp.get_origin(Dis(str | int).checkable) == types.UnionType
         assert tp.get_origin(Dis(dict[str, int]).checkable) == dict
-        assert tp.get_origin(Dis(dict[str, int] | None).checkable) == dict
-        assert tp.get_origin(Dis(tp.Annotated[dict[str, int] | None, "hi"]).checkable) == dict
+        assert tp.get_origin(Dis(dict[str, int] | None).checkable) == types.UnionType
+        assert (
+            tp.get_origin(Dis(tp.Annotated[dict[str, int] | None, "hi"]).checkable)
+            == types.UnionType
+        )
 
         assert tp.get_origin(Dis(dict).checkable) is None
-        assert tp.get_origin(Dis(dict | None).checkable) is None
-        assert tp.get_origin(Dis(tp.Annotated[dict | None, "hi"]).checkable) is None
+        assert tp.get_origin(Dis(dict | None).checkable) is types.UnionType
+        assert tp.get_origin(Dis(tp.Annotated[dict | None, "hi"]).checkable) is types.UnionType
 
         assert tp.get_origin(Dis(dict | str).checkable) is types.UnionType
 
@@ -377,17 +380,20 @@ describe "InstanceCheck":
         assert tp.get_args(Dis(str | int).checkable) == (str, int)
         assert tp.get_args(Dis(dict[str, int]).checkable) == (str, int)
         assert tp.get_args(Dis(dict[str, int] | None).checkable) == (
-            str,
-            int,
+            dict[str, int],
+            type(None),
         )
         assert tp.get_args(Dis(tp.Annotated[dict[str, int] | None, "hi"]).checkable) == (
-            str,
-            int,
+            dict[str, int],
+            type(None),
         )
 
         assert tp.get_args(Dis(dict).checkable) == ()
-        assert tp.get_args(Dis(dict | None).checkable) == ()
-        assert tp.get_args(Dis(tp.Annotated[dict | None, "hi"]).checkable) == ()
+        assert tp.get_args(Dis(dict | None).checkable) == (
+            dict,
+            type(None),
+        )
+        assert tp.get_args(Dis(tp.Annotated[dict | None, "hi"]).checkable) == (dict, type(None))
 
         assert tp.get_args(Dis(dict | str).checkable) == (dict, str)
 
