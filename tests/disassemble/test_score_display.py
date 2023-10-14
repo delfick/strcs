@@ -1345,3 +1345,111 @@ describe "Type":
                package:
         """,
         )
+
+    it "works with NewType generic params", Dis: Disassembler:
+
+        @attrs.define
+        class Thing(tp.Generic[T, U]):
+            one: T
+            two: U
+
+        One = tp.NewType("One", int)
+        Two = tp.NewType("Two", int)
+
+        provided = Thing[One, Two]
+        disassembled = Dis(provided)
+        self.assertDisplay(
+            disassembled,
+            """
+            x Union optional
+            x Union
+            x Annotated
+            2 typevars (True, True)
+            ✓ Typevars:
+              *  ✓ type alias: One
+                 x Union optional
+                 x Union
+                 x Annotated
+                 0 typevars ()
+                 x Typevars
+                 x Optional
+                 2 MRO length
+                 ✓ Origin MRO:
+                   *  custom: False
+                      name: int
+                      module: builtins
+                      package:
+                   *  custom: False
+                      name: object
+                      module: builtins
+                      package:
+              *  ✓ type alias: Two
+                 x Union optional
+                 x Union
+                 x Annotated
+                 0 typevars ()
+                 x Typevars
+                 x Optional
+                 2 MRO length
+                 ✓ Origin MRO:
+                   *  custom: False
+                      name: int
+                      module: builtins
+                      package:
+                   *  custom: False
+                      name: object
+                      module: builtins
+                      package:
+            x Optional
+            3 MRO length
+            ✓ Origin MRO:
+              *  custom: True
+                 name: Thing
+                 module: tests.disassemble.test_score_display
+                 package:
+              *  custom: True
+                 name: Generic
+                 module: typing
+                 package:
+              *  custom: False
+                 name: object
+                 module: builtins
+                 package:
+            """,
+        )
+
+    it "works with NewType class", Dis: Disassembler:
+
+        class Thing(str):
+            pass
+
+        ThingAlias = tp.NewType("ThingAlias", Thing)
+
+        provided = ThingAlias
+        disassembled = Dis(provided)
+        self.assertDisplay(
+            disassembled,
+            """
+            ✓ type alias: ThingAlias
+            x Union optional
+            x Union
+            x Annotated
+            0 typevars ()
+            x Typevars
+            x Optional
+            3 MRO length
+            ✓ Origin MRO:
+              *  custom: True
+                 name: Thing
+                 module: tests.disassemble.test_score_display
+                 package:
+              *  custom: False
+                 name: str
+                 module: builtins
+                 package:
+              *  custom: False
+                 name: object
+                 module: builtins
+                 package:
+            """,
+        )
