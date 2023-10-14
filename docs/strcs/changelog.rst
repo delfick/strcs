@@ -10,6 +10,8 @@ Changelog
       on ``strcs.Type`` using it. Note that the signature also changes to no
       longer have an "expect" but also it's smarter about the resulting Type
       it returns.
+    * Made ``strcs.Type`` and related functionality all understand
+      ``typing.NewType`` objects.
 
 .. _release-0.3.0:
 

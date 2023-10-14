@@ -200,6 +200,14 @@ class Type(tp.Generic[T]):
         if issubclass(type(o), Type) and hasattr(o, "original"):
             o = o.original
 
+        other_alias: tp.NewType | None = None
+        if isinstance(o, tp.NewType):
+            other_alias = o
+            o = other_alias.__supertype__
+
+        if self.is_type_alias and other_alias is not None:
+            return self.type_alias == other_alias
+
         if (
             o == self.original
             or (self.is_annotated and o == self.extracted)
