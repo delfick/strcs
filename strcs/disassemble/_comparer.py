@@ -20,6 +20,7 @@ class Distilled:
     original: object
     is_valid: bool
     as_generic: object | None = None
+    new_type_path: list[tp.NewType] | None = None
 
     @property
     def classinfo(self) -> type | tuple[type, ...]:
@@ -36,18 +37,41 @@ class Distilled:
             return classinfo
 
     @classmethod
-    def valid(cls, original: object, as_generic: object | None = None) -> "Distilled":
-        return cls(original=original, is_valid=True, as_generic=as_generic)
+    def valid(
+        cls,
+        original: object,
+        *,
+        new_type_path: list[tp.NewType] | None = None,
+        as_generic: object | None = None,
+    ) -> "Distilled":
+        return cls(
+            original=original,
+            is_valid=True,
+            new_type_path=new_type_path or None,
+            as_generic=as_generic,
+        )
 
     @classmethod
-    def invalid(cls, original: object, as_generic: object | None = None) -> "Distilled":
-        return cls(original=original, is_valid=False, as_generic=as_generic)
+    def invalid(
+        cls,
+        original: object,
+        *,
+        new_type_path: list[tp.NewType] | None = None,
+        as_generic: object | None = None,
+    ) -> "Distilled":
+        return cls(
+            original=original,
+            is_valid=False,
+            new_type_path=new_type_path or None,
+            as_generic=as_generic,
+        )
 
     @classmethod
     def create(
         cls,
         classinfo: object,
         *,
+        new_type_path: list[tp.NewType] | None = None,
         as_generic: object | None = None,
         comparer: "Comparer",
         _chain: list[object] | None = None,
@@ -59,13 +83,18 @@ class Distilled:
         else:
             _chain = list(_chain)
 
+        if new_type_path is None:
+            new_type_path = []
+        else:
+            new_type_path = list(new_type_path)
+
         if classinfo in _chain:
             return cls.invalid(classinfo)
 
         optional: bool = False
 
         while (
-            issubclass(classinfo_type := type(classinfo), (InstanceCheckMeta, Type))
+            issubclass(classinfo_type := type(classinfo), (InstanceCheckMeta, Type, tp.NewType))
             or tp.get_origin(classinfo) is tp.Annotated
         ):
             if issubclass(classinfo_type, InstanceCheckMeta):
@@ -82,9 +111,13 @@ class Distilled:
                 args = tp.get_args(classinfo)
                 assert len(args) > 0
                 classinfo = args[0]
+            elif issubclass(classinfo_type, tp.NewType):
+                assert isinstance(classinfo, tp.NewType)
+                new_type_path.append(classinfo)
+                classinfo = classinfo.__supertype__
 
         if classinfo is None:
-            return cls.valid(type(None), as_generic=as_generic)
+            return cls.valid(type(None), new_type_path=new_type_path, as_generic=as_generic)
 
         disassembled = comparer.type_cache.disassemble(classinfo)
         optional = optional or disassembled.optional
@@ -101,7 +134,7 @@ class Distilled:
                 or tp.get_origin(as_generic) is tp.Annotated
             ):
                 as_generic = cls.create(
-                    as_generic, comparer=comparer, _chain=list(_chain)
+                    as_generic, new_type_path=new_type_path, comparer=comparer, _chain=list(_chain)
                 ).as_generic
             classinfo = disassembled.origin
         elif isinstance(classinfo, tuple) and type(None) in classinfo:
@@ -115,7 +148,13 @@ class Distilled:
 
         if isinstance(classinfo, tuple):
             found = tuple(
-                cls.create(part, comparer=comparer, as_generic=as_generic, _chain=_chain)
+                cls.create(
+                    part,
+                    comparer=comparer,
+                    new_type_path=new_type_path,
+                    as_generic=as_generic,
+                    _chain=_chain,
+                )
                 for part in classinfo
             )
 
@@ -146,7 +185,11 @@ class Distilled:
 
             if not isinstance(classinfo, type):
                 distilled = cls.create(
-                    classinfo, comparer=comparer, as_generic=as_generic, _chain=_chain
+                    classinfo,
+                    comparer=comparer,
+                    new_type_path=new_type_path,
+                    as_generic=as_generic,
+                    _chain=_chain,
                 )
                 result = distilled.original
                 is_valid = distilled.is_valid
@@ -186,7 +229,12 @@ class Distilled:
         if optional and as_generic is not None and is_valid:
             as_generic = tp.Optional[as_generic]
 
-        return cls(original=result, as_generic=as_generic, is_valid=is_valid)
+        return cls(
+            original=result,
+            as_generic=as_generic,
+            new_type_path=new_type_path or None,
+            is_valid=is_valid,
+        )
 
 
 class _ClassInfo:
@@ -232,7 +280,7 @@ class _ClassInfo:
         if not distilled.is_valid:
             return False
 
-        as_type = self.comparer.distill(comparing).original
+        as_type = distilled.original
         if isinstance(as_type, tuple) and len(as_type) == 2 and as_type[1] is type(None):
             as_type = as_type[0]
 
@@ -260,6 +308,15 @@ class _ClassInfo:
                 if issubclass(type(w), type) and issubclass(type(g), type):
                     if not issubclass(g, w):
                         return False
+
+        if len(compare_to.new_type_path or []) < len(distilled.new_type_path or []):
+            return False
+
+        for cdt, cd in zip(
+            reversed(compare_to.new_type_path or []), reversed(distilled.new_type_path or [])
+        ):
+            if cdt != cd:
+                return False
 
         return True
 

@@ -125,7 +125,13 @@ def create_checkable(disassembled: "Type") -> type[InstanceCheck]:
         Meta.typ = Meta.extracted
         Meta.union_types = check_against
     else:
-        check_against = None if Meta.extracted is None else disassembled.origin
+        check_against = (
+            disassembled.type_alias
+            if disassembled.is_type_alias
+            else None
+            if Meta.extracted is None
+            else disassembled.origin_type
+        )
 
         reprstr = repr(check_against)
 

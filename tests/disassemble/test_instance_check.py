@@ -284,6 +284,92 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == Mine
         assert db.checkable.Meta.without_annotation == Mine
 
+    it "can find instances and subclasses of NewType objects", Dis: Disassembler:
+
+        class Mine:
+            pass
+
+        MineT = tp.NewType("MineT", Mine)
+
+        db = Dis(MineT)
+        assert not isinstance(23, db.checkable)
+        assert not isinstance(23.4, db.checkable)
+        assert not isinstance("asdf", db.checkable)
+        assert isinstance(Mine(), db.checkable)
+
+        assert db == Mine
+        assert db == MineT
+
+        class Child(Mine):
+            pass
+
+        assert isinstance(Child(), db.checkable)
+        assert issubclass(Child, db.checkable)
+
+        class MyInt(int):
+            pass
+
+        assert not issubclass(MyInt, db.checkable)
+
+        class Other:
+            pass
+
+        assert not isinstance(Other(), db.checkable)
+        assert not issubclass(Other, db.checkable)
+
+        assert isinstance(db.checkable, strcs.InstanceCheckMeta)
+        assert isinstance(db.checkable, type)
+        assert isinstance(db.checkable, Dis(type).checkable)
+
+        assert issubclass(db.checkable, strcs.InstanceCheck)
+        assert not issubclass(db.checkable, type)
+        assert not issubclass(type, db.checkable)
+        assert not issubclass(Dis(type).checkable, db.checkable)
+        assert not issubclass(db.checkable, Dis(type).checkable)
+        assert not isinstance(db.checkable, int)
+        assert not isinstance(db.checkable, Dis(int).checkable)
+        assert not issubclass(db.checkable, Other)
+        assert not issubclass(db.checkable, Dis(Other).checkable)
+
+        assert db.checkable.Meta.typ == MineT
+        assert db.checkable.Meta.original == MineT
+        assert not db.checkable.Meta.optional
+        assert db.checkable.Meta.without_optional == MineT
+        assert db.checkable.Meta.without_annotation == MineT
+
+    it "can find instances and subclasses of primtive NewType objects", Dis: Disassembler:
+
+        MyInt = tp.NewType("MyInt", int)
+
+        db = Dis(MyInt)
+        assert isinstance(23, db.checkable)
+        assert not isinstance(23.4, db.checkable)
+        assert not isinstance("asdf", db.checkable)
+
+        assert db.checkable == MyInt
+        assert db.checkable == int
+
+        assert isinstance(db.checkable, strcs.InstanceCheckMeta)
+        assert isinstance(db.checkable, type)
+        assert isinstance(db.checkable, Dis(type).checkable)
+        assert not isinstance(db.checkable, int)
+        assert not isinstance(db.checkable, Dis(int).checkable)
+
+        assert issubclass(db.checkable, strcs.InstanceCheck)
+        assert issubclass(db.checkable, Dis(MyInt).checkable)
+        assert not issubclass(db.checkable, type)
+        assert not issubclass(type, db.checkable)
+        assert not issubclass(Dis(type).checkable, db.checkable)
+        assert not issubclass(db.checkable, Dis(type).checkable)
+        assert not issubclass(db.checkable, str)
+        assert not issubclass(db.checkable, Dis(str).checkable)
+
+        assert db.checkable.Meta.typ == MyInt
+        assert db.checkable.Meta.original == MyInt
+        assert not db.checkable.Meta.optional
+        assert db.checkable.Meta.without_optional == MyInt
+        assert db.checkable.Meta.without_annotation == MyInt
+
     it "can instantiate the provided type", Dis: Disassembler:
         checkable = Dis(dict[str, bool]).checkable
         made = tp.cast(tp.Callable, checkable)([("1", True), ("2", False)])

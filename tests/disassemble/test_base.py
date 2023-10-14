@@ -130,6 +130,10 @@ describe "Type":
         assert disassembled.checkable == int and isinstance(
             disassembled.checkable, InstanceCheckMeta
         )
+        assert issubclass(int, provided)
+        assert issubclass(int, disassembled.checkable)
+        assert disassembled.is_equivalent_type_for(int)
+
         assert disassembled.annotations is None
         assert disassembled.annotated is None
         assert not disassembled.is_annotated
@@ -1135,6 +1139,8 @@ describe "Type":
     it "works with primitive NewType", type_cache: strcs.TypeCache, Dis: Disassembler:
 
         MyInt = tp.NewType("MyInt", int)
+        MyIntSuper = tp.NewType("MyIntSuper", MyInt)
+        MyStr = tp.NewType("MyStr", str)
         MyOtherInt = tp.NewType("MyOtherInt", int)
 
         provided = MyInt
@@ -1152,6 +1158,23 @@ describe "Type":
         assert disassembled.checkable != MyOtherInt
         assert disassembled.checkable == int
         assert isinstance(disassembled.checkable, InstanceCheckMeta)
+
+        assert issubclass(int, disassembled.checkable)
+        assert issubclass(Type.create(MyInt, cache=type_cache).checkable, disassembled.checkable)
+        other = Type.create(MyOtherInt, cache=type_cache).checkable
+        this = disassembled.checkable
+        mystr = Type.create(MyStr, cache=type_cache).checkable
+        spr = Type.create(MyIntSuper, cache=type_cache).checkable
+        assert issubclass(this, spr)
+        assert not issubclass(spr, this)
+        assert not issubclass(other, this)
+        assert not issubclass(this, other)
+        assert not issubclass(mystr, this)
+        assert not issubclass(this, mystr)
+        assert disassembled.is_equivalent_type_for(1)
+        assert disassembled.is_equivalent_type_for(int)
+        assert disassembled.is_equivalent_type_for(MyInt)
+        assert not disassembled.is_equivalent_type_for(MyOtherInt)
 
         assert disassembled.annotations is None
         assert not disassembled.is_annotated
@@ -1188,6 +1211,11 @@ describe "Type":
         assert disassembled.is_type_alias
         assert disassembled.origin == MyInt
         assert disassembled.origin_type == int
+
+        assert disassembled.checkable == MyInt
+        assert disassembled.checkable != MyOtherInt
+        assert disassembled.checkable == int
+        assert isinstance(disassembled.checkable, InstanceCheckMeta)
 
         assert disassembled.annotations == ("asdf",)
         assert disassembled.is_annotated
