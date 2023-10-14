@@ -601,11 +601,7 @@ class Type(tp.Generic[T]):
         if self.is_type_for(value):
             return True
 
-        if isinstance(value, type):
-            subclass_of = value
-        else:
-            subclass_of = self.disassemble(type(value)).checkable
-        return issubclass(subclass_of, self.checkable)
+        return self.cache.comparer.issubclass(value, self.checkable)
 
     @memoized_property
     def ann(self) -> tp.Optional[tp.Union["AdjustableMeta[T]", "AdjustableCreator[T]"]]:
