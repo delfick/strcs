@@ -493,3 +493,14 @@ describe "InstanceCheck":
             assert is_dataclass == dataclasses.is_dataclass(checkable)
             if is_dataclass:
                 assert dataclasses.fields(kls) == dataclasses.fields(checkable)  # type: ignore[arg-type]
+
+    it "can get NewType supertype", Dis: Disassembler:
+
+        class Thing:
+            pass
+
+        Alias = tp.NewType("Alias", Thing)
+
+        checkable = Dis(Alias).checkable
+        assert isinstance(checkable, tp.NewType)
+        assert checkable.__supertype__ is Thing
