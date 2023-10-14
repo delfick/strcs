@@ -75,6 +75,9 @@ class Score:
     type is more complex than another.
     """
 
+    type_alias_name: str
+    "Name provided to the type if it's a ``typing.NewType`` object"
+
     # The order of the fields matter
     annotated_union: tuple["Score", ...] = attrs.field(init=False)
     """
@@ -122,12 +125,15 @@ class Score:
         Used to create a score for a given :class:`strcs.Type`. This is used by the ``score`` property on the :class:`strcs.Type` object.
         """
         return cls(
+            type_alias_name=(
+                "" if (alias := typ.type_alias) is None else getattr(alias, "__name__", "")
+            ),
             union=tuple(ut.score for ut in typ.nonoptional_union_types),
             typevars=tuple(tv.score for tv in typ.mro.all_vars),
             typevars_filled=tuple(tv is not _get_type().Missing for tv in typ.mro.all_vars),
             optional=typ.optional,
             annotated=typ.is_annotated,
-            origin_mro=tuple(ScoreOrigin.create(t) for t in typ.origin.__mro__),
+            origin_mro=tuple(ScoreOrigin.create(t) for t in typ.origin_type.__mro__),
         )
 
     def __attrs_post_init__(self) -> None:
@@ -156,6 +162,9 @@ class Score:
         def extend(displayable: WithDisplay, extra: tp.Callable[[int], str]) -> None:
             for i, line in enumerate(displayable.for_display(indent=indent).split("\n")):
                 lines.append(f"{extra(i)}{line}")
+
+        if self.type_alias_name:
+            lines.append(f"✓ type alias: {self.type_alias_name}")
 
         if self.annotated_union:
             lines.append("✓ Annotated Union:")
