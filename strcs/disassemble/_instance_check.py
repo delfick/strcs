@@ -141,6 +141,8 @@ def create_checkable(disassembled: "Type") -> type[InstanceCheck]:
         Checker.__args__ = extracted.__args__  # type: ignore
     if hasattr(extracted, "__origin__"):
         Checker.__origin__ = extracted.__origin__  # type: ignore
+    if hasattr(extracted, "__supertype__"):
+        Checker.__supertype__ = extracted.__supertype__  # type: ignore
     if hasattr(extracted, "__parameters__"):
         Checker.__parameters__ = extracted.__parameters__  # type: ignore
     if hasattr(extracted, "__annotations__"):
