@@ -172,7 +172,7 @@ def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     Also take into account field aliases, as well as underscore and double underscore prefixed fields.
     """
     result: list[Field] = []
-    for field in attrs.fields(typ):
+    for field in attrs.fields(typ):  # type: ignore[misc]
         if not field.init:
             continue
 

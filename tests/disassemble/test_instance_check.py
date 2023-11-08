@@ -555,7 +555,7 @@ describe "InstanceCheck":
             is_attrs = attrs.has(kls)
             assert is_attrs == attrs.has(checkable)
             if is_attrs:
-                assert attrs.fields(kls) == attrs.fields(checkable)  # type: ignore[arg-type]
+                assert attrs.fields(kls) == attrs.fields(checkable)  # type: ignore
 
     it "allows dataclasses helpers", Dis: Disassembler:
 

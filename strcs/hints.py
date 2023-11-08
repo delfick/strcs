@@ -264,7 +264,7 @@ def resolve_types(
         allfields: AnnotationUpdater
 
         if attrs.has(cls):
-            allfields = FromFields(cls, {field.name: field for field in attrs.fields(cls)})
+            allfields = FromFields(cls, {field.name: field for field in attrs.fields(cls)})  # type: ignore[misc]
 
         elif dataclasses.is_dataclass(cls):
             allfields = FromFields(cls, {field.name: field for field in dataclasses.fields(cls)})
