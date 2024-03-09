@@ -28,8 +28,7 @@ class MatchCheck:
 class Expander(tp.Protocol):
     def __call__(
         self, checking: object, check_against: object
-    ) -> Iterator[tuple[object, object, bool]]:
-        ...
+    ) -> Iterator[tuple[object, object, bool]]: ...
 
 
 class MatchAsserter(tp.Protocol):
@@ -38,16 +37,14 @@ class MatchAsserter(tp.Protocol):
         *checks: MatchCheck,
         subclasses: bool = False,
         allow_missing_typevars: bool = False,
-    ) -> None:
-        ...
+    ) -> None: ...
 
 
 class Comparator(abc.ABC):
     got: object
 
     @abc.abstractmethod
-    def do_check(self, o: object) -> bool:
-        ...
+    def do_check(self, o: object) -> bool: ...
 
     def do_repr(self, got: object) -> str:
         return repr(got)
@@ -599,8 +596,7 @@ describe "Comparer":
                 *,
                 always_optional: bool = False,
                 reverse: bool = False,
-            ) -> None:
-                ...
+            ) -> None: ...
 
         @pytest.fixture
         def assertIsInstance(

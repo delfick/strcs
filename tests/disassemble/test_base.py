@@ -1387,8 +1387,7 @@ describe "annotations":
 
     it "can return an annotation with new creator", Dis: Disassembler:
 
-        def creator(value: object, /, _meta: strcs.Meta):
-            ...
+        def creator(value: object, /, _meta: strcs.Meta): ...
 
         ann = Dis(tp.Annotated[int, creator]).ann
         assert isinstance(ann, strcs.Ann)
@@ -1452,8 +1451,7 @@ describe "annotations":
         def creator1(args: strcs.CreateArgs[int]) -> int:
             return 2
 
-        def creator2(value: object) -> strcs.ConvertResponse[int]:
-            ...
+        def creator2(value: object) -> strcs.ConvertResponse[int]: ...
 
         class A(strcs.Ann[int]):
             def adjusted_meta(

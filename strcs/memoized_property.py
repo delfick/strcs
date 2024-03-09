@@ -50,12 +50,10 @@ class memoized_property(tp.Generic[PropRet]):
         return cache
 
     @tp.overload
-    def __get__(self, instance: None, owner: None) -> "memoized_property":
-        ...
+    def __get__(self, instance: None, owner: None) -> "memoized_property": ...
 
     @tp.overload
-    def __get__(self, instance: object, owner: type[object]) -> PropRet:
-        ...
+    def __get__(self, instance: object, owner: type[object]) -> PropRet: ...
 
     def __get__(
         self, instance: object | None, owner: type[object] | None = None

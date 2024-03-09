@@ -69,6 +69,7 @@ The ``WrappedCreator`` object is used to take ``ConvertDefinition`` functions
 and provide a ``ConvertFunction`` interface for executing them and is used
 by the function returned by ``strcs.CreateRegister::make_decorator``
 """
+
 import inspect
 import typing as tp
 from collections.abc import Mapping

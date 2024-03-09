@@ -6,6 +6,7 @@ if there is an unbroken chain of ``strcs`` creators to reach that nested object.
 This is done without recursion errors and with the ability to customize the result
 for specific properties on a class.
 """
+
 import typing as tp
 
 import cattrs

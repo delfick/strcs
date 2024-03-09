@@ -39,8 +39,7 @@ class IsAnnotated(tp.Protocol):
     __args__: tuple
     __metadata__: tuple
 
-    def copy_with(self, args: tuple) -> type:
-        ...
+    def copy_with(self, args: tuple) -> type: ...
 
     @classmethod
     def has(self, typ: object) -> tp.TypeGuard["IsAnnotated"]:

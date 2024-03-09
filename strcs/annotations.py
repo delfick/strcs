@@ -18,6 +18,7 @@ which is a concrete implementation of both ``AdjustableMeta`` and ``AdjustableCr
 Callable objects will also be turned into a ``strcs.Ann`` by treating the callable
 object as a creator override.
 """
+
 import typing as tp
 
 import attrs
@@ -51,8 +52,7 @@ class AdjustableMeta(tp.Protocol[T]):
     The new Meta will persist for any transformation that occurs below the field.
     """
 
-    def adjusted_meta(self, meta: Meta, typ: Type[T], type_cache: TypeCache) -> Meta:
-        ...
+    def adjusted_meta(self, meta: Meta, typ: Type[T], type_cache: TypeCache) -> Meta: ...
 
 
 @tp.runtime_checkable
@@ -85,8 +85,7 @@ class AdjustableCreator(tp.Protocol[T]):
         register: "CreateRegister",
         typ: Type[T],
         type_cache: TypeCache,
-    ) -> ConvertFunction[T] | None:
-        ...
+    ) -> ConvertFunction[T] | None: ...
 
 
 @attrs.define

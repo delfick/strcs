@@ -156,8 +156,7 @@ class Score:
         lines: list[str] = []
 
         class WithDisplay(tp.Protocol):
-            def for_display(self, indent="") -> str:
-                ...
+            def for_display(self, indent="") -> str: ...
 
         def extend(displayable: WithDisplay, extra: tp.Callable[[int], str]) -> None:
             for i, line in enumerate(displayable.for_display(indent=indent).split("\n")):

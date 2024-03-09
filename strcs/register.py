@@ -2,6 +2,7 @@
 The register is how the developer can associate creator functions with
 specific types.
 """
+
 import typing as tp
 
 import cattrs
@@ -29,8 +30,7 @@ class Registerer(tp.Protocol[T]):
     It should return what it was given without changing it.
     """
 
-    def __call__(self, func: ConvertDefinition[T] | None = None) -> ConvertDefinition[T] | None:
-        ...
+    def __call__(self, func: ConvertDefinition[T] | None = None) -> ConvertDefinition[T] | None: ...
 
 
 class Creator(tp.Protocol[T]):
@@ -40,8 +40,7 @@ class Creator(tp.Protocol[T]):
 
     register: "CreateRegister"
 
-    def __call__(self, typ: object, *, assume_unchanged_converted=True) -> Registerer[T]:
-        ...
+    def __call__(self, typ: object, *, assume_unchanged_converted=True) -> Registerer[T]: ...
 
 
 class CreateRegister:
@@ -223,11 +222,13 @@ class CreateRegister:
     def create_annotated(
         self,
         typ: type[T] | Type[T],
-        ann: MetaAnnotation
-        | MergedMetaAnnotation
-        | AdjustableMeta
-        | AdjustableCreator
-        | ConvertFunction[T],
+        ann: (
+            MetaAnnotation
+            | MergedMetaAnnotation
+            | AdjustableMeta
+            | AdjustableCreator
+            | ConvertFunction[T]
+        ),
         value: object = NotSpecified,
         meta: Meta | None = None,
         once_only_creator: ConvertFunction[T] | None = None,

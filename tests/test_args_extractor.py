@@ -69,8 +69,7 @@ class IsRegister:
 describe "ArgsExtractor":
     it "no args to extract if no args in signature", meta: strcs.Meta, creg: strcs.CreateRegister:
 
-        def func() -> strcs.ConvertResponse[object]:
-            ...
+        def func() -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
         extractor = strcs.ArgsExtractor(
@@ -87,8 +86,7 @@ describe "ArgsExtractor":
 
     it "can get value from the first positional argument", meta: strcs.Meta, creg: strcs.CreateRegister:
 
-        def func(value: object, /) -> strcs.ConvertResponse[object]:
-            ...
+        def func(value: object, /) -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
         extractor = strcs.ArgsExtractor(
@@ -105,8 +103,7 @@ describe "ArgsExtractor":
 
     it "can get want from the second positional argument", meta: strcs.Meta, creg: strcs.CreateRegister:
 
-        def func(value: object, want: strcs.Type, /) -> strcs.ConvertResponse[object]:
-            ...
+        def func(value: object, want: strcs.Type, /) -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
         extractor = strcs.ArgsExtractor(
@@ -133,8 +130,7 @@ describe "ArgsExtractor":
 
         def func(
             value: object, want: strcs.Type, /, other: Other, blah: int, stuff: str
-        ) -> strcs.ConvertResponse[Other]:
-            ...
+        ) -> strcs.ConvertResponse[Other]: ...
 
         val = mock.Mock(name="val")
         meta["stuff"] = "one"
@@ -161,8 +157,7 @@ describe "ArgsExtractor":
 
         def func2(
             value: object, /, other: Other, blah: int, stuff: str
-        ) -> strcs.ConvertResponse[Other]:
-            ...
+        ) -> strcs.ConvertResponse[Other]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
@@ -175,8 +170,7 @@ describe "ArgsExtractor":
         )
         assert extractor.extract() == [val, o, 12, "one"]
 
-        def func3(other: Other, blah: int, stuff: str) -> strcs.ConvertResponse[Other]:
-            ...
+        def func3(other: Other, blah: int, stuff: str) -> strcs.ConvertResponse[Other]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
@@ -189,8 +183,7 @@ describe "ArgsExtractor":
         )
         assert extractor.extract() == [o, 12, "one"]
 
-        def func4(other: Other) -> strcs.ConvertResponse[Other]:
-            ...
+        def func4(other: Other) -> strcs.ConvertResponse[Other]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func4),
@@ -205,8 +198,7 @@ describe "ArgsExtractor":
 
     it "can get us the meta object", meta: strcs.Meta, creg: strcs.CreateRegister:
 
-        def func(_meta) -> strcs.ConvertResponse[object]:
-            ...
+        def func(_meta) -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
         extractor = strcs.ArgsExtractor(
@@ -221,8 +213,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [meta]
 
-        def func2(_meta: strcs.Meta) -> strcs.ConvertResponse[object]:
-            ...
+        def func2(_meta: strcs.Meta) -> strcs.ConvertResponse[object]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
@@ -236,8 +227,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [meta]
 
-        def func3(val, /, _meta: strcs.Meta) -> strcs.ConvertResponse[object]:
-            ...
+        def func3(val, /, _meta: strcs.Meta) -> strcs.ConvertResponse[object]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
@@ -260,8 +250,7 @@ describe "ArgsExtractor":
 
         def func(
             value: object, want: strcs.Type, /, other, blah, stuff
-        ) -> strcs.ConvertResponse[Other]:
-            ...
+        ) -> strcs.ConvertResponse[Other]: ...
 
         val = mock.Mock(name="val")
         meta["stuff"] = "one"
@@ -287,8 +276,7 @@ describe "ArgsExtractor":
 
     it "can get us the converter object", meta: strcs.Meta, creg: strcs.CreateRegister:
 
-        def func(_converter) -> strcs.ConvertResponse[object]:
-            ...
+        def func(_converter) -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
         converter = cattrs.Converter()
@@ -304,8 +292,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [converter]
 
-        def func2(_converter: cattrs.Converter) -> strcs.ConvertResponse[object]:
-            ...
+        def func2(_converter: cattrs.Converter) -> strcs.ConvertResponse[object]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
@@ -319,8 +306,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [converter]
 
-        def func3(val, /, _converter: cattrs.Converter) -> strcs.ConvertResponse[object]:
-            ...
+        def func3(val, /, _converter: cattrs.Converter) -> strcs.ConvertResponse[object]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
@@ -336,8 +322,7 @@ describe "ArgsExtractor":
 
     it "can get us the register object", meta: strcs.Meta, creg: strcs.CreateRegister:
 
-        def func(_register) -> strcs.ConvertResponse[mock.Mock]:
-            ...
+        def func(_register) -> strcs.ConvertResponse[mock.Mock]: ...
 
         val = mock.Mock(name="val")
         extractor = strcs.ArgsExtractor(
@@ -352,8 +337,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [IsRegister(creg, mock.Mock, meta, func)]
 
-        def func2(_register: strcs.CreateRegister) -> strcs.ConvertResponse[mock.Mock]:
-            ...
+        def func2(_register: strcs.CreateRegister) -> strcs.ConvertResponse[mock.Mock]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
@@ -367,8 +351,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [IsRegister(creg, mock.Mock, meta, func2)]
 
-        def func3(val, /, _register: strcs.CreateRegister) -> strcs.ConvertResponse[mock.Mock]:
-            ...
+        def func3(val, /, _register: strcs.CreateRegister) -> strcs.ConvertResponse[mock.Mock]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
@@ -400,8 +383,7 @@ describe "ArgsExtractor":
 
         def func(
             _register, register, _meta, meta, _converter, converter
-        ) -> strcs.ConvertResponse[mock.Mock]:
-            ...
+        ) -> strcs.ConvertResponse[mock.Mock]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
@@ -429,8 +411,7 @@ describe "ArgsExtractor":
             meta: strcs.Meta,
             _converter: cattrs.Converter,
             converter: cattrs.Converter,
-        ) -> strcs.ConvertResponse[mock.Mock]:
-            ...
+        ) -> strcs.ConvertResponse[mock.Mock]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func2),
@@ -458,8 +439,7 @@ describe "ArgsExtractor":
             meta: strcs.Meta,
             _converter: str,
             converter: cattrs.Converter,
-        ) -> strcs.ConvertResponse[mock.Mock]:
-            ...
+        ) -> strcs.ConvertResponse[mock.Mock]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func3),
@@ -478,8 +458,7 @@ describe "ArgsExtractor":
 
     it "complains if it can't find something", meta: strcs.Meta, creg: strcs.CreateRegister:
 
-        def func(wat) -> strcs.ConvertResponse[object]:
-            ...
+        def func(wat) -> strcs.ConvertResponse[object]: ...
 
         extractor = strcs.ArgsExtractor(
             signature=inspect.signature(func),
@@ -496,8 +475,7 @@ describe "ArgsExtractor":
 
         assert exc_info.value.args[1] == ["wat"]
 
-        def func2(wat: int) -> strcs.ConvertResponse[object]:
-            ...
+        def func2(wat: int) -> strcs.ConvertResponse[object]: ...
 
         meta["one"] = 1
         meta["two"] = 2

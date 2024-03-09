@@ -8,6 +8,7 @@ unless the ``auto_resolve_string_annotations=False`` is given to ``strcs.CreateR
 .. autofunction:: strcs.resolve_types
 
 """
+
 import dataclasses
 import functools
 import operator
@@ -47,8 +48,7 @@ class WithCopyWith(tp.Protocol[T]):
 
     __args__: tuple
 
-    def copy_with(self, args: tuple) -> T:
-        ...
+    def copy_with(self, args: tuple) -> T: ...
 
     @classmethod
     def has(self, obj: T) -> tp.TypeGuard["WithCopyWith"]:
@@ -88,8 +88,7 @@ class WithClassGetItem(tp.Protocol[C]):
     __origin__: type[C]
 
     @classmethod
-    def __class_getitem__(self, item: tuple) -> type[C]:
-        ...
+    def __class_getitem__(self, item: tuple) -> type[C]: ...
 
     @classmethod
     def has(self, obj: T, origin: type[C]) -> tp.TypeGuard["WithClassGetItem"]:
@@ -146,11 +145,9 @@ class AnnotationUpdater(tp.Protocol):
     Protocol for an object that can change the annotations on an object
     """
 
-    def __contains__(self, name: object) -> bool:
-        ...
+    def __contains__(self, name: object) -> bool: ...
 
-    def update(self, name: str, typ: object) -> None:
-        ...
+    def update(self, name: str, typ: object) -> None: ...
 
 
 class FromAnnotations(AnnotationUpdater):
@@ -192,7 +189,7 @@ def resolve_types(
     globalns: dict[str, object] | None = None,
     localns: dict[str, object] | None = None,
     *,
-    type_cache: tp.Union["CreateRegister", "TypeCache"]
+    type_cache: tp.Union["CreateRegister", "TypeCache"],
 ) -> C:
     """
     Resolve any strings and forward annotations in type annotations.

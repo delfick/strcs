@@ -8,8 +8,7 @@ from cattrs.errors import IterableValidationError
 
 
 @attrs.define
-class StructuresError(Exception):
-    ...
+class StructuresError(Exception): ...
 
 
 @attrs.define

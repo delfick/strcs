@@ -18,8 +18,7 @@ class Empty:
 
 
 class NarrowCB(tp.Protocol):
-    def __call__(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]:
-        ...
+    def __call__(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]: ...
 
 
 class Narrower:
@@ -250,8 +249,7 @@ class Meta:
         default: object = inspect._empty,
         refined_type: None = None,
         type_cache: TypeCache | None,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @tp.overload
     def retrieve_one(
@@ -261,8 +259,7 @@ class Meta:
         default: object = inspect._empty,
         refined_type: T,
         type_cache: TypeCache | None,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     def retrieve_one(
         self,

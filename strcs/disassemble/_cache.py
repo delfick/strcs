@@ -17,16 +17,13 @@ class _TypeCacheDisassembler:
         self.type_cache = type_cache
 
     @tp.overload
-    def __call__(self, typ: type[U]) -> "Type[U]":
-        ...
+    def __call__(self, typ: type[U]) -> "Type[U]": ...
 
     @tp.overload
-    def __call__(self, typ: "Type[U]") -> "Type[U]":
-        ...
+    def __call__(self, typ: "Type[U]") -> "Type[U]": ...
 
     @tp.overload
-    def __call__(self, typ: object) -> "Type[object]":
-        ...
+    def __call__(self, typ: object) -> "Type[object]": ...
 
     def __call__(self, typ: type[U] | object) -> "Type[U] | Type[object]":
         """
