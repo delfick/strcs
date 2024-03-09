@@ -191,7 +191,8 @@ class CreateStructureHook:
 
     def bypass(self, value: object, want: Type[T]) -> T:
         self.do_check = False
-        self.converter._structure_func.dispatch.cache_clear()
+        if hasattr(self.converter._structure_func.dispatch, "cache_clear"):
+            self.converter._structure_func.dispatch.cache_clear()
         if isinstance(value, dict):
             value = fill(want, value)
         return self.converter.structure(value, tp.cast(type, want.original))
