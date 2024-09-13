@@ -3,6 +3,13 @@
 Changelog
 ---------
 
+.. _release-0.4.1:
+
+0.4.1 - TBD
+
+    * Added a dependency constraint to cattrs. Seems that newer version of cattrs
+      breaks this library
+
 .. _release-0.4.0:
 
 0.4.0 - 15 October 2023
