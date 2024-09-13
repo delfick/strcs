@@ -114,7 +114,7 @@ def resolve_type(
         typ = tp.ForwardRef(typ)
 
     if isinstance(typ, tp.ForwardRef):
-        return typ._evaluate(globalns, localns, set())  # type: ignore
+        return typ._evaluate(globalns, localns, recursive_guard=set())  # type: ignore
 
     elif WithCopyWith.has(typ):
         resolved = tuple(resolve_type(t, globalns, localns) for t in typ.__args__)
