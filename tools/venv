@@ -42,4 +42,5 @@ else:
     manager.add_requirements_file("{here}", "requirements.dev.txt")
     manager.add_requirements_file("{here}", "requirements.docs.txt")
 
+manager.set_packaging_version('">24"')
 manager.run()
