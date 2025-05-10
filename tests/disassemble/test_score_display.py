@@ -477,7 +477,7 @@ class TestType:
 
     def test_it_works_on_optional_annotated_simple_type(self, Dis: Disassembler):
         anno = "hello"
-        provided = tp.Annotated[tp.Optional[int], anno]
+        provided = tp.Annotated[int | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -703,7 +703,7 @@ class TestType:
         self, Dis: Disassembler
     ):
         anno = "stuff"
-        provided = tp.Annotated[tp.Optional[dict[str, int]], anno]
+        provided = tp.Annotated[dict[str, int] | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1131,7 +1131,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[tp.Optional[Thing], anno]
+        provided = tp.Annotated[Thing | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1163,7 +1163,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
+        provided = tp.Annotated[Thing[int, str] | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1233,7 +1233,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[tp.Optional[Thing], anno]
+        provided = tp.Annotated[Thing | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1287,7 +1287,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
+        provided = tp.Annotated[Thing[int, str] | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,

@@ -356,7 +356,7 @@ class TestType:
 
     def test_it_works_on_optional_annotated_simple_type(self, type_cache: strcs.TypeCache):
         anno = "hello"
-        provided = tp.Annotated[tp.Optional[int], anno]
+        provided = tp.Annotated[int | None, anno]
         disassembled = Type.create(provided, expect=int, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -520,7 +520,7 @@ class TestType:
         self, type_cache: strcs.TypeCache
     ):
         anno = "stuff"
-        provided = tp.Annotated[tp.Optional[dict[str, int]], anno]
+        provided = tp.Annotated[dict[str, int] | None, anno]
         disassembled = Type.create(provided, expect=dict, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -892,7 +892,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[tp.Optional[Thing], anno]
+        provided = tp.Annotated[Thing | None, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -945,7 +945,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
+        provided = tp.Annotated[Thing[int, str] | None, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -999,7 +999,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[tp.Optional[Thing], anno]
+        provided = tp.Annotated[Thing | None, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -1053,7 +1053,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[tp.Optional[Thing[int, str]], anno]
+        provided = tp.Annotated[Thing[int, str] | None, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True

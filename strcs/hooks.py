@@ -151,7 +151,7 @@ class CreateStructureHook:
         if normal_creator and creator is None:
             creator = normal_creator
 
-        if isinstance(want.ann, (AdjustableMeta, AdjustableCreator)):
+        if isinstance(want.ann, AdjustableMeta | AdjustableCreator):
             if isinstance(want.ann, AdjustableMeta):
                 meta = want.ann.adjusted_meta(meta, want, self.type_cache)
             if isinstance(want.ann, AdjustableCreator):

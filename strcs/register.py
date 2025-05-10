@@ -30,7 +30,9 @@ class Registerer(tp.Protocol[T]):
     It should return what it was given without changing it.
     """
 
-    def __call__(self, func: ConvertDefinition[T] | None = None) -> ConvertDefinition[T] | None: ...
+    def __call__(
+        self, func: ConvertDefinition[T] | None = None
+    ) -> ConvertDefinition[T] | None: ...
 
 
 class Creator(tp.Protocol[T]):
@@ -110,7 +112,7 @@ class CreateRegister:
         self.register[self.type_cache.disassemble(specification)] = creator
 
     def __contains__(self, typ: type | Type[T]) -> bool:
-        if not isinstance(typ, (type, Type)):
+        if not isinstance(typ, type | Type):
             raise ValueError("Can only check against types or Type instances")
 
         return self.type_cache.disassemble(typ).func_from(list(self.register.items())) is not None
@@ -165,7 +167,6 @@ class CreateRegister:
             def __call__(
                 self, func: ConvertDefinition[T] | None = None
             ) -> ConvertDefinition[T] | None:
-
                 if not isinstance(self.original, Type):
                     typ = register.type_cache.disassemble(self.original)
                 else:

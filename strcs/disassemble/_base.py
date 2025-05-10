@@ -453,10 +453,10 @@ class Type(tp.Generic[T]):
 
         This is memoized.
         """
-        union: tuple["Type", ...] = ()
+        union: tuple[Type, ...] = ()
         if self.is_union:
             origins = tp.get_args(self.extracted)
-            ds: list["Type"] = []
+            ds: list[Type] = []
             for origin in origins:
                 if origin is None:
                     continue
@@ -612,7 +612,7 @@ class Type(tp.Generic[T]):
         return self.cache.comparer.issubclass(value, self.checkable)
 
     @memoized_property
-    def ann(self) -> tp.Optional[tp.Union["AdjustableMeta[T]", "AdjustableCreator[T]"]]:
+    def ann(self) -> tp.Union["AdjustableMeta[T]", "AdjustableCreator[T]"] | None:
         """
         Return an object that fulfills :protocol:`strcs.AdjustableMeta` or
         :protocol:`strcs.AdjustableCreator` given any annotation on this type.
@@ -644,7 +644,7 @@ class Type(tp.Generic[T]):
 
             if isinstance(annotation, AdjustableMeta):
                 ann = annotation
-            elif isinstance(annotation, (MetaAnnotation, MergedMetaAnnotation)):
+            elif isinstance(annotation, MetaAnnotation | MergedMetaAnnotation):
                 ann = Ann[T](annotation)
             elif isinstance(annotation, AdjustableCreator):
                 ann = annotation

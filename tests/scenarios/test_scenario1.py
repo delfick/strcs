@@ -13,7 +13,7 @@ T = tp.TypeVar("T")
 
 @attrs.define
 class Project:
-    details: tp.List["Detail"] = attrs.field(factory=lambda: [])
+    details: list["Detail"] = attrs.field(factory=lambda: [])
 
 
 @attrs.define
@@ -51,7 +51,7 @@ class Container(tp.Generic[T]):
 
 @attrs.define
 class Projects:
-    projects: tp.List[Project] = attrs.field(factory=lambda: [])
+    projects: list[Project] = attrs.field(factory=lambda: [])
 
 
 @creator(Item)
@@ -100,7 +100,7 @@ def create_project(
     /,
     _meta: strcs.Meta,
     _register: strcs.CreateRegister,
-) -> tp.Generator[dict, Project, None]:
+) -> tp.Generator[dict, Project]:
     if isinstance(value, dict):
         details = []
         if "details" in value:

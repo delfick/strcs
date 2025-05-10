@@ -74,6 +74,10 @@ select = [
     "F",
 ]
 
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = ["T201", "UP007"]
+"strcs/standard.py" = ["UP007"]
+
 [tool.mypy]
 ignore_missing_imports = true
 allow_redefinition = true

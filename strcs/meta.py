@@ -84,7 +84,7 @@ class Narrower:
                 patt = f"{n}{pattern[1:]}"
 
             is_nestable = not (
-                not isinstance(v, (Mapping, type))
+                not isinstance(v, Mapping | type)
                 and v.__class__.__module__ in ("__builtin__", "builtins")
             )
 
@@ -99,7 +99,7 @@ class Narrower:
         self.obj = obj
 
     def keys_from(self, options: object) -> tp.Iterable[str]:
-        if isinstance(options, (Mapping, tp.Iterable)):
+        if isinstance(options, Mapping | tp.Iterable):
             yield from iter(options)
         else:
             yield from [n for n in dir(options) if not n.startswith("_")]

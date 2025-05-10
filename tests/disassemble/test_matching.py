@@ -23,7 +23,7 @@ class TestMatchingAType:
 
     def shuffles(
         self, inp: list[tuple[strcs.Type, strcs.ConvertFunction]]
-    ) -> tp.Generator[list[tuple[strcs.Type, strcs.ConvertFunction]], None, None]:
+    ) -> tp.Generator[list[tuple[strcs.Type, strcs.ConvertFunction]]]:
         shuffling = list(inp)
         for _ in range(5):
             random.shuffle(shuffling)

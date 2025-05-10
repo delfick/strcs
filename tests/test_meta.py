@@ -1,5 +1,6 @@
 import secrets
 import typing as tp
+from typing import ClassVar
 
 import cattrs
 import pytest
@@ -90,10 +91,10 @@ class TestNarrower:
                     a = 2
 
                 class Other:
-                    b = [3, 4]
+                    b: ClassVar[list[int]] = [3, 4]
 
                     class Tree:
-                        c = [Store(5), Store(6)]
+                        c: ClassVar[list[Store]] = [Store(5), Store(6)]
                         d = 7
 
                 c = 4
@@ -329,7 +330,7 @@ class TestMeta:
                 False,
                 {"a": 1, "b": True, "c": 2.0, "f": 20},
             )
-            assert meta.find_by_type(tp.Optional[tp.Union[str, float]], type_cache=type_cache) == (
+            assert meta.find_by_type(tp.Optional[str | float], type_cache=type_cache) == (
                 True,
                 {"d": "asdf", "c": 2.0},
             )
@@ -352,7 +353,7 @@ class TestMeta:
                 False,
                 {},
             )
-            assert meta.find_by_type(tp.Optional[tp.Union[str, float]], type_cache=type_cache) == (
+            assert meta.find_by_type(tp.Optional[str | float], type_cache=type_cache) == (
                 True,
                 {},
             )

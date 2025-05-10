@@ -60,9 +60,9 @@ class TestResolveTypes:
             six: dict[int, "Stuff"]
             seven: tp.Annotated[dict[int, "Stuff"], 32]
             eight: tp.Callable[[int], "Stuff"]
-            nine: tp.Dict[int, "Stuff"]
+            nine: dict[int, "Stuff"]
             ten: list["Stuff"]
-            eleven: tp.List["Stuff"]
+            eleven: list["Stuff"]
             twelve: dict["Stuff", list[tuple["Stuff", "Stuff"]]]
             thirteen: dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None
             fourteen: tp.Annotated[dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None, 56]
@@ -81,9 +81,9 @@ class TestResolveTypes:
         assert fields["six"] == dict[int, "Stuff"]
         assert fields["seven"] == tp.Annotated[dict[int, "Stuff"], 32]
         assert fields["eight"] == tp.Callable[[int], "Stuff"]
-        assert fields["nine"] == tp.Dict[int, "Stuff"]
+        assert fields["nine"] == dict[int, "Stuff"]
         assert fields["ten"] == list["Stuff"]
-        assert fields["eleven"] == tp.List["Stuff"]
+        assert fields["eleven"] == list["Stuff"]
         assert fields["twelve"] == dict["Stuff", list[tuple["Stuff", "Stuff"]]]
         assert fields["thirteen"] == dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None
         assert (
@@ -96,15 +96,15 @@ class TestResolveTypes:
         fields = {field.name: field.type for field in get_fields(decorated_One)}
         assert fields["one"] == int
         assert fields["two"] == tp.Optional[str]
-        assert fields["three"] == tp.Annotated[tp.Optional[str], 32]
+        assert fields["three"] == tp.Annotated[str | None, 32]
         assert fields["four"] == tp.Annotated[str | None, 32]
         assert fields["five"] == tp.Annotated[Stuff, 32]
         assert fields["six"] == dict[int, Stuff]
         assert fields["seven"] == tp.Annotated[dict[int, Stuff], 32]
         assert fields["eight"] == tp.Callable[[int], Stuff]
-        assert fields["nine"] == tp.Dict[int, Stuff]
+        assert fields["nine"] == dict[int, Stuff]
         assert fields["ten"] == list[Stuff]
-        assert fields["eleven"] == tp.List[Stuff]
+        assert fields["eleven"] == list[Stuff]
         assert fields["twelve"] == dict[Stuff, list[tuple[Stuff, Stuff]]]
         assert fields["thirteen"] == dict[Stuff, list[tuple[Stuff, Stuff]]] | None
         assert (
@@ -165,7 +165,7 @@ class TestResolveTypes:
         fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == int
         assert fields["two"] == tp.Optional[str]
-        assert fields["three"] == tp.Annotated[tp.Optional[str], 32]
+        assert fields["three"] == tp.Annotated[str | None, 32]
 
     def test_it_finds_via_optional_properties(self) -> None:
         @attrs.define
@@ -194,7 +194,7 @@ class TestResolveTypes:
         fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == int
         assert fields["two"] == tp.Optional[str]
-        assert fields["three"] == tp.Annotated[tp.Optional[str], 32]
+        assert fields["three"] == tp.Annotated[str | None, 32]
 
     def test_it_finds_via_annotated_properties(self) -> None:
         @attrs.define
@@ -219,7 +219,7 @@ class TestResolveTypes:
         class Holder:
             one: tp.Optional["One"]
             two: tp.Annotated[tp.Optional["Two"], "hi"]
-            three: tp.Optional[tp.Annotated["Three", "hi"]]
+            three: tp.Annotated["Three", "hi"] | None
 
         fields = {field.name: field.type for field in attrs.fields(Holder)}
         assert fields["one"] == tp.Optional["One"]

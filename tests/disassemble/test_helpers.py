@@ -1,6 +1,5 @@
 import dataclasses
 import inspect
-import sys
 import typing as tp
 
 import attrs
@@ -48,7 +47,6 @@ class TestFieldsFromClass:
             ):
                 pass
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_class(type_cache, Thing),
             [
@@ -72,7 +70,7 @@ class TestFieldsFromClass:
                 ),
                 strcs.Field(
                     name="items",
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     owner=Thing,
                     kind=inspect.Parameter.KEYWORD_ONLY,
                 ),
@@ -201,14 +199,13 @@ class TestFieldsFromAttrs:
             items: tuple[int, str]
             stuff: bool = attrs.field(kw_only=True)
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
                     owner=Thing,
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 strcs.Field(
@@ -226,13 +223,12 @@ class TestFieldsFromAttrs:
             items: tuple[int, str] = (1, "asdf")
             stuff: bool = attrs.field(kw_only=True, default=True)
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     owner=Thing,
                     default=Default((1, "asdf")),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -256,13 +252,12 @@ class TestFieldsFromAttrs:
             items: tuple[int, str] = attrs.field(factory=factory_one)
             stuff: bool = attrs.field(kw_only=True, factory=factory_two)
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -290,13 +285,12 @@ class TestFieldsFromAttrs:
             missed: str = attrs.field(init=False, default="three")
             missed2: str = attrs.field(init=False)
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -340,9 +334,6 @@ class TestFieldsFromAttrs:
         assert thing.other == 4
 
     def test_it_uses_aliases(self, type_cache: strcs.TypeCache, Dis: Disassembler):
-        if sys.version_info < (3, 11):
-            pytest.skip("pep 681 is from python 3.11")
-
         @attrs.define
         class Thing:
             stuff: str
@@ -391,13 +382,12 @@ class TestFieldsFromAttrs:
                 kw_only=True, default=attrs.Factory(factory_two, takes_self=True)
             )
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_attrs(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -452,14 +442,13 @@ class TestFieldsFromDataclasses:
             items: tuple[int, str]
             stuff: bool = dataclasses.field(kw_only=True)
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
                     owner=Thing,
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 ),
                 strcs.Field(
@@ -477,13 +466,12 @@ class TestFieldsFromDataclasses:
             items: tuple[int, str] = (1, "asdf")
             stuff: bool = dataclasses.field(kw_only=True, default=True)
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     owner=Thing,
                     default=Default((1, "asdf")),
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -507,13 +495,12 @@ class TestFieldsFromDataclasses:
             items: tuple[int, str] = dataclasses.field(default_factory=factory_one)
             stuff: bool = dataclasses.field(kw_only=True, default_factory=factory_two)
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -541,13 +528,12 @@ class TestFieldsFromDataclasses:
             missed: str = dataclasses.field(init=False, default="three")
             missed2: str = dataclasses.field(init=False)
 
-        t: tp.TypeAlias = tuple[int, str]
         assertParams(
             fields_from_dataclasses(type_cache, Thing),
             [
                 strcs.Field(
                     name="items",
-                    disassembled_type=Dis(t),
+                    disassembled_type=Dis(tuple[int, str]),
                     owner=Thing,
                     default=factory_one,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,

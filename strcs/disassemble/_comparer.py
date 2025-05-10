@@ -94,7 +94,7 @@ class Distilled:
         optional: bool = False
 
         while (
-            issubclass(classinfo_type := type(classinfo), (InstanceCheckMeta, Type, tp.NewType))
+            issubclass(classinfo_type := type(classinfo), InstanceCheckMeta | Type | tp.NewType)
             or tp.get_origin(classinfo) is tp.Annotated
         ):
             if issubclass(classinfo_type, InstanceCheckMeta):
@@ -130,7 +130,7 @@ class Distilled:
         elif disassembled.mro.all_vars:
             as_generic = disassembled.extracted
             if (
-                issubclass(type(as_generic), (InstanceCheckMeta, Type))
+                issubclass(type(as_generic), InstanceCheckMeta | Type)
                 or tp.get_origin(as_generic) is tp.Annotated
             ):
                 as_generic = cls.create(
@@ -227,7 +227,7 @@ class Distilled:
                 result = tuple((*result, type(None)))
 
         if optional and as_generic is not None and is_valid:
-            as_generic = tp.Optional[as_generic]
+            as_generic = tp.Optional[as_generic]  # noqa: UP007
 
         return cls(
             original=result,
@@ -370,14 +370,14 @@ class Comparer:
             if all(isinstance(part, type) for part in chck_type):
                 chck_type = functools.reduce(operator.or_, chck_type)
             elif len(chck_type) == 2 and chck_type[1] in (None, type(None)):
-                chck_type = tp.Optional[self.type_cache.disassemble(chck_type[0]).checkable]
+                chck_type = tp.Optional[self.type_cache.disassemble(chck_type[0]).checkable]  # noqa: UP007
 
         chck_against_type = chck_against.as_generic or chck_against.original
         if isinstance(chck_against_type, tuple) and chck_against_type:
             if all(isinstance(part, type) for part in chck_against_type):
                 chck_against_type = functools.reduce(operator.or_, chck_against_type)
             elif len(chck_against_type) == 2 and chck_against_type[1] in (None, type(None)):
-                chck_against_type = tp.Optional[
+                chck_against_type = tp.Optional[  # noqa: UP007
                     self.type_cache.disassemble(chck_against_type[0]).checkable
                 ]
 

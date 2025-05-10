@@ -877,7 +877,7 @@ class TestCreators:
             @creator(Thing)
             def make(value: object, /) -> Thing | dict | None:
                 called.append(1)
-                if not isinstance(value, (Thing, dict)):
+                if not isinstance(value, Thing | dict):
                     return None
                 return value
 
@@ -1097,7 +1097,7 @@ class TestCreators:
                         self.two = None
 
                 @creator(Thing)
-                def make(value: object, /) -> tp.Generator[dict | bool, Thing, None]:
+                def make(value: object, /) -> tp.Generator[dict | bool, Thing]:
                     if not isinstance(value, dict):
                         return None
                     made = yield value
@@ -1120,7 +1120,7 @@ class TestCreators:
                         self.two = None
 
                 @creator(Thing)
-                def make(value: object, /) -> tp.Generator[dict, Thing, None]:
+                def make(value: object, /) -> tp.Generator[dict, Thing]:
                     if not isinstance(value, dict):
                         return None
                     made = yield value
@@ -1139,7 +1139,7 @@ class TestCreators:
                     one: int
 
                 @creator(Thing)
-                def make(value: object) -> tp.Generator[dict, Thing, None]:
+                def make(value: object) -> tp.Generator[dict, Thing]:
                     if False:
                         yield value
 
@@ -1158,8 +1158,8 @@ class TestCreators:
                 @creator(Thing)
                 def make(
                     value: object, /
-                ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified], Thing, None]:
-                    if not isinstance(value, (dict, Thing, type(strcs.NotSpecified))):
+                ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified], Thing]:
+                    if not isinstance(value, dict | Thing | type(strcs.NotSpecified)):
                         return None
                     yield value
 
@@ -1188,7 +1188,7 @@ class TestCreators:
                         self.two = None
                         self.three = None
 
-                def recursion_is_fun(value: object) -> tp.Generator[dict, Thing, None]:
+                def recursion_is_fun(value: object) -> tp.Generator[dict, Thing]:
                     assert isinstance(value, dict)
                     assert value == {"one": 20}
                     called.append(2)
@@ -1197,9 +1197,7 @@ class TestCreators:
                     called.append(3)
 
                 @creator(Thing)
-                def make(
-                    value: object, /
-                ) -> tp.Generator[tp.Generator[dict, Thing, None], Thing, None]:
+                def make(value: object, /) -> tp.Generator[tp.Generator[dict, Thing], Thing]:
                     called.append(1)
                     made = yield recursion_is_fun(value)
                     made.three = 222
@@ -1222,11 +1220,11 @@ class TestCreators:
                 @creator(Thing)
                 def make(
                     value: object, /
-                ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified] | None, Thing, None]:
+                ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified] | None, Thing]:
                     made = yield {"one": 0}
                     assert isinstance(made, Thing)
                     assert made.one == 0
-                    if isinstance(value, (dict, Thing, type(strcs.NotSpecified))):
+                    if isinstance(value, dict | Thing | type(strcs.NotSpecified)):
                         yield value
                     else:
                         yield None

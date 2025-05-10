@@ -107,11 +107,9 @@ class CreateArgs(tp.Generic[T]):
 # ConvertResponse represents what a creator can return
 # Either a value instructing strcs to do something, an object that strcs should
 # use as is, or a generator that can operate on the object strcs creates.
-ConvertResponseValues: tp.TypeAlias = bool | dict[str, object] | T | NotSpecifiedMeta
-ConvertResponseGenerator: tp.TypeAlias = tp.Generator[
-    tp.Optional[ConvertResponseValues[T] | tp.Generator], T, None
-]
-ConvertResponse: tp.TypeAlias = tp.Optional[ConvertResponseValues[T] | ConvertResponseGenerator[T]]
+type ConvertResponseValues[T] = bool | dict[str, object] | T | NotSpecifiedMeta
+type ConvertResponseGenerator[T] = tp.Generator[ConvertResponseValues[T] | tp.Generator | None, T]
+type ConvertResponse[T] = ConvertResponseValues[T] | ConvertResponseGenerator[T] | None
 
 # ConvertDefinition is the developer provided functions that do transformation
 # They may be of the form
@@ -126,11 +124,11 @@ ConvertResponse: tp.TypeAlias = tp.Optional[ConvertResponseValues[T] | ConvertRe
 # - want: Type[T] = The strcs.Type object for the desired type
 # - meta values are from the meta object, or the special objects known by
 #   strcs.ArgExtractor
-ConvertDefinition: tp.TypeAlias = tp.Callable[..., ConvertResponse[T]]
+type ConvertDefinition[T] = tp.Callable[..., ConvertResponse[T]]
 
 # ConvertFunction is the object the strcs.CreateRegister interacts with to invoke
 # the ConvertDefinition objects.
-ConvertFunction: tp.TypeAlias = tp.Callable[[CreateArgs[T]], T]
+type ConvertFunction[T] = tp.Callable[[CreateArgs[T]], T]
 
 
 def take_or_make(value: object, want: Type[T], /) -> ConvertResponse[T]:
@@ -144,7 +142,7 @@ def take_or_make(value: object, want: Type[T], /) -> ConvertResponse[T]:
     """
     if want.is_type_for(value):
         return value
-    elif isinstance(value, (dict, NotSpecifiedMeta)):
+    elif isinstance(value, dict | NotSpecifiedMeta):
         return value
     else:
         return None

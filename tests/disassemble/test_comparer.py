@@ -66,7 +66,7 @@ class ComparatorWithTypeRepr(Comparator):
             got = (got,)
 
         for index, part in enumerate(got):
-            lines.append(f"{index}: ({type(part)}) -> {repr(part)}")
+            lines.append(f"{index}: ({type(part)}) -> {part!r}")
 
         return f"[{self.__class__.__name__}[" + " >> ".join(lines) + "]]"
 
@@ -107,14 +107,14 @@ class TestComparer:
             assert comparer.distill(tp.Optional[int | str]) == Distilled.valid(
                 (str, int, type(None))
             )
+            assert comparer.distill(tp.Annotated[int | str | None, "asdf"]) == Distilled.valid(
+                (str, int, type(None))
+            )
             assert comparer.distill(
-                tp.Annotated[tp.Optional[int | str], "asdf"]
+                tp.Annotated[int | tp.Annotated[str, "asdf"] | None, "asdf"]
             ) == Distilled.valid((str, int, type(None)))
             assert comparer.distill(
-                tp.Annotated[tp.Optional[int | tp.Annotated[str, "asdf"]], "asdf"]
-            ) == Distilled.valid((str, int, type(None)))
-            assert comparer.distill(
-                tp.Annotated[tp.Optional[int | tp.Annotated[str | None, "asdf"]], "asdf"]
+                tp.Annotated[int | tp.Annotated[str | None, "asdf"] | None, "asdf"]
             ) == Distilled.valid((str, int, type(None)))
 
         def test_it_doesnt_confuse_int_and_boolean(
@@ -282,11 +282,11 @@ class TestComparer:
                 assert comparer.distill(Dis(tp.Union[typ, None])) == Distilled.valid(
                     (typ, type(None))
                 )
+                assert comparer.distill(Dis(tp.Annotated[typ | None, "asdf"])) == Distilled.valid(
+                    (typ, type(None))
+                )
                 assert comparer.distill(
-                    Dis(tp.Annotated[tp.Union[typ, None], "asdf"])
-                ) == Distilled.valid((typ, type(None)))
-                assert comparer.distill(
-                    tp.Union[Dis(tp.Annotated[tp.Union[typ, None], "asdf"]).checkable, None]
+                    tp.Union[Dis(tp.Annotated[typ | None, "asdf"]).checkable, None]
                 ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
                     tp.Union[Dis(tp.Annotated[typ, "asdf"]).checkable, None]
@@ -304,10 +304,10 @@ class TestComparer:
                     (typ, type(None))
                 )
                 assert comparer.distill(
-                    Dis(tp.Annotated[tp.Union[typ, None], "asdf"]).checkable
+                    Dis(tp.Annotated[typ | None, "asdf"]).checkable
                 ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
-                    tp.Union[Dis(tp.Annotated[tp.Union[typ, None], "asdf"]).checkable, None]
+                    tp.Union[Dis(tp.Annotated[typ | None, "asdf"]).checkable, None]
                 ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
                     Dis(tp.Union[tp.Annotated[typ, "asdf"], None]).checkable
@@ -346,7 +346,7 @@ class TestComparer:
             assert comparer.distill(tp.Union[typ, None]) == Distilled.valid(
                 (bool, str, int, type(None))
             )
-            assert comparer.distill(tp.Annotated[tp.Union[typ, None], "asdf"]) == Distilled.valid(
+            assert comparer.distill(tp.Annotated[typ | None, "asdf"]) == Distilled.valid(
                 (bool, str, int, type(None))
             )
 
@@ -370,7 +370,7 @@ class TestComparer:
                         tp.Optional[option],
                     ),
                     (
-                        tp.Union[tp.Annotated[tp.Union[option, None], "asdf"], None],
+                        tp.Union[tp.Annotated[option | None, "asdf"], None],
                         (Thing, type(None)),
                         tp.Optional[option],
                     ),
@@ -411,7 +411,7 @@ class TestComparer:
                         tp.Optional[option],
                     ),
                     (
-                        tp.Union[tp.Annotated[tp.Union[option, None], "asdf"], None],
+                        tp.Union[tp.Annotated[option | None, "asdf"], None],
                         (Thing, Stuff, type(None)),
                         tp.Optional[option],
                     ),
@@ -661,8 +661,8 @@ class TestComparer:
 
                 for dis in [
                     Dis(tp.Union[typ, None]),
-                    Dis(tp.Annotated[tp.Union[typ, None], "asdf"]),
-                    tp.Union[Dis(tp.Annotated[tp.Union[typ, None], "asdf"]).checkable, None],
+                    Dis(tp.Annotated[typ | None, "asdf"]),
+                    tp.Union[Dis(tp.Annotated[typ | None, "asdf"]).checkable, None],
                     tp.Union[Dis(tp.Annotated[typ, "asdf"]).checkable, None],
                 ]:
                     assert maybe_reverse(comparer.isinstance(val, dis))

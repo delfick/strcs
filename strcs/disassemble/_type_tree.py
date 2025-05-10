@@ -111,7 +111,12 @@ class MRO:
         bases = [type_cache.disassemble(base) for base in orig_bases]
 
         return cls(
-            _start=start, _origin=origin, _args=args, _mro=mro, _bases=bases, _type_cache=type_cache
+            _start=start,
+            _origin=origin,
+            _args=args,
+            _mro=mro,
+            _bases=bases,
+            _type_cache=type_cache,
         )
 
     def __init__(
@@ -186,12 +191,13 @@ class MRO:
             and isinstance(origin.__parameters__, Iterable)
         ):
             for param in origin.__parameters__:
-                assert isinstance(param, (tp.TypeVar, tp.ParamSpec))
+                assert isinstance(param, tp.TypeVar | tp.ParamSpec)
                 parameters.append(param)
 
         for index, (tv, val) in enumerate(itertools.zip_longest(parameters, self.args)):
             assert tv is not Type.Missing, tv
-            assert (origin := self.origin) is not None, origin
+            origin = self.origin
+            assert origin is not None, origin
 
             if not isinstance(tv, tp.TypeVar):
                 if origin is tp.Generic:
@@ -440,7 +446,7 @@ class MRO:
             assert typ2.mro.find_subtypes(A) == (C, )
         """
         typevars = self.typevars
-        result: list["Type"] = []
+        result: list[Type] = []
 
         for tvrs, wa in itertools.zip_longest(self.typevars, want):
             if tvrs is None:

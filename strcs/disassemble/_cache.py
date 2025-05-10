@@ -73,7 +73,7 @@ class TypeCache(MutableMapping[object, "Type"]):
     """Used to create new Types using this type cache"""
 
     def __init__(self) -> None:
-        self.cache: dict[tuple[type, object], "Type"] = {}
+        self.cache: dict[tuple[type, object], Type] = {}
         self.disassemble = _TypeCacheDisassembler(self)
         self.comparer = Comparer(self)
 

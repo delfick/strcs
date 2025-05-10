@@ -431,11 +431,11 @@ class TestInstanceCheck:
             (Two, repr(Two)),
             (Two[int], repr(Two)),
             (Three, repr(Three)),
-            (int | str, f"{repr(int)} | {repr(str)}"),
-            (int | None, f"{repr(int)} | {repr(type(None))}"),
-            (tp.Union[int, str], f"{repr(int)} | {repr(str)}"),
-            (tp.Union[bool, None], f"{repr(bool)} | {repr(type(None))}"),
-            (One | int, f"{repr(One)} | {repr(int)}"),
+            (int | str, f"{int!r} | {str!r}"),
+            (int | None, f"{int!r} | {type(None)!r}"),
+            (tp.Union[int, str], f"{int!r} | {str!r}"),
+            (tp.Union[bool, None], f"{bool!r} | {type(None)!r}"),
+            (One | int, f"{One!r} | {int!r}"),
         ]
         for thing, expected in examples:
             checkable = Dis(thing).checkable
