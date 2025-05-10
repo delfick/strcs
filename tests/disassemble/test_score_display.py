@@ -1,4 +1,3 @@
-# coding: spec
 import dataclasses
 import itertools
 import sys
@@ -17,8 +16,8 @@ Disassembler = strcs.disassemble.Disassembler
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
 
-describe "Type":
 
+class TestType:
     def assertDisplay(self, disassembled: Type, expected: str) -> None:
         got = disassembled.score.for_display(indent="  ").strip()
         want = "\n".join(f"  {line}" for line in textwrap.dedent(expected).split("\n")).strip()
@@ -31,7 +30,7 @@ describe "Type":
 
         assert got == want
 
-    it "works on None", Dis: Disassembler:
+    def test_it_works_on_None(self, Dis: Disassembler):
         provided = None
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -56,7 +55,9 @@ describe "Type":
         """,
         )
 
-    it "doesn't overcome python limitations with annotating None and thinks we annotated type of None", Dis: Disassembler:
+    def test_it_doesnt_overcome_python_limitations_with_annotating_None_and_thinks_we_annotated_type_of_None(
+        self, Dis: Disassembler
+    ):
         provided = tp.Annotated[None, 1]
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -81,7 +82,7 @@ describe "Type":
         """,
         )
 
-    it "works on simple type", Dis: Disassembler:
+    def test_it_works_on_simple_type(self, Dis: Disassembler):
         provided = int
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -106,7 +107,7 @@ describe "Type":
         """,
         )
 
-    it "works on a union", Dis: Disassembler:
+    def test_it_works_on_a_union(self, Dis: Disassembler):
         provided = int | str
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -165,7 +166,7 @@ describe "Type":
         )
 
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
-    it "works on a complicated union", Dis: Disassembler:
+    def test_it_works_on_a_complicated_union(self, Dis: Disassembler):
         provided = tp.Union[
             tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
         ]
@@ -291,7 +292,7 @@ describe "Type":
         )
 
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
-    it "works on a typing union", Dis: Disassembler:
+    def test_it_works_on_a_typing_union(self, Dis: Disassembler):
         provided = tp.Union[int, str]
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -365,7 +366,7 @@ describe "Type":
         """,
         )
 
-    it "works on an optional union", Dis: Disassembler:
+    def test_it_works_on_an_optional_union(self, Dis: Disassembler):
         provided = int | str | None
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -423,7 +424,7 @@ describe "Type":
         """,
         )
 
-    it "works on optional simple type", Dis: Disassembler:
+    def test_it_works_on_optional_simple_type(self, Dis: Disassembler):
         provided = int | None
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -448,7 +449,7 @@ describe "Type":
         """,
         )
 
-    it "works on annotated simple type", Dis: Disassembler:
+    def test_it_works_on_annotated_simple_type(self, Dis: Disassembler):
         anno = "hello"
         provided = tp.Annotated[int, anno]
         disassembled = Dis(provided)
@@ -474,7 +475,7 @@ describe "Type":
         """,
         )
 
-    it "works on optional annotated simple type", Dis: Disassembler:
+    def test_it_works_on_optional_annotated_simple_type(self, Dis: Disassembler):
         anno = "hello"
         provided = tp.Annotated[tp.Optional[int], anno]
         disassembled = Dis(provided)
@@ -500,7 +501,7 @@ describe "Type":
         """,
         )
 
-    it "works on builtin container to simple type", Dis: Disassembler:
+    def test_it_works_on_builtin_container_to_simple_type(self, Dis: Disassembler):
         provided = list[int]
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -541,7 +542,7 @@ describe "Type":
         """,
         )
 
-    it "works on optional builtin container to simple type", Dis: Disassembler:
+    def test_it_works_on_optional_builtin_container_to_simple_type(self, Dis: Disassembler):
         provided = list[int] | None
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -582,7 +583,7 @@ describe "Type":
         """,
         )
 
-    it "works on builtin container to multiple simple types", Dis: Disassembler:
+    def test_it_works_on_builtin_container_to_multiple_simple_types(self, Dis: Disassembler):
         provided = dict[str, int]
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -639,7 +640,9 @@ describe "Type":
         """,
         )
 
-    it "works on optional builtin container to multiple simple types", Dis: Disassembler:
+    def test_it_works_on_optional_builtin_container_to_multiple_simple_types(
+        self, Dis: Disassembler
+    ):
         provided = tp.Optional[dict[str, int]]
         disassembled = Dis(provided)
         self.assertDisplay(
@@ -696,7 +699,9 @@ describe "Type":
         """,
         )
 
-    it "works on annotated optional builtin container to multiple simple types", Dis: Disassembler:
+    def test_it_works_on_annotated_optional_builtin_container_to_multiple_simple_types(
+        self, Dis: Disassembler
+    ):
         anno = "stuff"
         provided = tp.Annotated[tp.Optional[dict[str, int]], anno]
         disassembled = Dis(provided)
@@ -754,7 +759,9 @@ describe "Type":
         """,
         )
 
-    it "works on optional annotated builtin container to multiple simple types", Dis: Disassembler:
+    def test_it_works_on_optional_annotated_builtin_container_to_multiple_simple_types(
+        self, Dis: Disassembler
+    ):
         anno = "stuff"
         provided = tp.Optional[tp.Annotated[dict[str, int], anno]]
         disassembled = Dis(provided)
@@ -812,8 +819,7 @@ describe "Type":
         """,
         )
 
-    it "works on an attrs class", Dis: Disassembler:
-
+    def test_it_works_on_an_attrs_class(self, Dis: Disassembler):
         @attrs.define
         class Thing:
             one: int
@@ -843,8 +849,7 @@ describe "Type":
         """,
         )
 
-    it "works on an dataclasses class", Dis: Disassembler:
-
+    def test_it_works_on_an_dataclasses_class(self, Dis: Disassembler):
         @dataclasses.dataclass
         class Thing:
             one: int
@@ -874,8 +879,7 @@ describe "Type":
         """,
         )
 
-    it "works on a normal class", Dis: Disassembler:
-
+    def test_it_works_on_a_normal_class(self, Dis: Disassembler):
         class Thing:
             def __init__(self, one: int, two: str):
                 self.one = one
@@ -905,8 +909,7 @@ describe "Type":
         """,
         )
 
-    it "works on inherited generic container", Dis: Disassembler:
-
+    def test_it_works_on_inherited_generic_container(self, Dis: Disassembler):
         class D(dict[str, int]):
             pass
 
@@ -970,8 +973,7 @@ describe "Type":
         """,
         )
 
-    it "works on class with complicated hierarchy", Dis: Disassembler:
-
+    def test_it_works_on_class_with_complicated_hierarchy(self, Dis: Disassembler):
         class Thing(tp.Generic[T, U]):
             def __init__(self, one: int, two: str):
                 self.one = one
@@ -1089,8 +1091,7 @@ describe "Type":
         """,
         )
 
-    it "works on an annotated class", Dis: Disassembler:
-
+    def test_it_works_on_an_annotated_class(self, Dis: Disassembler):
         @attrs.define
         class Thing:
             one: int
@@ -1122,8 +1123,7 @@ describe "Type":
         """,
         )
 
-    it "works on an optional annotated class", Dis: Disassembler:
-
+    def test_it_works_on_an_optional_annotated_class(self, Dis: Disassembler):
         @dataclasses.dataclass
         class Thing:
             one: int
@@ -1155,8 +1155,7 @@ describe "Type":
         """,
         )
 
-    it "works on an optional annotated generic class", Dis: Disassembler:
-
+    def test_it_works_on_an_optional_annotated_generic_class(self, Dis: Disassembler):
         @dataclasses.dataclass
         class Thing(tp.Generic[T, U]):
             one: T
@@ -1224,8 +1223,9 @@ describe "Type":
         """,
         )
 
-    it "works on an optional annotated generic class without concrete types", Dis: Disassembler:
-
+    def test_it_works_on_an_optional_annotated_generic_class_without_concrete_types(
+        self, Dis: Disassembler
+    ):
         @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
@@ -1277,8 +1277,9 @@ describe "Type":
         """,
         )
 
-    it "works on an optional annotated generic class with concrete types", Dis: Disassembler:
-
+    def test_it_works_on_an_optional_annotated_generic_class_with_concrete_types(
+        self, Dis: Disassembler
+    ):
         @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
@@ -1346,8 +1347,7 @@ describe "Type":
         """,
         )
 
-    it "works with NewType generic params", Dis: Disassembler:
-
+    def test_it_works_with_NewType_generic_params(self, Dis: Disassembler):
         @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
@@ -1418,8 +1418,7 @@ describe "Type":
             """,
         )
 
-    it "works with NewType class", Dis: Disassembler:
-
+    def test_it_works_with_NewType_class(self, Dis: Disassembler):
         class Thing(str):
             pass
 

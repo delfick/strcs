@@ -1,5 +1,3 @@
-# coding: spec
-
 import typing as tp
 
 import attrs
@@ -44,9 +42,8 @@ def create_images(value: object, /, excluded: list[str] | None) -> dict | None:
     return None
 
 
-describe "example in the readme":
-
-    it "works":
+class TestExampleInTheReadme:
+    def test_it_works(self):
         renderer = Renderer()
         configuration = {
             "stephen": ["one.png", "two.png"],

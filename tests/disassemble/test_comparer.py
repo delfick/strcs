@@ -1,4 +1,3 @@
-# coding: spec
 import abc
 import typing as tp
 from collections import OrderedDict
@@ -72,9 +71,11 @@ class ComparatorWithTypeRepr(Comparator):
         return f"[{self.__class__.__name__}[" + " >> ".join(lines) + "]]"
 
 
-describe "Comparer":
-    describe "Distill":
-        it "treats None like type(None)", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+class TestComparer:
+    class TestDistill:
+        def test_it_treats_None_like_typeNone(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             for dis in (
                 None,
                 tp.Annotated[None, "asdf"],
@@ -86,21 +87,22 @@ describe "Comparer":
             ):
                 assert comparer.distill(dis) == Distilled.valid(type(None))
 
-        it "can get the type when already a type", comparer: strcs.disassemble.Comparer:
-
+        def test_it_can_get_the_type_when_already_a_type(
+            self, comparer: strcs.disassemble.Comparer
+        ):
             class Thing:
                 pass
 
             for typ in (int, str, bool, dict, list, set, Thing):
                 assert comparer.distill(typ) == Distilled(original=typ, is_valid=True)
 
-        it "can distil a tuple", comparer: strcs.disassemble.Comparer:
+        def test_it_can_distil_a_tuple(self, comparer: strcs.disassemble.Comparer):
             assert comparer.distill(()) == Distilled.valid(())
             assert comparer.distill((1,)) == Distilled.invalid(1)
             assert comparer.distill((int,)) == Distilled.valid(int)
             assert comparer.distill((int, str)) == Distilled.valid((int, str))
 
-        it "can turn an optional in to a tuple", comparer: strcs.disassemble.Comparer:
+        def test_it_can_turn_an_optional_in_to_a_tuple(self, comparer: strcs.disassemble.Comparer):
             assert comparer.distill(tp.Optional[int]) == Distilled.valid((int, type(None)))
             assert comparer.distill(tp.Optional[int | str]) == Distilled.valid(
                 (str, int, type(None))
@@ -115,8 +117,9 @@ describe "Comparer":
                 tp.Annotated[tp.Optional[int | tp.Annotated[str | None, "asdf"]], "asdf"]
             ) == Distilled.valid((str, int, type(None)))
 
-        it "doesn't confuse int and boolean", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
-
+        def test_it_doesnt_confuse_int_and_boolean(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             def clear() -> None:
                 comparer.type_cache.clear()
 
@@ -148,8 +151,9 @@ describe "Comparer":
                 assert want.__args__[0] is chck
                 assert comparer.distill(want).original is thing
 
-        it "can resolve to the original type", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
-
+        def test_it_can_resolve_to_the_original_type(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             class Thing:
                 pass
 
@@ -206,7 +210,9 @@ describe "Comparer":
                     == expect
                 )
 
-        it "can resolve a generic to it's original type", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_can_resolve_a_generic_to_its_original_type(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             T = tp.TypeVar("T")
 
             class Thing(tp.Generic[T]):
@@ -265,8 +271,9 @@ describe "Comparer":
                     == expect
                 )
 
-        it "can get the type from a strcs.Type of a type", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
-
+        def test_it_can_get_the_type_from_a_strcsType_of_a_type(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             class Thing:
                 pass
 
@@ -285,8 +292,9 @@ describe "Comparer":
                     tp.Union[Dis(tp.Annotated[typ, "asdf"]).checkable, None]
                 ) == Distilled.valid((typ, type(None)))
 
-        it "can get the type from a strcs.InstanceCheck of a type", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
-
+        def test_it_can_get_the_type_from_a_strcsInstanceCheck_of_a_type(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             class Thing:
                 pass
 
@@ -305,8 +313,9 @@ describe "Comparer":
                     Dis(tp.Union[tp.Annotated[typ, "asdf"], None]).checkable
                 ) == Distilled.valid((typ, type(None)))
 
-        it "can get the type from strcs.Type of strcs.Type of strcs.Type of type", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
-
+        def test_it_can_get_the_type_from_strcsType_of_strcsType_of_strcsType_of_type(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             class Thing:
                 pass
 
@@ -329,7 +338,9 @@ describe "Comparer":
                 else:
                     assert comparer.distill(dis) == Distilled.valid((Thing, type(None)))
 
-        it "says tuples of types are valid", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_says_tuples_of_types_are_valid(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             typ = int | str | bool
             assert comparer.distill(typ) == Distilled.valid((bool, str, int))
             assert comparer.distill(tp.Union[typ, None]) == Distilled.valid(
@@ -341,7 +352,9 @@ describe "Comparer":
 
             assert comparer.distill((str, dict, list)) == Distilled.valid((str, dict, list))
 
-        it "returns class of generics", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_returns_class_of_generics(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             T = tp.TypeVar("T")
 
             class Thing(tp.Generic[T]):
@@ -375,7 +388,9 @@ describe "Comparer":
                         tp.Union[Dis(with_extra).checkable, None]
                     ) == Distilled.valid((Thing, type(None)), as_generic=tp.Optional[option])
 
-        it "returns tuple of generics", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_returns_tuple_of_generics(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             T = tp.TypeVar("T")
 
             class Thing(tp.Generic[T]):
@@ -412,9 +427,13 @@ describe "Comparer":
                     )
                     assert comparer.distill(
                         tp.Union[Dis(with_extra).checkable, None]
-                    ) == Distilled.valid((Thing, Stuff, type(None)), as_generic=tp.Optional[option])
+                    ) == Distilled.valid(
+                        (Thing, Stuff, type(None)), as_generic=tp.Optional[option]
+                    )
 
-        it "returns tuple of complex generics", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_returns_tuple_of_complex_generics(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             T = tp.TypeVar("T")
 
             class Thing(tp.Generic[T]):
@@ -450,7 +469,9 @@ describe "Comparer":
                 ],
             )
 
-        it "says complex stuff is valid when it is", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_says_complex_stuff_is_valid_when_it_is(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             provided = tp.Union[
                 tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
             ]
@@ -479,14 +500,20 @@ describe "Comparer":
                 list, as_generic=list[int] | list[str]
             )
 
-        it "says tuples of not types are invalid", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_says_tuples_of_not_types_are_invalid(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             assert comparer.distill((1, [], list)) == Distilled.invalid((1, [], list))
 
-        it "says not types are invalid", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_says_not_types_are_invalid(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             assert comparer.distill(1) == Distilled.invalid(1)
             assert comparer.distill([]) == Distilled.invalid([])
 
-        it "can follow chains to not types", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_can_follow_chains_to_not_types(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             dis1 = Dis({})
             dis2 = Dis(dis1)
             dis3 = Dis(tp.Annotated[dis2.checkable, "asdf"])
@@ -499,9 +526,10 @@ describe "Comparer":
                 comparer.type_cache.clear()
                 assert comparer.distill(dis) == Distilled.invalid({})
 
-    describe "issubclass":
-        it "can say no for obviously incorrect things", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
-
+    class TestIssubclass:
+        def test_it_can_say_no_for_obviously_incorrect_things(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             class Thing:
                 pass
 
@@ -527,7 +555,9 @@ describe "Comparer":
                 )
                 assert not comparer.issubclass(Dis(a).checkable, tp.Union[Dis(b).checkable, None])
 
-        it "match with generic vars", Dis: Disassembler, comparer: strcs.disassemble.Comparer:
+        def test_it_match_with_generic_vars(
+            self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
+        ):
             T = tp.TypeVar("T")
             U = tp.TypeVar("U")
 
@@ -586,8 +616,7 @@ describe "Comparer":
                 assert not comparer.issubclass(Dis(comparing).checkable, Dis(comparing_to))
                 assert not comparer.issubclass(comparing, Dis(comparing_to).checkable)
 
-    describe "isinstance":
-
+    class TestIsinstance:
         class IsInstanceAsserter(tp.Protocol):
             def __call__(
                 self,
@@ -641,11 +670,11 @@ describe "Comparer":
 
             return assertIsInstance
 
-        it "works on None", assertIsInstance: IsInstanceAsserter:
+        def test_it_works_on_None(self, assertIsInstance: IsInstanceAsserter):
             assertIsInstance(None, type(None), always_optional=True)
             assertIsInstance(None, None, always_optional=True)
 
-        it "works on simple types", assertIsInstance: IsInstanceAsserter:
+        def test_it_works_on_simple_types(self, assertIsInstance: IsInstanceAsserter):
             examples = [
                 (1, int),
                 ("asdf", str),
@@ -658,7 +687,7 @@ describe "Comparer":
             for val, typ in examples:
                 assertIsInstance(val, typ)
 
-        it "works on classes", assertIsInstance: IsInstanceAsserter:
+        def test_it_works_on_classes(self, assertIsInstance: IsInstanceAsserter):
             T = tp.TypeVar("T")
 
             class Thing(tp.Generic[T]):
@@ -708,8 +737,7 @@ describe "Comparer":
             assertIsInstance(One(), (Three, Four, One))
             assertIsInstance(One(), object, always_optional=True)
 
-    describe "matches":
-
+    class TestMatches:
         @pytest.fixture
         def expander(
             self,
@@ -793,7 +821,6 @@ describe "Comparer":
                 subclasses: bool = False,
                 allow_missing_typevars: bool = False,
             ) -> None:
-
                 for check in checks:
                     attempts: list[tuple[object, object, bool, bool]] = []
 
@@ -809,7 +836,7 @@ describe "Comparer":
                             [
                                 "",
                                 f"subclasses={subclasses}, allow_missing_typevars={allow_missing_typevars}",
-                                "" f"({type(checking)}) -->",
+                                f"({type(checking)}) -->",
                                 f"    {checking}",
                                 f"({type(check_against)}) -->",
                                 f"    {check_against}",
@@ -842,9 +869,8 @@ describe "Comparer":
 
             return assert_matches
 
-        describe "without subclasses":
-            it "works on simple types", assert_matches: MatchAsserter:
-
+        class TestWithoutSubclasses:
+            def test_it_works_on_simple_types(self, assert_matches: MatchAsserter):
                 class Thing:
                     pass
 
@@ -891,8 +917,7 @@ describe "Comparer":
                     subclasses=False,
                 )
 
-            it "works for unions", assert_matches: MatchAsserter:
-
+            def test_it_works_for_unions(self, assert_matches: MatchAsserter):
                 class Thing:
                     pass
 
@@ -922,7 +947,9 @@ describe "Comparer":
                     subclasses=False,
                 )
 
-            it "works on the type of the object rather than the object", assert_matches: MatchAsserter, type_cache:
+            def test_it_works_on_the_type_of_the_object_rather_than_the_object(
+                self, assert_matches: MatchAsserter, type_cache
+            ):
                 assert_matches(
                     MatchCheck(
                         orig=int,
@@ -962,9 +989,8 @@ describe "Comparer":
                     subclasses=False,
                 )
 
-        describe "with subclasses":
-            it "works on simple types", assert_matches: MatchAsserter:
-
+        class TestWithSubclasses:
+            def test_it_works_on_simple_types(self, assert_matches: MatchAsserter):
                 class Thing:
                     pass
 
@@ -1013,8 +1039,7 @@ describe "Comparer":
                     subclasses=True,
                 )
 
-            it "works for unions", assert_matches: MatchAsserter:
-
+            def test_it_works_for_unions(self, assert_matches: MatchAsserter):
                 class Thing:
                     pass
 
@@ -1047,7 +1072,9 @@ describe "Comparer":
                     subclasses=True,
                 )
 
-            it "works on the type of the object rather than the object", assert_matches: MatchAsserter:
+            def test_it_works_on_the_type_of_the_object_rather_than_the_object(
+                self, assert_matches: MatchAsserter
+            ):
                 assert_matches(
                     MatchCheck(
                         orig=int,

@@ -1,5 +1,3 @@
-# coding: spec
-
 import typing as tp
 
 import attrs
@@ -47,9 +45,8 @@ def create_thing(value: object, /) -> dict | None:
     return {"base": value, "raised": value + 0.1, "elevated": value + 0.2}
 
 
-describe "modifying non attrs objects":
-
-    it "is possible with annotations":
+class TestModifyingNonAttrsObjects:
+    def test_it_is_possible_with_annotations(self):
         things = reg.create(Things, {"once": 1.0, "twice": 2, "thrice": 3})
         assert isinstance(things, Things)
 

@@ -1,5 +1,3 @@
-# coding: spec
-
 import typing as tp
 
 import attrs
@@ -53,9 +51,8 @@ def create_sentence(value: object, /, prefix: str | None) -> dict | None:
     return {"val": (prefix or "") + value}
 
 
-describe "Scenario 2":
-
-    it "can get annotated information from class definition":
+class TestScenario2:
+    def test_it_can_get_annotated_information_from_class_definition(self):
         overall = reg.create(Overall, {"two": 20})
         assert attrs.asdict(overall) == {
             "one": {"val": 12},

@@ -1,4 +1,3 @@
-# coding: spec
 import dataclasses
 import functools
 import inspect
@@ -56,8 +55,9 @@ class Partial:
 T = tp.TypeVar("T")
 U = tp.TypeVar("U")
 
-describe "Type":
-    it "works on None", type_cache: strcs.TypeCache:
+
+class TestType:
+    def test_it_works_on_None(self, type_cache: strcs.TypeCache):
         provided = None
         disassembled = Type.create(provided, expect=type(None), cache=type_cache)
         assert disassembled.original is provided
@@ -88,7 +88,9 @@ describe "Type":
 
         assert disassembled.for_display() == "None"
 
-    it "doesn't overcome python limitations with annotating None and thinks we annotated type of None", type_cache: strcs.TypeCache:
+    def test_it_doesnt_overcome_python_limitations_with_annotating_None_and_thinks_we_annotated_type_of_None(
+        self, type_cache: strcs.TypeCache
+    ):
         provided = tp.Annotated[None, 1]
         disassembled = Type.create(provided, expect=type(None), cache=type_cache)
         assert disassembled.original is provided
@@ -118,7 +120,7 @@ describe "Type":
 
         assert disassembled.for_display() == "Annotated[NoneType, 1]"
 
-    it "works on simple type", type_cache: strcs.TypeCache:
+    def test_it_works_on_simple_type(self, type_cache: strcs.TypeCache):
         provided = int
         disassembled = Type.create(provided, expect=int, cache=type_cache)
         assert disassembled.original is provided
@@ -151,7 +153,7 @@ describe "Type":
 
         assert disassembled.for_display() == "int"
 
-    it "works on a union", type_cache: strcs.TypeCache:
+    def test_it_works_on_a_union(self, type_cache: strcs.TypeCache):
         provided = int | str
         disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
         assert disassembled.original is provided
@@ -183,7 +185,7 @@ describe "Type":
 
         assert disassembled.for_display() == "str | int"
 
-    it "works on a complicated union", type_cache: strcs.TypeCache:
+    def test_it_works_on_a_complicated_union(self, type_cache: strcs.TypeCache):
         provided = tp.Union[
             tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
         ]
@@ -229,7 +231,7 @@ describe "Type":
             == 'Annotated[str | int | None, "\\"hello"] | Annotated[list[int], "str"]'
         )
 
-    it "works on a typing union", type_cache: strcs.TypeCache:
+    def test_it_works_on_a_typing_union(self, type_cache: strcs.TypeCache):
         provided = tp.Union[int, str]
         disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
         assert disassembled.original is provided
@@ -260,7 +262,7 @@ describe "Type":
 
         assert disassembled.for_display() == "str | int"
 
-    it "works on an optional union", type_cache: strcs.TypeCache:
+    def test_it_works_on_an_optional_union(self, type_cache: strcs.TypeCache):
         provided = int | str | None
         disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
         assert disassembled.original is provided
@@ -291,7 +293,7 @@ describe "Type":
 
         assert disassembled.for_display() == "str | int | None"
 
-    it "works on optional simple type", type_cache: strcs.TypeCache:
+    def test_it_works_on_optional_simple_type(self, type_cache: strcs.TypeCache):
         provided = int | None
         disassembled = Type.create(provided, expect=int, cache=type_cache)
         assert disassembled.original is provided
@@ -322,7 +324,7 @@ describe "Type":
 
         assert disassembled.for_display() == "int | None"
 
-    it "works on annotated simple type", type_cache: strcs.TypeCache:
+    def test_it_works_on_annotated_simple_type(self, type_cache: strcs.TypeCache):
         anno = "hello"
         provided = tp.Annotated[int, anno]
         disassembled = Type.create(provided, expect=int, cache=type_cache)
@@ -352,7 +354,7 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[int, "hello"]'
 
-    it "works on optional annotated simple type", type_cache: strcs.TypeCache:
+    def test_it_works_on_optional_annotated_simple_type(self, type_cache: strcs.TypeCache):
         anno = "hello"
         provided = tp.Annotated[tp.Optional[int], anno]
         disassembled = Type.create(provided, expect=int, cache=type_cache)
@@ -384,7 +386,7 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[int | None, "hello"]'
 
-    it "works on builtin container to simple type", type_cache: strcs.TypeCache:
+    def test_it_works_on_builtin_container_to_simple_type(self, type_cache: strcs.TypeCache):
         provided = list[int]
         disassembled = Type.create(provided, expect=list, cache=type_cache)
         assert disassembled.original is provided
@@ -414,7 +416,9 @@ describe "Type":
 
         assert disassembled.for_display() == "list[int]"
 
-    it "works on optional builtin container to simple type", type_cache: strcs.TypeCache:
+    def test_it_works_on_optional_builtin_container_to_simple_type(
+        self, type_cache: strcs.TypeCache
+    ):
         provided = list[int] | None
         disassembled = Type.create(provided, expect=list, cache=type_cache)
         assert disassembled.original is provided
@@ -446,7 +450,9 @@ describe "Type":
 
         assert disassembled.for_display() == "list[int] | None"
 
-    it "works on builtin container to multiple simple types", type_cache: strcs.TypeCache:
+    def test_it_works_on_builtin_container_to_multiple_simple_types(
+        self, type_cache: strcs.TypeCache
+    ):
         provided = dict[str, int]
         disassembled = Type.create(provided, expect=dict, cache=type_cache)
         assert disassembled.original is provided
@@ -476,7 +482,9 @@ describe "Type":
 
         assert disassembled.for_display() == "dict[str, int]"
 
-    it "works on optional builtin container to multiple simple types", type_cache: strcs.TypeCache:
+    def test_it_works_on_optional_builtin_container_to_multiple_simple_types(
+        self, type_cache: strcs.TypeCache
+    ):
         provided = tp.Optional[dict[str, int]]
         disassembled = Type.create(provided, expect=dict, cache=type_cache)
         assert disassembled.original is provided
@@ -508,7 +516,9 @@ describe "Type":
 
         assert disassembled.for_display() == "dict[str, int] | None"
 
-    it "works on annotated optional builtin container to multiple simple types", type_cache: strcs.TypeCache:
+    def test_it_works_on_annotated_optional_builtin_container_to_multiple_simple_types(
+        self, type_cache: strcs.TypeCache
+    ):
         anno = "stuff"
         provided = tp.Annotated[tp.Optional[dict[str, int]], anno]
         disassembled = Type.create(provided, expect=dict, cache=type_cache)
@@ -541,7 +551,9 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[dict[str, int] | None, "stuff"]'
 
-    it "works on optional annotated builtin container to multiple simple types", type_cache: strcs.TypeCache:
+    def test_it_works_on_optional_annotated_builtin_container_to_multiple_simple_types(
+        self, type_cache: strcs.TypeCache
+    ):
         anno = "stuff"
         provided = tp.Optional[tp.Annotated[dict[str, int], anno]]
         disassembled = Type.create(provided, expect=dict, cache=type_cache)
@@ -574,8 +586,7 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[dict[str, int], "stuff"] | None'
 
-    it "works on an attrs class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_an_attrs_class(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @attrs.define
         class Thing:
             one: int
@@ -622,8 +633,9 @@ describe "Type":
 
         assert disassembled.for_display() == "Thing"
 
-    it "works on an dataclasses class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_an_dataclasses_class(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @dataclasses.dataclass
         class Thing:
             one: int
@@ -670,8 +682,7 @@ describe "Type":
 
         assert disassembled.for_display() == "Thing"
 
-    it "works on a normal class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_a_normal_class(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         class Thing:
             def __init__(self, one: int, two: str):
                 self.one = one
@@ -717,8 +728,7 @@ describe "Type":
 
         assert disassembled.for_display() == "Thing"
 
-    it "works on inherited generic container", type_cache: strcs.TypeCache:
-
+    def test_it_works_on_inherited_generic_container(self, type_cache: strcs.TypeCache):
         class D(dict[str, int]):
             pass
 
@@ -730,7 +740,9 @@ describe "Type":
         assert not disassembled.is_type_alias
         assert disassembled.origin == D
         assert disassembled.origin_type == D
-        assert disassembled.checkable == D and isinstance(disassembled.checkable, InstanceCheckMeta)
+        assert disassembled.checkable == D and isinstance(
+            disassembled.checkable, InstanceCheckMeta
+        )
         assert disassembled.annotations is None
         assert not disassembled.is_annotated
         assert disassembled.annotated is None
@@ -749,7 +761,9 @@ describe "Type":
 
         assert disassembled.for_display() == "D"
 
-    it "works on class with complicated hierarchy", type_cache: strcs.TypeCache, Dis: Disassembler:
+    def test_it_works_on_class_with_complicated_hierarchy(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         assert isinstance(T, tp.TypeVar)
 
         class Thing(tp.Generic[T, U]):
@@ -819,8 +833,7 @@ describe "Type":
 
         assert disassembled.for_display() == "Tree"
 
-    it "works on an annotated class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_an_annotated_class(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @attrs.define
         class Thing:
             one: int
@@ -869,8 +882,9 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing, "blah"]'
 
-    it "works on an optional annotated class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_an_optional_annotated_class(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @dataclasses.dataclass
         class Thing:
             one: int
@@ -921,8 +935,9 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing | None, "blah"]'
 
-    it "works on an optional annotated generic class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_an_optional_annotated_generic_class(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @dataclasses.dataclass
         class Thing(tp.Generic[T, U]):
             one: T
@@ -974,8 +989,9 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing[int, str] | None, "blah"]'
 
-    it "works on an optional annotated generic class without concrete types", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_an_optional_annotated_generic_class_without_concrete_types(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
@@ -1027,8 +1043,9 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing[~T, ~U] | None, "blah"]'
 
-    it "works on an optional annotated generic class with concrete types", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_an_optional_annotated_generic_class_with_concrete_types(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @attrs.define
         class Thing(tp.Generic[T, U]):
             one: T
@@ -1080,8 +1097,9 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[Thing[int, str] | None, "blah"]'
 
-    it "doesn't confuse int and boolean", Dis: Disassembler, type_cache: strcs.TypeCache:
-
+    def test_it_doesnt_confuse_int_and_boolean(
+        self, Dis: Disassembler, type_cache: strcs.TypeCache
+    ):
         def clear() -> None:
             type_cache.clear()
 
@@ -1136,8 +1154,7 @@ describe "Type":
             assert not disassembled.is_type_for(None)
             assert not disassembled.is_equivalent_type_for(bool)
 
-    it "works with primitive NewType", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_with_primitive_NewType(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         MyInt = tp.NewType("MyInt", int)
         MyIntSuper = tp.NewType("MyIntSuper", MyInt)
         MyStr = tp.NewType("MyStr", str)
@@ -1197,7 +1214,7 @@ describe "Type":
 
         assert disassembled.for_display() == "MyInt"
 
-    it "works with wrapped NewType", type_cache: strcs.TypeCache, Dis: Disassembler:
+    def test_it_works_with_wrapped_NewType(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         MyInt = tp.NewType("MyInt", int)
         MyOtherInt = tp.NewType("MyOtherInt", int)
 
@@ -1238,10 +1255,9 @@ describe "Type":
 
         assert disassembled.for_display() == 'Annotated[MyInt | None, "asdf"] | None'
 
-describe "getting fields":
 
-    it "works when there is a chain", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+class TestGettingFields:
+    def test_it_works_when_there_is_a_chain(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @attrs.define
         class Stuff:
             thing: "Thing"
@@ -1257,8 +1273,7 @@ describe "getting fields":
             Field(name="stuff", owner=Thing, disassembled_type=Dis(Stuff | None))
         ]
 
-    it "works on normal class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_normal_class(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         class Thing:
             def __init__(self, one: int, /, two: str, *, three: bool = False, **kwargs):
                 pass
@@ -1297,8 +1312,7 @@ describe "getting fields":
             ],
         )
 
-    it "works on attrs class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_attrs_class(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @attrs.define
         class Thing:
             one: int
@@ -1334,8 +1348,7 @@ describe "getting fields":
             ],
         )
 
-    it "works on dataclasses class", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_works_on_dataclasses_class(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @dataclasses.dataclass
         class Thing:
             one: int
@@ -1371,8 +1384,9 @@ describe "getting fields":
             ],
         )
 
-describe "annotations":
-    it "can return no annotation", Dis: Disassembler:
+
+class TestAnnotations:
+    def test_it_can_return_no_annotation(self, Dis: Disassembler):
         assert Dis(int).ann is None
         assert Dis(int | None).ann is None
         assert Dis(int | str).ann is None
@@ -1385,16 +1399,16 @@ describe "annotations":
 
         assert Dis(Thing).ann is None
 
-    it "can return an annotation with new creator", Dis: Disassembler:
-
+    def test_it_can_return_an_annotation_with_new_creator(self, Dis: Disassembler):
         def creator(value: object, /, _meta: strcs.Meta): ...
 
         ann = Dis(tp.Annotated[int, creator]).ann
         assert isinstance(ann, strcs.Ann)
         assert ann.creator is creator
 
-    it "can return an annotation with new adjustable meta", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_can_return_an_annotation_with_new_adjustable_meta(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         class AdjustMeta:
             @classmethod
             def adjusted_meta(
@@ -1412,8 +1426,9 @@ describe "annotations":
         assert m.data == {"one": 1, "two": 2}
         assert meta.data == {"two": 2}
 
-    it "can return an annotation with new MetaAnnotation", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_can_return_an_annotation_with_new_MetaAnnotation(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @attrs.define
         class Info(strcs.MetaAnnotation):
             three: str
@@ -1429,8 +1444,9 @@ describe "annotations":
         assert m.data == {"__call_defined_annotation__": info, "two": 2}
         assert meta.data == {"two": 2}
 
-    it "can return an annotation with new MergedMetaAnnotation", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_can_return_an_annotation_with_new_MergedMetaAnnotation(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @attrs.define
         class Info(strcs.MergedMetaAnnotation):
             three: str
@@ -1446,8 +1462,9 @@ describe "annotations":
         assert m.data == {"three": "three", "two": 2}
         assert meta.data == {"two": 2}
 
-    it "can return an annotation with new Ann", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_can_return_an_annotation_with_new_Ann(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         def creator1(args: strcs.CreateArgs[int]) -> int:
             return 2
 
@@ -1472,8 +1489,9 @@ describe "annotations":
         reg = strcs.CreateRegister()
         assert ann.adjusted_creator(creator1, reg, Dis(int), type_cache) == creator2
 
-describe "equality":
-    it "matches any Type against Type.Missing", Dis: Disassembler:
+
+class TestEquality:
+    def test_it_matches_any_Type_against_TypeMissing(self, Dis: Disassembler):
         typ = Dis(int)
         assert typ == strcs.Type.Missing
 
@@ -1486,7 +1504,7 @@ describe "equality":
         typ3 = Dis(Thing | None)
         assert typ3 == strcs.Type.Missing
 
-    it "matches against checkable instances and original type", Dis: Disassembler:
+    def test_it_matches_against_checkable_instances_and_original_type(self, Dis: Disassembler):
         typ = Dis(int)
         assert typ == int
         assert typ == typ.checkable
@@ -1504,7 +1522,7 @@ describe "equality":
         assert typ3 != typ2.checkable
         assert typ2 != typ3.checkable
 
-    it "matches against optionals", Dis: Disassembler:
+    def test_it_matches_against_optionals(self, Dis: Disassembler):
         typ = Dis(int)
         nun = None
         assert typ != nun
@@ -1526,7 +1544,7 @@ describe "equality":
         assert typ3 != typ2.checkable
         assert typ2 != typ3.checkable
 
-    it "matches against unions and partial unions", Dis: Disassembler:
+    def test_it_matches_against_unions_and_partial_unions(self, Dis: Disassembler):
         typ = Dis(int)
         nun = None
         assert typ != nun
@@ -1556,10 +1574,9 @@ describe "equality":
         assert typ3 != typ2.checkable
         assert typ2 != typ3.checkable
 
-describe "Finding provided subtype":
 
-    it "can find the provided subtype", Dis: Disassembler:
-
+class TestFindingProvidedSubtype:
+    def test_it_can_find_the_provided_subtype(self, Dis: Disassembler):
         class Item:
             pass
 
@@ -1585,8 +1602,7 @@ describe "Finding provided subtype":
         assert container_b.find_generic_subtype(Item) == (ItemB,)
         assert container_c.find_generic_subtype(Item) == (ItemC,)
 
-    it "can find multiple subtypes", Dis: Disassembler:
-
+    def test_it_can_find_multiple_subtypes(self, Dis: Disassembler):
         class One:
             pass
 
@@ -1617,8 +1633,7 @@ describe "Finding provided subtype":
         assert container_a.find_generic_subtype(One, Two) == (OneA, TwoB)
         assert container_b.find_generic_subtype(One, Two) == (OneB, TwoB)
 
-    it "can find a partial number of subtypes", Dis: Disassembler:
-
+    def test_it_can_find_a_partial_number_of_subtypes(self, Dis: Disassembler):
         class One:
             pass
 
@@ -1646,8 +1661,7 @@ describe "Finding provided subtype":
         container_a = Dis(Container[OneA, TwoA])
         assert container_a.find_generic_subtype(One) == (OneA,)
 
-    it "complains if want too many types", Dis: Disassembler:
-
+    def test_it_complains_if_want_too_many_types(self, Dis: Disassembler):
         class One:
             pass
 
@@ -1671,8 +1685,7 @@ describe "Finding provided subtype":
         ):
             container_a.find_generic_subtype(One, Two)
 
-    it "complains if want wrong subtype", Dis: Disassembler:
-
+    def test_it_complains_if_want_wrong_subtype(self, Dis: Disassembler):
         class One:
             pass
 

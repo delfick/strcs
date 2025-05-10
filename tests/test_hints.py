@@ -1,5 +1,3 @@
-# coding: spec
-
 import dataclasses
 import typing as tp
 
@@ -23,13 +21,13 @@ class AnnotationField:
     name: str
 
 
-describe "resolve_types":
-    it "just returns the object if it's not an attrs/dataclass/class":
+class TestResolveTypes:
+    def test_it_just_returns_the_object_if_its_not_an_attrs_dataclass_class(self) -> None:
         thing: object
         for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
             assert strcs.resolve_types(tp.cast(type, thing), type_cache=strcs.TypeCache()) is thing
 
-    it "clears the type cache":
+    def test_it_clears_the_type_cache(self) -> None:
         type_cache = strcs.TypeCache()
 
         class What:
@@ -109,7 +107,9 @@ describe "resolve_types":
         assert fields["eleven"] == tp.List[Stuff]
         assert fields["twelve"] == dict[Stuff, list[tuple[Stuff, Stuff]]]
         assert fields["thirteen"] == dict[Stuff, list[tuple[Stuff, Stuff]]] | None
-        assert fields["fourteen"] == tp.Annotated[dict[Stuff, list[tuple[Stuff, Stuff]]] | None, 56]
+        assert (
+            fields["fourteen"] == tp.Annotated[dict[Stuff, list[tuple[Stuff, Stuff]]] | None, 56]
+        )
 
         class Thing:
             one: "int"
@@ -126,21 +126,19 @@ describe "resolve_types":
         assert fields["one"] is int
         assert fields["two"] is str
 
-    it "works on normal classes":
-
+    def test_it_works_on_normal_classes(self):
         def get_fields(cls: type) -> list[AnnotationField]:
             return [AnnotationField(type=t, name=name) for name, t in cls.__annotations__.items()]
 
         self.assertWorks(None, get_fields)
 
-    it "works on attrs classes":
+    def test_it_works_on_attrs_classes(self):
         self.assertWorks(attrs.define, attrs.fields)
 
-    it "works on dataclass classes":
+    def test_it_works_on_dataclass_classes(self):
         self.assertWorks(dataclasses.dataclass, dataclasses.fields)
 
-    it "finds via properties":
-
+    def test_it_finds_via_properties(self) -> None:
         @attrs.define
         class One:
             one: "int"
@@ -169,8 +167,7 @@ describe "resolve_types":
         assert fields["two"] == tp.Optional[str]
         assert fields["three"] == tp.Annotated[tp.Optional[str], 32]
 
-    it "finds via optional properties":
-
+    def test_it_finds_via_optional_properties(self) -> None:
         @attrs.define
         class One:
             one: "int"
@@ -199,8 +196,7 @@ describe "resolve_types":
         assert fields["two"] == tp.Optional[str]
         assert fields["three"] == tp.Annotated[tp.Optional[str], 32]
 
-    it "finds via annotated properties":
-
+    def test_it_finds_via_annotated_properties(self) -> None:
         @attrs.define
         class One:
             one: "int"

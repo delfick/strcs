@@ -1,4 +1,3 @@
-# coding: spec
 import re
 import typing as tp
 from collections import OrderedDict
@@ -12,8 +11,8 @@ from strcs.disassemble import MRO
 Disassembler = strcs.disassemble.Disassembler
 
 
-describe "assumptions":
-    it "can't do a generic to things that aren't type var":
+class TestAssumptions:
+    def test_it_cant_do_a_generic_to_things_that_arent_type_var(self):
         with pytest.raises(
             TypeError,
             match=r"Parameters to Generic\[...\] must all be type variables or parameter specification variables.",
@@ -22,7 +21,7 @@ describe "assumptions":
             class One(tp.Generic[str]):  # type: ignore[misc]
                 pass
 
-    it "can't have Generic and unfilled generic parents":
+    def test_it_cant_have_Generic_and_unfilled_generic_parents(self):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
 
@@ -34,7 +33,7 @@ describe "assumptions":
             class Two(tp.Generic[U], One):
                 pass
 
-    it "can't do a diamond of two of the same type with different parameters":
+    def test_it_cant_do_a_diamond_of_two_of_the_same_type_with_different_parameters(self):
         T = tp.TypeVar("T")
 
         class One(tp.Generic[T]):
@@ -45,8 +44,8 @@ describe "assumptions":
             class Two(One[int], One[bool]):  # type: ignore
                 pass
 
-describe "MRO":
 
+class TestMRO:
     @pytest.mark.parametrize(
         "start",
         (
@@ -64,7 +63,9 @@ describe "MRO":
             None,
         ),
     )
-    it "works for something that isn't a class", start: object, type_cache: strcs.TypeCache:
+    def test_it_works_for_something_that_isnt_a_class(
+        self, start: object, type_cache: strcs.TypeCache
+    ):
         mro = MRO.create(start, type_cache=type_cache)
         assert mro.start is start
         assert mro.args == ()
@@ -74,7 +75,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict()
         assert mro.signature_for_display == ""
 
-    it "works for object", type_cache: strcs.TypeCache:
+    def test_it_works_for_object(self, type_cache: strcs.TypeCache):
         mro = MRO.create(object, type_cache=type_cache)
         assert mro.start is object
         assert mro.args == ()
@@ -85,7 +86,7 @@ describe "MRO":
         assert mro.signature_for_display == ""
 
     @pytest.mark.parametrize("start", (str, int))
-    it "works for a builtin class", start: type, type_cache: strcs.TypeCache:
+    def test_it_works_for_a_builtin_class(self, start: type, type_cache: strcs.TypeCache):
         mro = MRO.create(start, type_cache=type_cache)
         assert mro.start is start
         assert mro.args == ()
@@ -95,7 +96,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict()
         assert mro.signature_for_display == ""
 
-    it "works for indexed builtins", type_cache: strcs.TypeCache:
+    def test_it_works_for_indexed_builtins(self, type_cache: strcs.TypeCache):
         start = dict[str, int]
         mro = MRO.create(start, type_cache=type_cache)
         assert mro.start is start
@@ -106,8 +107,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict([((dict, 1), str), ((dict, 2), int)])
         assert mro.signature_for_display == "str, int"
 
-    it "works for subclasses of indexed builtins", type_cache: strcs.TypeCache:
-
+    def test_it_works_for_subclasses_of_indexed_builtins(self, type_cache: strcs.TypeCache):
         class One(dict[str, int]):
             pass
 
@@ -120,8 +120,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict([((dict, 1), str), ((dict, 2), int)])
         assert mro.signature_for_display == ""
 
-    it "works for subclasses of nested indexed builtins", type_cache: strcs.TypeCache:
-
+    def test_it_works_for_subclasses_of_nested_indexed_builtins(self, type_cache: strcs.TypeCache):
         class One(dict[str, dict[bool, int]]):
             pass
 
@@ -134,8 +133,9 @@ describe "MRO":
         assert mro.typevars == OrderedDict([((dict, 1), str), ((dict, 2), dict[bool, int])])
         assert mro.signature_for_display == ""
 
-    it "does not duplicate when the same class appears multiple times with different typevars", type_cache: strcs.TypeCache:
-
+    def test_it_does_not_duplicate_when_the_same_class_appears_multiple_times_with_different_typevars(
+        self, type_cache: strcs.TypeCache
+    ):
         class One(dict[str, int]):
             pass
 
@@ -150,8 +150,7 @@ describe "MRO":
         assert mro.bases == [One, dict[bool, str]]
         assert mro.typevars == OrderedDict([((dict, 1), str), ((dict, 2), int)])
 
-    it "works for a simple class", type_cache: strcs.TypeCache:
-
+    def test_it_works_for_a_simple_class(self, type_cache: strcs.TypeCache):
         class One:
             pass
 
@@ -164,8 +163,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict()
         assert mro.signature_for_display == ""
 
-    it "works for a simple hierarchy", type_cache: strcs.TypeCache:
-
+    def test_it_works_for_a_simple_hierarchy(self, type_cache: strcs.TypeCache):
         class One:
             pass
 
@@ -184,8 +182,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict()
         assert mro.signature_for_display == ""
 
-    it "works for multiple inheritance", type_cache: strcs.TypeCache:
-
+    def test_it_works_for_multiple_inheritance(self, type_cache: strcs.TypeCache):
         class A:
             pass
 
@@ -216,7 +213,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict()
         assert mro.signature_for_display == ""
 
-    it "works for simple generic", type_cache: strcs.TypeCache:
+    def test_it_works_for_simple_generic(self, type_cache: strcs.TypeCache):
         T = tp.TypeVar("T")
 
         class One(tp.Generic[T]):
@@ -240,7 +237,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict([((One, T), int)])
         assert mro.signature_for_display == "int"
 
-    it "knows unfilled typevars of the parent", type_cache: strcs.TypeCache:
+    def test_it_knows_unfilled_typevars_of_the_parent(self, type_cache: strcs.TypeCache):
         T = tp.TypeVar("T")
 
         class One(tp.Generic[T]):
@@ -261,7 +258,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict([((One, T), strcs.Type.Missing)])
         assert mro.signature_for_display == "~T"
 
-    it "knows multiple unfilled typevars of the parent", type_cache: strcs.TypeCache:
+    def test_it_knows_multiple_unfilled_typevars_of_the_parent(self, type_cache: strcs.TypeCache):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
 
@@ -299,7 +296,7 @@ describe "MRO":
         # Can't access T from the signature
         assert mro.signature_for_display == ""
 
-    it "can't partially fill out type vars", type_cache: strcs.TypeCache:
+    def test_it_cant_partially_fill_out_type_vars(self, type_cache: strcs.TypeCache):
         # Sanity check for python error in version of python at time of writing
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
@@ -312,7 +309,7 @@ describe "MRO":
             class Two(One[int]):  # type: ignore[type-arg]
                 pass
 
-    it "works for multiple generic hierarchy", type_cache: strcs.TypeCache:
+    def test_it_works_for_multiple_generic_hierarchy(self, type_cache: strcs.TypeCache):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
 
@@ -361,7 +358,7 @@ describe "MRO":
         )
         assert mro.signature_for_display == "str, int"
 
-    it "works for partially filled generic hierarchy", type_cache: strcs.TypeCache:
+    def test_it_works_for_partially_filled_generic_hierarchy(self, type_cache: strcs.TypeCache):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
         Z = tp.TypeVar("Z")
@@ -408,7 +405,7 @@ describe "MRO":
         )
         assert mro.signature_for_display == "bool"
 
-    it "works for fully filled generic hierarchy", type_cache: strcs.TypeCache:
+    def test_it_works_for_fully_filled_generic_hierarchy(self, type_cache: strcs.TypeCache):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
         Z = tp.TypeVar("Z")
@@ -442,7 +439,7 @@ describe "MRO":
         )
         assert mro.signature_for_display == ""
 
-    it "works for generics filled with other generics", type_cache: strcs.TypeCache:
+    def test_it_works_for_generics_filled_with_other_generics(self, type_cache: strcs.TypeCache):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
 
@@ -464,7 +461,7 @@ describe "MRO":
         assert mro.typevars == OrderedDict([((Two, U), One[str])])
         assert mro.signature_for_display == ""
 
-    it "works for generics filled multiple times", type_cache: strcs.TypeCache:
+    def test_it_works_for_generics_filled_multiple_times(self, type_cache: strcs.TypeCache):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
         Z = tp.TypeVar("Z")
@@ -511,8 +508,7 @@ describe "MRO":
         )
         assert mro.signature_for_display == "~Z"
 
-    it "can get vars from container", type_cache: strcs.TypeCache:
-
+    def test_it_can_get_vars_from_container(self, type_cache: strcs.TypeCache):
         start = dict[int, str]
 
         mro = MRO.create(start, type_cache=type_cache)
@@ -530,8 +526,7 @@ describe "MRO":
         assert mro.all_vars == (int, str)
         assert mro.signature_for_display == "int, str"
 
-    it "can get vars when inheriting from container", type_cache: strcs.TypeCache:
-
+    def test_it_can_get_vars_when_inheriting_from_container(self, type_cache: strcs.TypeCache):
         class One(dict[int, str]):
             pass
 
@@ -550,8 +545,7 @@ describe "MRO":
         assert mro.all_vars == (int, str)
         assert mro.signature_for_display == ""
 
-    it "can get fields", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_can_get_fields(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
 
@@ -575,8 +569,9 @@ describe "MRO":
             strcs.Field(name="two", owner=Two, original_owner=One, disassembled_type=Dis(int)),
         ]
 
-    it "can get fields with modified types", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_can_get_fields_with_modified_types(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
 
@@ -645,10 +640,8 @@ describe "MRO":
             ),
         ]
 
-    describe "Finding provided subtype":
-
-        it "can find the provided subtype", type_cache: strcs.TypeCache:
-
+    class TestFindingProvidedSubtype:
+        def test_it_can_find_the_provided_subtype(self, type_cache: strcs.TypeCache):
             class Item:
                 pass
 
@@ -674,8 +667,7 @@ describe "MRO":
             assert container_b.find_subtypes(Item) == (ItemB,)
             assert container_c.find_subtypes(Item) == (ItemC,)
 
-        it "can find multiple subtypes", type_cache: strcs.TypeCache:
-
+        def test_it_can_find_multiple_subtypes(self, type_cache: strcs.TypeCache):
             class One:
                 pass
 
@@ -706,8 +698,7 @@ describe "MRO":
             assert container_a.find_subtypes(One, Two) == (OneA, TwoB)
             assert container_b.find_subtypes(One, Two) == (OneB, TwoB)
 
-        it "can find a partial number of subtypes", type_cache: strcs.TypeCache:
-
+        def test_it_can_find_a_partial_number_of_subtypes(self, type_cache: strcs.TypeCache):
             class One:
                 pass
 
@@ -735,8 +726,7 @@ describe "MRO":
             container_a = strcs.MRO.create(Container[OneA, TwoA], type_cache=type_cache)
             assert container_a.find_subtypes(One) == (OneA,)
 
-        it "complains if want too many types", type_cache: strcs.TypeCache:
-
+        def test_it_complains_if_want_too_many_types(self, type_cache: strcs.TypeCache):
             class One:
                 pass
 
@@ -760,8 +750,7 @@ describe "MRO":
             ):
                 container_a.find_subtypes(One, Two)
 
-        it "complains if want wrong subtype", type_cache: strcs.TypeCache:
-
+        def test_it_complains_if_want_wrong_subtype(self, type_cache: strcs.TypeCache):
             class One:
                 pass
 

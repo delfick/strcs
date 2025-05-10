@@ -1,11 +1,11 @@
-# coding: spec
 import attrs
 import pytest
 
 from strcs.memoized_property import memoized_property
 
-describe "memoized_property":
-    it "memoizes":
+
+class TestMemoizedProperty:
+    def test_it_memoizes(self) -> None:
         called: list[int] = []
 
         class Thing:
@@ -27,7 +27,7 @@ describe "memoized_property":
         assert thing.blah == "stuff"
         assert called == [1]
 
-    it "works on an attrs class":
+    def test_it_works_on_an_attrs_class(self) -> None:
         called: list[int] = []
 
         @attrs.define
@@ -47,7 +47,7 @@ describe "memoized_property":
         assert thing.blah == "stuff"
         assert called == [1]
 
-    it "does not allow setting the value":
+    def test_it_does_not_allow_setting_the_value(self) -> None:
         called: list[int] = []
 
         class Thing:
@@ -65,7 +65,7 @@ describe "memoized_property":
         with pytest.raises(AttributeError):
             thing.blah = "other"
 
-    it "allows deleting the value":
+    def test_it_allows_deleting_the_value(self) -> None:
         called: list[int] = []
 
         class Thing:
@@ -88,8 +88,7 @@ describe "memoized_property":
         assert thing.blah == "stuff"
         assert called == [1, 1]
 
-    it "keeps the type annotation":
-
+    def test_it_keeps_the_type_annotation(self) -> None:
         class Thing:
             _memoized_cache: dict[str, object]
 

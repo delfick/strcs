@@ -1,5 +1,3 @@
-# coding: spec
-
 import typing as tp
 
 import attrs
@@ -51,9 +49,8 @@ def create_other(value: object, /, multiply: int = 1) -> dict | None:
     return None
 
 
-describe "Auto resolves types by default":
-
-    it "doesn't work until we resolve types":
+class TestAutoResolvesTypesByDefault:
+    def test_it_doesnt_work_until_we_resolve_types(self):
         other = reg.create(Other, 3)
         assert isinstance(other, Other)
         assert isinstance(other.stuff, Stuff)

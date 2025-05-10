@@ -1,13 +1,12 @@
-# coding: spec
-
 import pytest
 
 import strcs
 
-describe "NotSpecified":
-    it "cannot be instantiated":
+
+class TestNotSpecified:
+    def test_it_cannot_be_instantiated(self):
         with pytest.raises(Exception, match="Do not instantiate NotSpecified"):
             strcs.NotSpecified()
 
-    it "has a reasonable repr":
+    def test_it_has_a_reasonable_repr(self):
         assert repr(strcs.NotSpecified) == "<NotSpecified>"

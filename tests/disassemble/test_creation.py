@@ -1,4 +1,3 @@
-# coding: spec
 import typing as tp
 
 import attrs
@@ -10,9 +9,9 @@ from strcs.disassemble import fill, instantiate
 
 Disassembler = strcs.disassemble.Disassembler
 
-describe "fill":
-    it "turns NotSpecified into an empty dictionary", Dis: Disassembler:
 
+class TestFill:
+    def test_it_turns_NotSpecified_into_an_empty_dictionary(self, Dis: Disassembler):
         class Thing:
             pass
 
@@ -20,19 +19,18 @@ describe "fill":
 
         assert fill(want, strcs.NotSpecified) == {}
 
-    it "complains if res is not a mapping", Dis: Disassembler:
-
+    def test_it_complains_if_res_is_not_a_mapping(self, Dis: Disassembler) -> None:
         class Thing:
             pass
 
         want = Dis(Thing)
 
+        res: object
         for res in (1, 0, True, False, [], [1], set(), lambda: 1, Thing, Thing()):
             with pytest.raises(ValueError, match="Can only fill mappings"):
                 fill(want, res)
 
-    it "fills in annotated or other objects with NotSpecified", Dis: Disassembler:
-
+    def test_it_fills_in_annotated_or_other_objects_with_NotSpecified(self, Dis: Disassembler):
         class Two:
             pass
 
@@ -47,8 +45,7 @@ describe "fill":
         want = Dis(Thing)
         assert fill(want, res) == {"one": strcs.NotSpecified, "two": strcs.NotSpecified, "four": 1}
 
-    it "doesn't override fields", Dis: Disassembler:
-
+    def test_it_doesnt_override_fields(self, Dis: Disassembler):
         class Two:
             pass
 
@@ -64,21 +61,20 @@ describe "fill":
         want = Dis(Thing)
         assert fill(want, res) == {"one": 3, "two": two, "three": True, "four": 1}
 
-describe "instantiate":
-    it "returns None if the result is optional and res is None", Dis: Disassembler:
 
+class TestInstantiate:
+    def test_it_returns_None_if_the_result_is_optional_and_res_is_None(self, Dis: Disassembler):
         class Thing:
             pass
 
         want = Dis(Thing | None)
         assert instantiate(want, None, cattrs.Converter()) is None
 
-    it "returns None if want None and are None", Dis: Disassembler:
+    def test_it_returns_None_if_want_None_and_are_None(self, Dis: Disassembler):
         want = Dis(None)
         assert instantiate(want, None, cattrs.Converter()) is None
 
-    it "complains if res is None and we aren't optional or None", Dis: Disassembler:
-
+    def test_it_complains_if_res_is_None_and_we_arent_optional_or_None(self, Dis: Disassembler):
         class Thing:
             pass
 
@@ -86,8 +82,9 @@ describe "instantiate":
         with pytest.raises(ValueError, match="Can't instantiate object with None"):
             instantiate(want, None, cattrs.Converter())
 
-describe "creation":
-    it "deals with private fields in an attrs class":
+
+class TestCreation:
+    def test_it_deals_with_private_fields_in_an_attrs_class(self) -> None:
         reg = strcs.CreateRegister()
 
         @attrs.define
@@ -103,7 +100,7 @@ describe "creation":
         assert thing2.one == 1
         assert thing2._two == 20
 
-    it "deals with private fields in not attrs class":
+    def test_it_deals_with_private_fields_in_not_attrs_class(self):
         reg = strcs.CreateRegister()
 
         class Thing:
@@ -119,7 +116,7 @@ describe "creation":
         assert thing2.one == 1
         assert thing2._two == 20
 
-    it "invokes creators for annotated fields":
+    def test_it_invokes_creators_for_annotated_fields(self):
         reg = strcs.CreateRegister()
 
         def doubler(val: object, /) -> int:
@@ -136,7 +133,7 @@ describe "creation":
         thing2 = reg.create(Thing, {"one": 1})
         assert thing2.one == 2
 
-    it "invokes creators for annotated fields even if not provided":
+    def test_it_invokes_creators_for_annotated_fields_even_if_not_provided(self):
         reg = strcs.CreateRegister()
 
         def doubler(val: object, /) -> int:
@@ -153,7 +150,7 @@ describe "creation":
         thing2 = reg.create(Thing)
         assert thing2.one == 200
 
-    it "invokes creators for other classes even if not provided":
+    def test_it_invokes_creators_for_other_classes_even_if_not_provided(self) -> None:
         reg = strcs.CreateRegister()
 
         @attrs.define
@@ -170,7 +167,7 @@ describe "creation":
         thing2 = reg.create(Thing)
         assert thing2.two == Two(three=True)
 
-    it "doesn't care for fields on parents not part of the child", Dis: Disassembler:
+    def test_it_doesnt_care_for_fields_on_parents_not_part_of_the_child(self, Dis: Disassembler):
         reg = strcs.CreateRegister()
 
         class One:

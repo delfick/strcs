@@ -1,4 +1,3 @@
-# coding: spec
 import copy
 import dataclasses
 import types
@@ -14,8 +13,9 @@ Disassembler = strcs.disassemble.Disassembler
 
 T = tp.TypeVar("T")
 
-describe "InstanceCheck":
-    it "can find instances and subclasses of basic types", Dis: Disassembler:
+
+class TestInstanceCheck:
+    def test_it_can_find_instances_and_subclasses_of_basic_types(self, Dis: Disassembler):
         db = Dis(int)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -57,7 +57,7 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == int
         assert db.checkable.Meta.without_annotation == int
 
-    it "can find instances and subclasses of union types", Dis: Disassembler:
+    def test_it_can_find_instances_and_subclasses_of_union_types(self, Dis: Disassembler):
         db = Dis(int | str)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -107,8 +107,12 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == int | str
         assert db.checkable.Meta.without_annotation == int | str
 
-    it "can find instances and subclasses of complicated union type", Dis: Disassembler:
-        provided = tp.Union[tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, "hello"]]
+    def test_it_can_find_instances_and_subclasses_of_complicated_union_type(
+        self, Dis: Disassembler
+    ):
+        provided = tp.Union[
+            tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, "hello"]
+        ]
         db = Dis(provided)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -158,7 +162,7 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == provided
         assert db.checkable.Meta.without_annotation == provided
 
-    it "can find instances and subclasses of optional basic types", Dis: Disassembler:
+    def test_it_can_find_instances_and_subclasses_of_optional_basic_types(self, Dis: Disassembler):
         db = Dis(int | None)
         assert isinstance(23, db.checkable)
         assert isinstance(None, db.checkable)
@@ -197,7 +201,7 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == int
         assert db.checkable.Meta.without_annotation == int | None
 
-    it "can find instances and subclasses of annotated types", Dis: Disassembler:
+    def test_it_can_find_instances_and_subclasses_of_annotated_types(self, Dis: Disassembler):
         db = Dis(tp.Annotated[int | None, "stuff"])
         assert isinstance(23, db.checkable)
         assert isinstance(None, db.checkable)
@@ -236,8 +240,7 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == tp.Annotated[int, "stuff"]
         assert db.checkable.Meta.without_annotation == int | None
 
-    it "can find instances and subclasses of user defined classes", Dis: Disassembler:
-
+    def test_it_can_find_instances_and_subclasses_of_user_defined_classes(self, Dis: Disassembler):
         class Mine:
             pass
 
@@ -284,8 +287,7 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == Mine
         assert db.checkable.Meta.without_annotation == Mine
 
-    it "can find instances and subclasses of NewType objects", Dis: Disassembler:
-
+    def test_it_can_find_instances_and_subclasses_of_NewType_objects(self, Dis: Disassembler):
         class Mine:
             pass
 
@@ -337,8 +339,9 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == MineT
         assert db.checkable.Meta.without_annotation == MineT
 
-    it "can find instances and subclasses of primtive NewType objects", Dis: Disassembler:
-
+    def test_it_can_find_instances_and_subclasses_of_primtive_NewType_objects(
+        self, Dis: Disassembler
+    ):
         MyInt = tp.NewType("MyInt", int)
 
         db = Dis(MyInt)
@@ -370,7 +373,7 @@ describe "InstanceCheck":
         assert db.checkable.Meta.without_optional == MyInt
         assert db.checkable.Meta.without_annotation == MyInt
 
-    it "can instantiate the provided type", Dis: Disassembler:
+    def test_it_can_instantiate_the_provided_type(self, Dis: Disassembler):
         checkable = Dis(dict[str, bool]).checkable
         made = tp.cast(tp.Callable, checkable)([("1", True), ("2", False)])
         assert made == {"1": True, "2": False}
@@ -400,8 +403,7 @@ describe "InstanceCheck":
         with pytest.raises(ValueError, match="Cannot instantiate this type"):
             constructor(1)
 
-    it "can get repr", Dis: Disassembler:
-
+    def test_it_can_get_repr(self, Dis: Disassembler):
         class One:
             one: int
             two: str
@@ -439,8 +441,7 @@ describe "InstanceCheck":
             checkable = Dis(thing).checkable
             assert repr(checkable) == expected
 
-    it "can get typing origin", Dis: Disassembler:
-
+    def test_it_can_get_typing_origin(self, Dis: Disassembler):
         assert tp.get_origin(Dis(str | int).checkable) == types.UnionType
         assert tp.get_origin(Dis(dict[str, int]).checkable) == dict
         assert tp.get_origin(Dis(dict[str, int] | None).checkable) == types.UnionType
@@ -461,8 +462,7 @@ describe "InstanceCheck":
         assert tp.get_origin(Dis(Thing).checkable) is None
         assert tp.get_origin(Dis(Thing[int]).checkable) is Thing
 
-    it "can get typing args", Dis: Disassembler:
-
+    def test_it_can_get_typing_args(self, Dis: Disassembler):
         assert tp.get_args(Dis(str | int).checkable) == (str, int)
         assert tp.get_args(Dis(dict[str, int]).checkable) == (str, int)
         assert tp.get_args(Dis(dict[str, int] | None).checkable) == (
@@ -489,7 +489,7 @@ describe "InstanceCheck":
         assert tp.get_args(Dis(Thing).checkable) == ()
         assert tp.get_args(Dis(Thing[int]).checkable) == (int,)
 
-    it "can get typing hints", Dis: Disassembler:
+    def test_it_can_get_typing_hints(self, Dis: Disassembler):
         assert tp.get_type_hints(Dis(int).checkable) == {}
 
         class Thing:
@@ -534,8 +534,7 @@ describe "InstanceCheck":
                 assert got_result == want_result, thing
                 assert got_error == want_error, thing
 
-    it "allows attrs helpers", Dis: Disassembler:
-
+    def test_it_allows_attrs_helpers(self, Dis: Disassembler):
         @attrs.define
         class One:
             one: int
@@ -557,8 +556,7 @@ describe "InstanceCheck":
             if is_attrs:
                 assert attrs.fields(kls) == attrs.fields(checkable)  # type: ignore
 
-    it "allows dataclasses helpers", Dis: Disassembler:
-
+    def test_it_allows_dataclasses_helpers(self, Dis: Disassembler):
         @attrs.define
         class One:
             one: int
@@ -580,8 +578,7 @@ describe "InstanceCheck":
             if is_dataclass:
                 assert dataclasses.fields(kls) == dataclasses.fields(checkable)  # type: ignore[arg-type]
 
-    it "can get NewType supertype", Dis: Disassembler:
-
+    def test_it_can_get_NewType_supertype(self, Dis: Disassembler):
         class Thing:
             pass
 

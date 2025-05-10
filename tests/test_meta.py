@@ -1,5 +1,3 @@
-# coding: spec
-
 import secrets
 import typing as tp
 
@@ -37,10 +35,9 @@ class IsConverter:
         return "<IsConverter?>"
 
 
-describe "Narrower":
-    describe "narrow":
-
-        it "can return a copy of the dictionary with matching options":
+class TestNarrower:
+    class TestNarrow:
+        def test_it_can_return_a_copy_of_the_dictionary_with_matching_options(self):
             a = {"a": 1, "b": 2, "c": 3}
 
             assert Narrower(a).narrow("a") == {"a": 1}
@@ -53,7 +50,7 @@ describe "Narrower":
             assert Narrower(a).narrow("*") == {"a": 1, "aa": 2, "baa": 3}
             assert Narrower(a).narrow() == {}
 
-        it "can return a copy of the dictionary with nested options":
+        def test_it_can_return_a_copy_of_the_dictionary_with_nested_options(self):
             a = {"a": 1, "b": 2, "c": {"d": 3, "e": {"f": 5}, "g": 6}, "h": 7}
 
             assert Narrower(a).narrow("c.e.f") == {"c.e.f": 5}
@@ -68,7 +65,7 @@ describe "Narrower":
                 == {"a": 1, "b": 2, "c": {"d": 3, "e": {"f": 5}, "g": 6}, "h": 7}
             )
 
-        it "will match dotted keys before nested objects":
+        def test_it_will_match_dotted_keys_before_nested_objects(self):
             obj = {"a": {"b": {"d": 4, "e": 5}}, "a.b": 1, "a.c": 3}
             assert Narrower(obj).narrow("a.b") == {"a.b": 1}
             assert Narrower(obj).narrow("a.c") == {"a.c": 3}
@@ -82,8 +79,7 @@ describe "Narrower":
             assert Narrower(obj).narrow("a.b.*") == {"a.b.d": 4, "a.b.e": 5, "a.b.f": 6}
             assert Narrower(obj).narrow("a.b*") == {"a.b": {"f": 6}, "a.bc": True}
 
-        it "can return a copy of the dictionary with nested objects":
-
+        def test_it_can_return_a_copy_of_the_dictionary_with_nested_objects(self) -> None:
             class Store:
                 def __init__(self, e):
                     self.e = e
@@ -123,8 +119,9 @@ describe "Narrower":
 
             assert a == Narrower(a).narrow("*") == {"config": config}
 
-describe "Meta":
-    it "can be created":
+
+class TestMeta:
+    def test_it_can_be_created(self):
         meta = Meta()
         assert meta.converter == IsConverter()
         assert meta.data == {}
@@ -135,8 +132,7 @@ describe "Meta":
         assert meta2.data == {}
         assert meta2.converter is not meta.converter
 
-    describe "cloning":
-
+    class TestCloning:
         def assertCloned(self, old: Meta, new: Meta) -> None:
             data_old = old.data
             data_new = new.data
@@ -158,7 +154,7 @@ describe "Meta":
             assert key not in data_old
             assert data_new[key] == value
 
-        it "can be cloned":
+        def test_it_can_be_cloned(self):
             old = Meta()
             new = old.clone()
 
@@ -167,7 +163,7 @@ describe "Meta":
 
             self.assertCloned(old, new)
 
-        it "can be cloned with a different converter":
+        def test_it_can_be_cloned_with_a_different_converter(self):
             convs2 = cattrs.Converter()
 
             old = Meta()
@@ -179,7 +175,7 @@ describe "Meta":
             assert old.data == new.data
             self.assertCloned(old, new)
 
-        it "can be cloned with different data":
+        def test_it_can_be_cloned_with_different_data(self):
             old = Meta()
             old["b"] = 5
             new = old.clone(data_override={"a": 3})
@@ -190,7 +186,7 @@ describe "Meta":
             assert old.converter is new.converter
             self.assertCloned(old, new)
 
-        it "can be cloned with extended data":
+        def test_it_can_be_cloned_with_extended_data(self):
             old = Meta()
             old["b"] = 5
             new = old.clone({"a": 3})
@@ -201,7 +197,7 @@ describe "Meta":
             assert old.converter is new.converter
             self.assertCloned(old, new)
 
-        it "can be cloned with new and extended data":
+        def test_it_can_be_cloned_with_new_and_extended_data(self):
             old = Meta()
             old["b"] = 5
 
@@ -215,8 +211,8 @@ describe "Meta":
             assert old.converter is new.converter
             self.assertCloned(old, new)
 
-    describe "Changing data":
-        it "can have data added":
+    class TestChangingData:
+        def test_it_can_have_data_added(self):
             meta = Meta()
             assert meta.data == {}
 
@@ -241,7 +237,7 @@ describe "Meta":
             assert "asdf" in meta
             assert meta.data == {"a": 3, "asdf": 3}
 
-        it "can remove a name from meta":
+        def test_it_can_remove_a_name_from_meta(self):
             meta = Meta()
             assert meta.data == {}
 
@@ -263,7 +259,7 @@ describe "Meta":
             assert "b" not in meta
             assert "c" in meta
 
-        it "can bulk update data":
+        def test_it_can_bulk_update_data(self):
             meta = Meta()
             assert meta.data == {}
 
@@ -273,8 +269,8 @@ describe "Meta":
             meta.update({"b": 2, "d": 4})
             assert meta.data == {"a": 1, "b": 2, "c": 3, "d": 4}
 
-    describe "find_by_type":
-        it "can return everything if type is object", type_cache: strcs.TypeCache:
+    class TestFindByType:
+        def test_it_can_return_everything_if_type_is_object(self, type_cache: strcs.TypeCache):
             meta = Meta()
             meta.update({"a": 1, "b": 2})
             meta["c"] = 3
@@ -288,7 +284,7 @@ describe "Meta":
                 {"a": 1, "b": 2, "c": 3},
             )
 
-        it "can be given the data to operate on", type_cache: strcs.TypeCache:
+        def test_it_can_be_given_the_data_to_operate_on(self, type_cache: strcs.TypeCache):
             meta = Meta()
             data = {"a": 1, "b": 2, "c": 3}
 
@@ -301,7 +297,7 @@ describe "Meta":
                 {"a": 1, "b": 2, "c": 3},
             )
 
-        it "can find the correct type in meta", type_cache: strcs.TypeCache:
+        def test_it_can_find_the_correct_type_in_meta(self, type_cache: strcs.TypeCache):
             meta = Meta()
 
             class Shape:
@@ -338,7 +334,7 @@ describe "Meta":
                 {"d": "asdf", "c": 2.0},
             )
 
-        it "can not find anything", type_cache: strcs.TypeCache:
+        def test_it_can_not_find_anything(self, type_cache: strcs.TypeCache):
             meta = Meta()
             meta["nup"] = None
 
@@ -361,11 +357,13 @@ describe "Meta":
                 {},
             )
 
-    describe "retrieve pattern":
-        it "can retrieve based off patterns", type_cache: strcs.TypeCache:
+    class TestRetrievePattern:
+        def test_it_can_retrieve_based_off_patterns(self, type_cache: strcs.TypeCache):
             meta = strcs.Meta({"a": {"b": {"d": 4, "e": 5}}, "a.b": {"f": 6}, "a.bc": True})
 
-            assert meta.retrieve_patterns(object, "a.b", type_cache=type_cache) == {"a.b": {"f": 6}}
+            assert meta.retrieve_patterns(object, "a.b", type_cache=type_cache) == {
+                "a.b": {"f": 6}
+            }
             assert meta.retrieve_patterns(int, "a.b.d", "a.b.e", type_cache=type_cache) == {
                 "a.b.d": 4,
                 "a.b.e": 5,
@@ -383,37 +381,40 @@ describe "Meta":
             assert meta.retrieve_patterns(object, type_cache=type_cache) == meta.data
             assert meta.retrieve_patterns(object, "d", type_cache=type_cache) == {}
 
-    describe "retrieve one":
-        it "can retrieve the one matching value", type_cache: strcs.TypeCache:
+    class TestRetrieveOne:
+        def test_it_can_retrieve_the_one_matching_value(self, type_cache: strcs.TypeCache):
             meta = Meta()
             meta.update({"a": 1, "b": 2.0})
 
             assert meta.retrieve_one(int, type_cache=type_cache) == 1
             assert meta.retrieve_one(float, type_cache=type_cache) == 2.0
 
-        it "can optionally retrieve the one value", type_cache: strcs.TypeCache:
+        def test_it_can_optionally_retrieve_the_one_value(self, type_cache: strcs.TypeCache):
             meta = Meta()
             meta["nup"] = "hello"
 
             assert (
-                meta.retrieve_one(tp.Optional[int], refined_type=int, type_cache=type_cache) is None
+                meta.retrieve_one(tp.Optional[int], refined_type=int, type_cache=type_cache)
+                is None
             )
 
-        it "can complain if there are 0 found values", type_cache: strcs.TypeCache:
+        def test_it_can_complain_if_there_are_0_found_values(self, type_cache: strcs.TypeCache):
             meta = Meta()
             meta["nup"] = None
 
             with pytest.raises(strcs.errors.NoDataByTypeName):
                 meta.retrieve_one(int, type_cache=type_cache)
 
-        it "can complain if there are more than 1 found values", type_cache: strcs.TypeCache:
+        def test_it_can_complain_if_there_are_more_than_1_found_values(
+            self, type_cache: strcs.TypeCache
+        ):
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
             with pytest.raises(strcs.errors.MultipleNamesForType):
                 meta.retrieve_one(int, type_cache=type_cache)
 
-        it "can get the one value based on patterns too", type_cache: strcs.TypeCache:
+        def test_it_can_get_the_one_value_based_on_patterns_too(self, type_cache: strcs.TypeCache):
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
@@ -435,28 +436,32 @@ describe "Meta":
 
             assert meta.retrieve_one(Blah, "d.e", type_cache=type_cache) is blah
 
-        it "can still find based just on type if patterns don't match", type_cache: strcs.TypeCache:
+        def test_it_can_still_find_based_just_on_type_if_patterns_dont_match(
+            self, type_cache: strcs.TypeCache
+        ):
             meta = Meta()
             meta.update({"a": 1, "b": "asdf"})
 
             assert meta.retrieve_one(int, "c", type_cache=type_cache) == 1
             assert meta.retrieve_one(int, "d", type_cache=type_cache) == 1
 
-        it "uses default if provided and found type but not name", type_cache: strcs.TypeCache:
+        def test_it_uses_default_if_provided_and_found_type_but_not_name(
+            self, type_cache: strcs.TypeCache
+        ):
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
             assert meta.retrieve_one(int, "a", default=30, type_cache=type_cache) == 1
             assert meta.retrieve_one(int, "d", default=40, type_cache=type_cache) == 40
 
-        it "uses default if provided and found nothing", type_cache: strcs.TypeCache:
+        def test_it_uses_default_if_provided_and_found_nothing(self, type_cache: strcs.TypeCache):
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 
             assert meta.retrieve_one(float, "c", default=30, type_cache=type_cache) == 30
             assert meta.retrieve_one(float, "d", default=40, type_cache=type_cache) == 40
 
-        it "complains if found name but type is wrong", type_cache: strcs.TypeCache:
+        def test_it_complains_if_found_name_but_type_is_wrong(self, type_cache: strcs.TypeCache):
             meta = Meta()
             meta.update({"a": 1, "b": 2})
 

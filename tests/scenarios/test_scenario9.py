@@ -1,5 +1,3 @@
-# coding: spec
-
 import fnmatch
 import textwrap
 import traceback
@@ -56,9 +54,8 @@ def create_sub(value: object, /) -> tp.Generator[dict | None, Sub, None]:
     return None
 
 
-describe "Having reasonable error messages":
-
-    it "has reasonable error messages":
+class TestHavingReasonableErrorMessages:
+    def test_it_has_reasonable_error_messages(self):
         with pytest.raises(IterableValidationError) as e:
             reg.create(
                 Stuff,
@@ -91,7 +88,7 @@ describe "Having reasonable error messages":
               |  |
               |  |   Trying to convert '{'three': 5}' into '<class 'tests.scenarios.test_scenario9.Sub'>'
               |  |
-              |  |   Using creator '<function create_sub at *>' at */tests/scenarios/test_scenario9.py:45
+              |  |   Using creator '<function create_sub at *>' at */tests/scenarios/test_scenario9.py:43
               |
               | During handling of the above exception, another exception occurred:
               |
@@ -101,10 +98,10 @@ describe "Having reasonable error messages":
               |  |>>
               |  |   Trying to convert '20' into '<class 'tests.scenarios.test_scenario9.Other'>'
               |  |
-              |  |   Using creator '<function create_other at *>' at */tests/scenarios/test_scenario9.py:34
+              |  |   Using creator '<function create_other at *>' at */tests/scenarios/test_scenario9.py:32
               +---------------- 2 ----------------
               | Traceback (most recent call last):
-              |   File "*/tests/scenarios/test_scenario9.py", line 37, in create_other
+              |   File "*/tests/scenarios/test_scenario9.py", line 35, in create_other
               | ValueError: asdf
               |
               | During handling of the above exception, another exception occurred:
@@ -116,10 +113,10 @@ describe "Having reasonable error messages":
               |  |
               |  |   Trying to convert 'wat' into '<class 'tests.scenarios.test_scenario9.Other'>'
               |  |
-              |  |   Using creator '<function create_other at *>' at */tests/scenarios/test_scenario9.py:34
+              |  |   Using creator '<function create_other at *>' at */tests/scenarios/test_scenario9.py:32
               +---------------- 3 ----------------
               | Traceback (most recent call last):
-              |   File "*/tests/scenarios/test_scenario9.py", line 51, in create_sub
+              |   File "*/tests/scenarios/test_scenario9.py", line 49, in create_sub
               | TypeError: two was changed!
               |
               | During handling of the above exception, another exception occurred:
@@ -131,7 +128,7 @@ describe "Having reasonable error messages":
               |  |
               |  |   Trying to convert '*' into '<class 'tests.scenarios.test_scenario9.Sub'>'
               |  |
-              |  |   Using creator '<function create_sub at *>' at */tests/scenarios/test_scenario9.py:45
+              |  |   Using creator '<function create_sub at *>' at */tests/scenarios/test_scenario9.py:43
               |
               | During handling of the above exception, another exception occurred:
               |
@@ -141,10 +138,10 @@ describe "Having reasonable error messages":
               |  |>>
               |  |   Trying to convert '*' into '<class 'tests.scenarios.test_scenario9.Other'>'
               |  |
-              |  |   Using creator '<function create_other at *>' at */tests/scenarios/test_scenario9.py:34
+              |  |   Using creator '<function create_other at *>' at */tests/scenarios/test_scenario9.py:32
               +---------------- 4 ----------------
               | Traceback (most recent call last):
-              |   File "*/tests/scenarios/test_scenario9.py", line 54, in create_sub
+              |   File "*/tests/scenarios/test_scenario9.py", line 52, in create_sub
               | ValueError: blah
               |
               | During handling of the above exception, another exception occurred:
@@ -156,7 +153,7 @@ describe "Having reasonable error messages":
               |  |
               |  |   Trying to convert '30' into '<class 'tests.scenarios.test_scenario9.Sub'>'
               |  |
-              |  |   Using creator '<function create_sub at *>' at */tests/scenarios/test_scenario9.py:45
+              |  |   Using creator '<function create_sub at *>' at */tests/scenarios/test_scenario9.py:43
               |
               | During handling of the above exception, another exception occurred:
               |
@@ -166,7 +163,7 @@ describe "Having reasonable error messages":
               |  |>>
               |  |   Trying to convert '*' into '<class 'tests.scenarios.test_scenario9.Other'>'
               |  |
-              |  |   Using creator '<function create_other at *>' at */tests/scenarios/test_scenario9.py:34
+              |  |   Using creator '<function create_other at *>' at */tests/scenarios/test_scenario9.py:32
               +------------------------------------
               """
             )

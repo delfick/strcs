@@ -1,5 +1,3 @@
-# coding: spec
-
 import attrs
 import cattrs
 
@@ -24,9 +22,8 @@ def create_sentences(value: object, /) -> dict | None:
     return {"one": parts[0], "two": parts[1], "three": parts[2]}
 
 
-describe "can use the original converter":
-
-    it "works":
+class TestCanUseTheOriginalConverter:
+    def test_it_works(self):
         converter = cattrs.Converter()
 
         def reverse_strings(o: object, _: object) -> str:

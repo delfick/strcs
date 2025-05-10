@@ -1,5 +1,3 @@
-# coding: spec
-
 import inspect
 import typing as tp
 from unittest import mock
@@ -66,9 +64,10 @@ class IsRegister:
             return repr(self.got)
 
 
-describe "ArgsExtractor":
-    it "no args to extract if no args in signature", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+class TestArgsExtractor:
+    def test_it_no_args_to_extract_if_no_args_in_signature(
+        self, meta: strcs.Meta, creg: strcs.CreateRegister
+    ):
         def func() -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
@@ -84,8 +83,9 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == []
 
-    it "can get value from the first positional argument", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+    def test_it_can_get_value_from_the_first_positional_argument(
+        self, meta: strcs.Meta, creg: strcs.CreateRegister
+    ):
         def func(value: object, /) -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
@@ -101,8 +101,9 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [val]
 
-    it "can get want from the second positional argument", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+    def test_it_can_get_want_from_the_second_positional_argument(
+        self, meta: strcs.Meta, creg: strcs.CreateRegister
+    ):
         def func(value: object, want: strcs.Type, /) -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
@@ -121,8 +122,9 @@ describe "ArgsExtractor":
             creg.disassemble(object),
         ]
 
-    it "can get arbitrary values from meta", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+    def test_it_can_get_arbitrary_values_from_meta(
+        self, meta: strcs.Meta, creg: strcs.CreateRegister
+    ):
         class Other:
             pass
 
@@ -196,8 +198,7 @@ describe "ArgsExtractor":
         )
         assert extractor.extract() == [o]
 
-    it "can get us the meta object", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+    def test_it_can_get_us_the_meta_object(self, meta: strcs.Meta, creg: strcs.CreateRegister):
         def func(_meta) -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
@@ -241,8 +242,9 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [val, meta]
 
-    it "can get us based just off the name of the argument", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+    def test_it_can_get_us_based_just_off_the_name_of_the_argument(
+        self, meta: strcs.Meta, creg: strcs.CreateRegister
+    ):
         class Other:
             pass
 
@@ -274,8 +276,9 @@ describe "ArgsExtractor":
             "one",
         ]
 
-    it "can get us the converter object", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+    def test_it_can_get_us_the_converter_object(
+        self, meta: strcs.Meta, creg: strcs.CreateRegister
+    ):
         def func(_converter) -> strcs.ConvertResponse[object]: ...
 
         val = mock.Mock(name="val")
@@ -320,8 +323,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [val, converter]
 
-    it "can get us the register object", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+    def test_it_can_get_us_the_register_object(self, meta: strcs.Meta, creg: strcs.CreateRegister):
         def func(_register) -> strcs.ConvertResponse[mock.Mock]: ...
 
         val = mock.Mock(name="val")
@@ -365,7 +367,7 @@ describe "ArgsExtractor":
 
         assert extractor.extract() == [val, IsRegister(creg, mock.Mock, meta, func3)]
 
-    it "can get alternatives to the provided objects", type_cache: strcs.TypeCache:
+    def test_it_can_get_alternatives_to_the_provided_objects(self, type_cache: strcs.TypeCache):
         val = mock.Mock(name="val")
 
         register1 = strcs.CreateRegister(type_cache=type_cache)
@@ -456,8 +458,9 @@ describe "ArgsExtractor":
 
         assert exc_info.value.args == (str, ["_register"])
 
-    it "complains if it can't find something", meta: strcs.Meta, creg: strcs.CreateRegister:
-
+    def test_it_complains_if_it_cant_find_something(
+        self, meta: strcs.Meta, creg: strcs.CreateRegister
+    ):
         def func(wat) -> strcs.ConvertResponse[object]: ...
 
         extractor = strcs.ArgsExtractor(

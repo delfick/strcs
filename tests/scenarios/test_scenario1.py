@@ -1,5 +1,3 @@
-# coding: spec
-
 import typing as tp
 
 import attrs
@@ -127,8 +125,7 @@ def create_detail(value: object, /, project: Project) -> dict | None:
     return value
 
 
-describe "Making the projects":
-
+class TestMakingTheProjects:
     @pytest.mark.parametrize(
         "config",
         [
@@ -144,7 +141,7 @@ describe "Making the projects":
             },
         ],
     )
-    it "can make from a dictionary or list", config:
+    def test_it_can_make_from_a_dictionary_or_list(self, config):
         projects = reg.create(Projects, config)
 
         assert isinstance(projects, Projects)
@@ -160,7 +157,7 @@ describe "Making the projects":
         assert projects.projects[1].details[0].project is project2
         assert projects.projects[1].details[1].project is project2
 
-    it "can make generic types":
+    def test_it_can_make_generic_types(self):
         container = reg.create(Container[ItemOne], {"category": "one"})
         assert isinstance(container.item, ItemOne)
         assert container.item.one == 20
@@ -173,7 +170,7 @@ describe "Making the projects":
         assert container2.item.two == 5
         assert container2.item.four
 
-    it "can complain about asking for the wrong subtype":
+    def test_it_can_complain_about_asking_for_the_wrong_subtype(self):
         with pytest.raises(strcs.errors.UnableToConvert) as e:
             reg.create(Container[ItemOne], {"category": "two"})
 
@@ -182,7 +179,7 @@ describe "Making the projects":
             == "Expected <class 'tests.scenarios.test_scenario1.ItemTwo'> to be an <class 'tests.scenarios.test_scenario1.ItemOne'>"
         )
 
-    it "can complain about not asking for a subtype":
+    def test_it_can_complain_about_not_asking_for_a_subtype(self):
         with pytest.raises(strcs.errors.UnableToConvert) as e:
             reg.create(Container)
 

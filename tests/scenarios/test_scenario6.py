@@ -1,5 +1,3 @@
-# coding: spec
-
 import secrets
 import typing as tp
 
@@ -66,9 +64,8 @@ def create_thing(
     )
 
 
-describe "can create itself with additional meta":
-
-    it "works":
+class TestCanCreateItselfWithAdditionalMeta:
+    def test_it_works(self):
         thing1 = reg.create(Thing, [1, 2])
         assert isinstance(thing1, Thing)
         assert thing1.part1.one == 1
@@ -88,18 +85,16 @@ describe "can create itself with additional meta":
         assert thing1.part1.identity != thing2.part1.identity
 
 
-describe "can create parts without additional meta":
-
-    it "works":
+class TestCanCreatePartsWithoutAdditionalMeta:
+    def test_it_works(self):
         other = reg.create(Other)
         assert isinstance(other, Other)
         assert other.one.one == 2
         assert other.two.one == 4
 
 
-describe "can create itself without additional meta":
-
-    it "works":
+class TestCanCreateItselfWithoutAdditionalMeta:
+    def test_it_works(self):
         itself = reg.create(Itself, 3)
         assert isinstance(itself, Itself)
         assert itself.one == 6

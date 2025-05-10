@@ -1,5 +1,3 @@
-# coding: spec
-
 import random
 import typing as tp
 
@@ -51,22 +49,21 @@ class Sorter:
 sorter = Sorter.make_fixture()
 
 
-describe "ordering Types":
-
-    it "orders basic types by reverse alphabetical name", sorter: Sorter:
+class TestOrderingTypes:
+    def test_it_orders_basic_types_by_reverse_alphabetical_name(self, sorter: Sorter):
         sorter.assert_reverse_order(
             str,
             int,
             dict,
         )
 
-    it "orders bool before int cause it has an mro of 3 vs 2", sorter: Sorter:
+    def test_it_orders_bool_before_int_cause_it_has_an_mro_of_3_vs_2(self, sorter: Sorter):
         sorter.assert_reverse_order(
             bool,
             int,
         )
 
-    it "orders optionals at the start of the list", sorter: Sorter:
+    def test_it_orders_optionals_at_the_start_of_the_list(self, sorter: Sorter):
         sorter.assert_reverse_order(
             bool | None,
             int | None,
@@ -76,7 +73,7 @@ describe "ordering Types":
             dict,
         )
 
-    it "orders annotated at the start of the list", sorter: Sorter:
+    def test_it_orders_annotated_at_the_start_of_the_list(self, sorter: Sorter):
         sorter.assert_reverse_order(
             tp.Annotated[bool | None, 1],
             tp.Annotated[int | None, 1],
@@ -92,8 +89,7 @@ describe "ordering Types":
             dict,
         )
 
-    it "orders class before builtin", sorter: Sorter:
-
+    def test_it_orders_class_before_builtin(self, sorter: Sorter):
         class Stuff:
             pass
 
@@ -102,7 +98,7 @@ describe "ordering Types":
             int,
         )
 
-    it "orders unions reverse alphabetically", sorter: Sorter:
+    def test_it_orders_unions_reverse_alphabetically(self, sorter: Sorter):
         sorter.assert_reverse_order(
             bool | str,
             bool | int,
@@ -110,14 +106,16 @@ describe "ordering Types":
             int | str,
         )
 
-    it "prefers annotations", sorter: Sorter:
+    def test_it_prefers_annotations(self, sorter: Sorter):
         sorter.assert_reverse_order(
             tp.Annotated[int | str, False],
             bool | tp.Annotated[int, True],
             bool | str,
         )
 
-    it "orders longer unions before shorter unions and optional unions before other unions", sorter: Sorter:
+    def test_it_orders_longer_unions_before_shorter_unions_and_optional_unions_before_other_unions(
+        self, sorter: Sorter
+    ):
         sorter.assert_reverse_order(
             bool | str | None,
             int | str | dict,
@@ -128,8 +126,7 @@ describe "ordering Types":
             int,
         )
 
-    it "orders unions before non unions", sorter: Sorter:
-
+    def test_it_orders_unions_before_non_unions(self, sorter: Sorter):
         class Thing:
             pass
 
@@ -149,8 +146,7 @@ describe "ordering Types":
             int,
         )
 
-    it "orders classes by length of the mro with longer mro first", sorter: Sorter:
-
+    def test_it_orders_classes_by_length_of_the_mro_with_longer_mro_first(self, sorter: Sorter):
         class One:
             pass
 
@@ -178,8 +174,7 @@ describe "ordering Types":
             One,
         )
 
-    it "orders generic classes", sorter: Sorter:
-
+    def test_it_orders_generic_classes(self, sorter: Sorter):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
 
@@ -247,8 +242,7 @@ describe "ordering Types":
             Une,
         )
 
-    it "doesn't reorder typevars", sorter: Sorter:
-
+    def test_it_doesnt_reorder_typevars(self, sorter: Sorter):
         T = tp.TypeVar("T")
         U = tp.TypeVar("U")
 

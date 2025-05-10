@@ -1,5 +1,3 @@
-# coding: spec
-
 import typing as tp
 
 import attrs
@@ -64,8 +62,8 @@ def create_config(val: object, /) -> strcs.ConvertResponse[Config]:
     return result
 
 
-describe "scenario10":
-    it "works on type aliases":
+class TestScenario10:
+    def test_it_works_on_type_aliases(self):
         thing = Thing()
         meta = strcs.Meta({"thing": thing, "word_prefix": "the_prefix__"})
 

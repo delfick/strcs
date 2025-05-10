@@ -1,4 +1,3 @@
-# coding: spec
 import dataclasses
 import inspect
 import sys
@@ -33,17 +32,16 @@ def assertParams(got: tp.Sequence[strcs.Field], want: list[strcs.Field]):
         assert g == w
 
 
-describe "fields_from_class":
-
-    it "finds fields from looking at the init on the class when no init", type_cache: strcs.TypeCache:
-
+class TestFieldsFromClass:
+    def test_it_finds_fields_from_looking_at_the_init_on_the_class_when_no_init(
+        self, type_cache: strcs.TypeCache
+    ):
         class Thing:
             pass
 
         assertParams(fields_from_class(type_cache, Thing), [])
 
-    it "finds all kinds of arguments", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_finds_all_kinds_of_arguments(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         class Thing:
             def __init__(
                 self, blah: int, /, stuff: str, *args: str, items: tuple[int, str], **kwargs: bool
@@ -87,8 +85,9 @@ describe "fields_from_class":
             ],
         )
 
-    it "uses object as type if unknown", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_uses_object_as_type_if_unknown(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         class Thing:
             def __init__(self, blah, /, stuff, *args, items, **kwargs):
                 pass
@@ -129,8 +128,7 @@ describe "fields_from_class":
             ],
         )
 
-    it "finds defaults", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_finds_defaults(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         class Thing:
             def __init__(
                 self,
@@ -182,24 +180,22 @@ describe "fields_from_class":
             ],
         )
 
-    it "doesn't fail on builtin functions", type_cache: strcs.TypeCache:
+    def test_it_doesnt_fail_on_builtin_functions(self, type_cache: strcs.TypeCache):
         with pytest.raises(ValueError):
             inspect.signature(str)
 
         assert fields_from_class(type_cache, str) == []
 
-describe "fields_from_attrs":
 
-    it "finds no fields on class with no fields", type_cache: strcs.TypeCache:
-
+class TestFieldsFromAttrs:
+    def test_it_finds_no_fields_on_class_with_no_fields(self, type_cache: strcs.TypeCache):
         @attrs.define
         class Thing:
             pass
 
         assertParams(fields_from_attrs(type_cache, Thing), [])
 
-    it "finds keyword only fields", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_finds_keyword_only_fields(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @attrs.define
         class Thing:
             items: tuple[int, str]
@@ -224,8 +220,7 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "finds defaults", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_finds_defaults(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @attrs.define
         class Thing:
             items: tuple[int, str] = (1, "asdf")
@@ -252,8 +247,7 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "finds default factories", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_finds_default_factories(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
@@ -283,7 +277,9 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "excludes fields that aren't in init", type_cache: strcs.TypeCache, Dis: Disassembler:
+    def test_it_excludes_fields_that_arent_in_init(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
@@ -315,8 +311,7 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "renames private variables", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_renames_private_variables(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @attrs.define
         class Thing:
             _thing: str
@@ -344,7 +339,7 @@ describe "fields_from_attrs":
         assert thing._thing == "one"
         assert thing.other == 4
 
-    it "uses aliases", type_cache: strcs.TypeCache, Dis: Disassembler:
+    def test_it_uses_aliases(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         if sys.version_info < (3, 11):
             pytest.skip("pep 681 is from python 3.11")
 
@@ -383,7 +378,9 @@ describe "fields_from_attrs":
         assert thing._thing == "blah"
         assert thing.other == 3
 
-    it "excludes default factories that take a self", type_cache: strcs.TypeCache, Dis: Disassembler:
+    def test_it_excludes_default_factories_that_take_a_self(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         factory_one = lambda: (1, "asdf")
         factory_two = lambda instance: True
 
@@ -414,8 +411,9 @@ describe "fields_from_attrs":
             ],
         )
 
-    it "uses object as type if unknown", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_uses_object_as_type_if_unknown(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @attrs.define
         class Thing:
             blah = attrs.field()
@@ -439,18 +437,16 @@ describe "fields_from_attrs":
             ],
         )
 
-describe "fields_from_dataclasses":
 
-    it "finds no fields on class with no fields", type_cache: strcs.TypeCache:
-
+class TestFieldsFromDataclasses:
+    def test_it_finds_no_fields_on_class_with_no_fields(self, type_cache: strcs.TypeCache):
         @dataclasses.dataclass
         class Thing:
             pass
 
         assertParams(fields_from_dataclasses(type_cache, Thing), [])
 
-    it "finds keyword only fields", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_finds_keyword_only_fields(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @dataclasses.dataclass
         class Thing:
             items: tuple[int, str]
@@ -475,8 +471,7 @@ describe "fields_from_dataclasses":
             ],
         )
 
-    it "finds defaults", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_finds_defaults(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         @dataclasses.dataclass
         class Thing:
             items: tuple[int, str] = (1, "asdf")
@@ -503,8 +498,7 @@ describe "fields_from_dataclasses":
             ],
         )
 
-    it "finds default factories", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_finds_default_factories(self, type_cache: strcs.TypeCache, Dis: Disassembler):
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
@@ -534,7 +528,9 @@ describe "fields_from_dataclasses":
             ],
         )
 
-    it "excludes fields that aren't in init", type_cache: strcs.TypeCache, Dis: Disassembler:
+    def test_it_excludes_fields_that_arent_in_init(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         factory_one = lambda: (1, "asdf")
         factory_two = lambda: True
 
@@ -566,8 +562,9 @@ describe "fields_from_dataclasses":
             ],
         )
 
-    it "doesn't rename private variables", type_cache: strcs.TypeCache, Dis: Disassembler:
-
+    def test_it_doesnt_rename_private_variables(
+        self, type_cache: strcs.TypeCache, Dis: Disassembler
+    ):
         @dataclasses.dataclass
         class Thing:
             _thing: str
@@ -596,8 +593,8 @@ describe "fields_from_dataclasses":
         assert thing.other == 4
 
 
-describe "IsAnnotated":
-    it "knows if something is annotated":
+class TestIsAnnotated:
+    def test_it_knows_if_something_is_annotated(self):
         assert not IsAnnotated.has(int)
         assert not IsAnnotated.has(int | None)
         assert not IsAnnotated.has(list[int])
@@ -605,8 +602,9 @@ describe "IsAnnotated":
         assert IsAnnotated.has(tp.Annotated[int | None, "stuff"])
         assert IsAnnotated.has(tp.Annotated[list[int], "stuff"])
 
-describe "extract_optional":
-    it "can extract the outer most optional":
+
+class TestExtractOptional:
+    def test_it_can_extract_the_outer_most_optional(self):
         assert extract_optional(int) == (False, int)
         assert extract_optional(tp.Annotated[int, "stuff"]) == (False, tp.Annotated[int, "stuff"])
         assert extract_optional(int | None) == (True, int)
@@ -630,8 +628,9 @@ describe "extract_optional":
             tp.Annotated[list[int | None], "stuff"],
         )
 
-describe "extract_annotation":
-    it "extracts the outer most annotation":
+
+class TestExtractAnnotation:
+    def test_it_extracts_the_outer_most_annotation(self):
         assert extract_annotation(tp.Annotated[int, "stuff"]) == (
             int,
             tp.Annotated[int, "stuff"],
@@ -649,7 +648,7 @@ describe "extract_annotation":
             None,
         )
 
-    it "returns multiple annotation":
+    def test_it_returns_multiple_annotation(self):
         assert extract_annotation(tp.Annotated[tp.Annotated[int, "other"], "stuff"]) == (
             int,
             tp.Annotated[int, "other", "stuff"],

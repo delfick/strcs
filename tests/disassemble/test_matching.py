@@ -1,5 +1,3 @@
-# coding: spec
-
 import dataclasses
 import random
 import typing as tp
@@ -12,8 +10,7 @@ import strcs
 Disassembler = strcs.disassemble.Disassembler
 
 
-describe "Matching a Type":
-
+class TestMatchingAType:
     def make_functions(
         self, types: dict[int | str, object], *, Dis: Disassembler
     ) -> list[tuple[strcs.Type, strcs.ConvertFunction]]:
@@ -32,14 +29,13 @@ describe "Matching a Type":
             random.shuffle(shuffling)
             yield shuffling
 
-    it "finds the basic type", Dis: Disassembler:
+    def test_it_finds_the_basic_type(self, Dis: Disassembler):
         typ = Dis(int)
         available = self.make_functions({0: str, 1: bool, 2: float, 3: int}, Dis=Dis)
         for ordered in self.shuffles(available):
             assert typ.func_from(ordered) is mock.sentinel.function_3
 
-    it "finds the matching attrs/dataclass/normal class", Dis: Disassembler:
-
+    def test_it_finds_the_matching_attrs_dataclass_normal_class(self, Dis: Disassembler):
         @attrs.define
         class Thing:
             pass
@@ -54,7 +50,6 @@ describe "Matching a Type":
         available = self.make_functions({0: Stuff, 1: Thing, 2: Blah}, Dis=Dis)
 
         for ordered in self.shuffles(available):
-
             typ = Dis(Thing)
             assert typ.func_from(ordered) is mock.sentinel.function_1
 
@@ -64,8 +59,7 @@ describe "Matching a Type":
             typ = Dis(Blah)
             assert typ.func_from(ordered) is mock.sentinel.function_2
 
-    it "finds the matching attrs/dataclass/normal subclass", Dis: Disassembler:
-
+    def test_it_finds_the_matching_attrs_dataclass_normal_subclass(self, Dis: Disassembler):
         @attrs.define
         class Thing:
             pass
@@ -102,8 +96,7 @@ describe "Matching a Type":
             assert typ.func_from(ordered) is mock.sentinel.function_2
             del typ
 
-    it "finds the matching child attrs/dataclass/normal", Dis: Disassembler:
-
+    def test_it_finds_the_matching_child_attrs_dataclass_normal(self, Dis: Disassembler):
         @attrs.define
         class Thing:
             pass
@@ -154,8 +147,7 @@ describe "Matching a Type":
             assert typ.func_from(ordered) is mock.sentinel.function_2
             del typ
 
-    it "finds union type before matching against first function", Dis: Disassembler:
-
+    def test_it_finds_union_type_before_matching_against_first_function(self, Dis: Disassembler):
         @attrs.define
         class Thing:
             pass
@@ -204,7 +196,7 @@ describe "Matching a Type":
             assert typ.func_from(ordered) is mock.sentinel.function_0
             del typ
 
-    it "can match a subclass of a filled generic", Dis: Disassembler:
+    def test_it_can_match_a_subclass_of_a_filled_generic(self, Dis: Disassembler):
         available = self.make_functions({0: dict, 1: dict[str, dict], 2: dict[str, str]}, Dis=Dis)
 
         class D(dict[str, str]):

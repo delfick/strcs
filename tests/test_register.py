@@ -1,5 +1,3 @@
-# coding: spec
-
 import secrets
 import typing as tp
 from unittest import mock
@@ -65,10 +63,8 @@ class IsConverter:
         return tp.cast(cattrs.Converter, kls())
 
 
-describe "Register":
-
-    it "can register a convert function", creg: strcs.CreateRegister:
-
+class TestRegister:
+    def test_it_can_register_a_convert_function(self, creg: strcs.CreateRegister):
         @attrs.define
         class Thing:
             data: int
@@ -97,9 +93,8 @@ describe "Register":
             creg.disassemble(Stuff): stuff_maker,
         }
 
-    describe "can use the converters":
-        it "works on anything", creg: strcs.CreateRegister:
-
+    class TestCanUseTheConverters:
+        def test_it_works_on_anything(self, creg: strcs.CreateRegister):
             @attrs.define
             class Thing:
                 pass
@@ -135,8 +130,7 @@ describe "Register":
                 )
             )
 
-        it "lets converter work on other types", creg: strcs.CreateRegister:
-
+        def test_it_lets_converter_work_on_other_types(self, creg: strcs.CreateRegister):
             @attrs.define
             class Other:
                 name: str
@@ -177,8 +171,9 @@ describe "Register":
             assert isinstance(made.obj.other, Other)
             assert made.obj.other.name == "there"
 
-        it "let's us convert a type that isn't in the register", creg: strcs.CreateRegister:
-
+        def test_it_lets_us_convert_a_type_that_isnt_in_the_register(
+            self, creg: strcs.CreateRegister
+        ):
             @attrs.define
             class Stuff:
                 one: int
@@ -212,8 +207,9 @@ describe "Register":
             assert made.stuff.one == 45
             assert made.stuff.two == 76
 
-        it "doesn't recreate cattrs objects already created", creg: strcs.CreateRegister:
-
+        def test_it_doesnt_recreate_cattrs_objects_already_created(
+            self, creg: strcs.CreateRegister
+        ):
             @attrs.define
             class Stuff:
                 one: int
@@ -235,8 +231,7 @@ describe "Register":
             assert isinstance(made, Thing)
             assert made.stuff is stuff
 
-        it "can recreate normal objects", creg: strcs.CreateRegister:
-
+        def test_it_can_recreate_normal_objects(self, creg: strcs.CreateRegister):
             class Stuff:
                 def __init__(self, one: int):
                     self.one = one
@@ -256,8 +251,7 @@ describe "Register":
             stuff = Stuff(one=4)
             creg.create(Thing, {"stuff": stuff})
 
-        it "let's us convert with super types", creg: strcs.CreateRegister:
-
+        def test_it_lets_us_convert_with_super_types(self, creg: strcs.CreateRegister):
             @attrs.define
             class Shape:
                 three: int
@@ -339,8 +333,9 @@ describe "Register":
             )
             shape_maker.reset_mock()
 
-        it "fails on checking against a not type in the register", creg: strcs.CreateRegister:
-
+        def test_it_fails_on_checking_against_a_not_type_in_the_register(
+            self, creg: strcs.CreateRegister
+        ):
             @attrs.define
             class Thing:
                 pass
@@ -354,9 +349,9 @@ describe "Register":
             with pytest.raises(ValueError, match="Can only check against types or Type instances"):
                 assert tp.cast(type, Thing()) not in creg
 
-describe "Creators":
-    it "takes a ConvertDefinition", creator: strcs.Creator:
 
+class TestCreators:
+    def test_it_takes_a_ConvertDefinition(self, creator: strcs.Creator):
         class Thing:
             pass
 
@@ -374,8 +369,9 @@ describe "Creators":
         assert creator.register.create(Thing) is thing
         make.assert_called_once_with()
 
-    it "can be given as an override in an annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+    def test_it_can_be_given_as_an_override_in_an_annotation(
+        self, creator: strcs.Creator, creg: strcs.CreateRegister
+    ):
         @attrs.define(frozen=True)
         class Info(strcs.MergedMetaAnnotation):
             multiple: int
@@ -393,8 +389,10 @@ describe "Creators":
 
         assert creg.create(Thing, {"thing": 20}).thing == 100
 
-    describe "invoking function":
-        it "calls func if it has no arguments", creator: strcs.Creator, creg: strcs.CreateRegister:
+    class TestInvokingFunction:
+        def test_it_calls_func_if_it_has_no_arguments(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             class Thing:
@@ -410,7 +408,9 @@ describe "Creators":
             assert creg.create(Thing) is thing
             assert called == [1]
 
-        it "calls the func with the value if we ask for value", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_calls_the_func_with_the_value_if_we_ask_for_value(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             class Thing:
@@ -435,7 +435,9 @@ describe "Creators":
             assert creg.create(Thing, thing) is thing
             assert called == [strcs.NotSpecified, 1, {"one": 2}, thing]
 
-        it "calls the func with the value and type if we ask for value and type", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_calls_the_func_with_the_value_and_type_if_we_ask_for_value_and_type(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             class Thing:
@@ -487,7 +489,9 @@ describe "Creators":
             assert e.value.got == Thing
             assert e.value.want == Child
 
-        it "calls function with information from meta if it asks for it", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_calls_function_with_information_from_meta_if_it_asks_for_it(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             class Thing:
@@ -520,8 +524,9 @@ describe "Creators":
             assert creg.create(Thing, meta=meta) is thing
             assert called == [(strcs.NotSpecified, Thing, 30, child)]
 
-        it "can use a default value for things asked for from meta", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_use_a_default_value_for_things_asked_for_from_meta(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define
             class Thing:
                 val: str
@@ -549,8 +554,9 @@ describe "Creators":
                 == "pref:hello:hi:blah:meh"
             )
 
-        it "can get annotated data from class definition into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_get_annotated_data_from_class_definition_into_meta(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define(frozen=True)
             class SentenceAnnotation(strcs.MetaAnnotation):
                 prefix: str
@@ -577,8 +583,9 @@ describe "Creators":
                 creg.create(Thing, {"one": " there"}, meta=meta).one.sentence == "hello there mate"
             )
 
-        it "can get data spread into meta", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_get_data_spread_into_meta(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define(frozen=True)
             class ChildAnnotation(strcs.MergedMetaAnnotation):
                 two: int
@@ -606,8 +613,9 @@ describe "Creators":
             assert creg.create(Overall, {"thing": {"child": 3}}).thing.child.data == 73
             assert creg.create(Overall, {"thing": {"child": 10}}).thing.child.data == 80
 
-        it "can not add optional fields to the meta when they are none", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_not_add_optional_fields_to_the_meta_when_they_are_none(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define(frozen=True)
             class Annotation(strcs.MergedMetaAnnotation):
                 one: int = 3
@@ -632,8 +640,9 @@ describe "Creators":
             assert creg.create_annotated(Thing, Annotation(), "hi").val == "hi|3|asdf"
             assert creg.create(Thing, "hi").val == "hi|0|asdf"
 
-        it "can convert lists one thing at a time", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_convert_lists_one_thing_at_a_time(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             counts = {"upto": 0}
 
             @attrs.define
@@ -657,7 +666,9 @@ describe "Creators":
 
             assert [(t.one, t.upto) for t in made.things] == [(4, 1), (5, 2), (6, 3)]
 
-        it "can adjust meta from a method on the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_can_adjust_meta_from_a_method_on_the_annotation(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             """Entirely possible I got a bit carried away with this example and I agree this is a stupid way of whatever this is"""
 
             @attrs.define(frozen=True)
@@ -667,7 +678,9 @@ describe "Creators":
                 def adjusted_meta(
                     self, meta: strcs.Meta, typ: type, type_cache: strcs.TypeCache
                 ) -> strcs.Meta:
-                    return meta.clone({"powerball": self.numbers[-1], "numbers": self.numbers[:-1]})
+                    return meta.clone(
+                        {"powerball": self.numbers[-1], "numbers": self.numbers[:-1]}
+                    )
 
             @attrs.define
             class Result:
@@ -707,8 +720,9 @@ describe "Creators":
                 Result(winner=False),
             ]
 
-        it "can override a creator in the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_override_a_creator_in_the_annotation(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define
             class Thing:
                 val: int
@@ -731,8 +745,9 @@ describe "Creators":
             assert things.thing2.val == 15
             assert things.thing3.val == 20
 
-        it "can override a creator and meta in the annotation", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_override_a_creator_and_meta_in_the_annotation(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define(frozen=True)
             class ThingAnnotation(strcs.MergedMetaAnnotation):
                 add: int
@@ -764,8 +779,9 @@ describe "Creators":
             assert things.thing2.val == 25
             assert things.thing3.val == 20
 
-        it "can use an annotation to get something from meta", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_use_an_annotation_to_get_something_from_meta(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             class Other:
                 pass
 
@@ -781,8 +797,10 @@ describe "Creators":
             with pytest.raises(strcs.errors.NoDataByTypeName):
                 assert creg.create(Thing).want is other
 
-    describe "interpreting the response":
-        it "raises exception if we get None", creator: strcs.Creator, creg: strcs.CreateRegister:
+    class TestInterpretingTheResponse:
+        def test_it_raises_exception_if_we_get_None(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             class Thing:
@@ -797,7 +815,9 @@ describe "Creators":
                 creg.create(Thing)
             assert called == [1]
 
-        it "returns the result if the result is of the correct type", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_returns_the_result_if_the_result_is_of_the_correct_type(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             class Thing:
@@ -813,7 +833,9 @@ describe "Creators":
             assert creg.create(Thing) is thing
             assert called == [1]
 
-        it "returns the value created with if the result is True and value is not NotSpecified", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_returns_the_value_created_with_if_the_result_is_True_and_value_is_not_NotSpecified(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             class Thing:
@@ -841,7 +863,9 @@ describe "Creators":
             assert creg.create(Thing, thing3) is thing3
             assert called == [1, 1, 1, 1]
 
-        it "returns the value as is without going through function if assume unchanged and value is of the same type", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_returns_the_value_as_is_without_going_through_function_if_assume_unchanged_and_value_is_of_the_same_type(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             @attrs.define
@@ -873,7 +897,9 @@ describe "Creators":
             assert creg.create(Thing, child) is child
             assert called == [1]
 
-        it "can use NotSpecified if the type we want is that and we return True", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_can_use_NotSpecified_if_the_type_we_want_is_that_and_we_return_True(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             @creator(strcs.NotSpecifiedMeta, assume_unchanged_converted=False)
@@ -884,7 +910,9 @@ describe "Creators":
             assert creg.create(strcs.NotSpecifiedMeta) is strcs.NotSpecified
             assert called == [1]
 
-        it "turns a dictionary into the object", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_turns_a_dictionary_into_the_object(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             @attrs.define
@@ -903,7 +931,9 @@ describe "Creators":
             assert made.two == "twenty"
             assert called == [1]
 
-        it "uses creator for other registered classes", creator: strcs.Creator, creg: strcs.CreateRegister:
+        def test_it_uses_creator_for_other_registered_classes(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             called = []
 
             @attrs.define
@@ -949,8 +979,9 @@ describe "Creators":
             assert made.stuff.six == 2
             assert called == [1, 2, 2]
 
-        it "can have a creator with no function", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_have_a_creator_with_no_function(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define
             class Thing:
                 one: int = 1
@@ -976,8 +1007,9 @@ describe "Creators":
                 with pytest.raises(strcs.errors.UnableToConvert):
                     creg.create(Thing, nope)
 
-        it "can use register.create in the creator using the type currently being created", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_use_registercreate_in_the_creator_using_the_type_currently_being_created(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define
             class Thing:
                 one: int
@@ -1017,8 +1049,9 @@ describe "Creators":
 
             assert things.thing1.identity != things2.thing1.identity
 
-        it "can use register.create in the creator using the type currently being created without a layer of indirection", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        def test_it_can_use_registercreate_in_the_creator_using_the_type_currently_being_created_without_a_layer_of_indirection(
+            self, creator: strcs.Creator, creg: strcs.CreateRegister
+        ):
             @attrs.define
             class Thing:
                 one: int
@@ -1052,9 +1085,10 @@ describe "Creators":
 
             assert thing.identity != thing2.identity
 
-        describe "generator creator":
-            it "can modify the created object inside the creator", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+        class TestGeneratorCreator:
+            def test_it_can_modify_the_created_object_inside_the_creator(
+                self, creator: strcs.Creator, creg: strcs.CreateRegister
+            ):
                 @attrs.define(slots=False)
                 class Thing:
                     one: int
@@ -1075,8 +1109,9 @@ describe "Creators":
                 assert made.one == 20
                 assert made.two == 2
 
-            it "can modify the created object inside the creator without yielding second time", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+            def test_it_can_modify_the_created_object_inside_the_creator_without_yielding_second_time(
+                self, creator: strcs.Creator, creg: strcs.CreateRegister
+            ):
                 @attrs.define(slots=False)
                 class Thing:
                     one: int
@@ -1096,8 +1131,9 @@ describe "Creators":
                 assert made.one == 20
                 assert made.two == 2
 
-            it "considers not yielding means it could not convert", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+            def test_it_considers_not_yielding_means_it_could_not_convert(
+                self, creator: strcs.Creator, creg: strcs.CreateRegister
+            ):
                 @attrs.define(slots=False)
                 class Thing:
                     one: int
@@ -1112,8 +1148,9 @@ describe "Creators":
                 with pytest.raises(strcs.errors.UnableToConvert):
                     creg.create(Thing, {"one": 20})
 
-            it "uses the first yielded thing to determine what is made", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+            def test_it_uses_the_first_yielded_thing_to_determine_what_is_made(
+                self, creator: strcs.Creator, creg: strcs.CreateRegister
+            ):
                 @attrs.define(slots=False)
                 class Thing:
                     one: int = 1
@@ -1138,7 +1175,9 @@ describe "Creators":
                 made = creg.create(Thing, thing)
                 assert made is thing
 
-            it "can yield another generator because recursion is fun", creator: strcs.Creator, creg: strcs.CreateRegister:
+            def test_it_can_yield_another_generator_because_recursion_is_fun(
+                self, creator: strcs.Creator, creg: strcs.CreateRegister
+            ):
                 called = []
 
                 @attrs.define(slots=False)
@@ -1173,8 +1212,9 @@ describe "Creators":
                 assert made.three == 222
                 assert called == [1, 2, 3, 4]
 
-            it "uses what is yielded the second time", creator: strcs.Creator, creg: strcs.CreateRegister:
-
+            def test_it_uses_what_is_yielded_the_second_time(
+                self, creator: strcs.Creator, creg: strcs.CreateRegister
+            ):
                 @attrs.define(slots=False)
                 class Thing:
                     one: int = 1

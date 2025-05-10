@@ -1,5 +1,3 @@
-# coding: spec
-
 import typing as tp
 
 import attrs
@@ -45,9 +43,8 @@ def create_other(value: object, /, multiply: int = 1) -> dict | None:
     return None
 
 
-describe "Fails to create if the types are strings":
-
-    it "doesn't work until we resolve types":
+class TestFailsToCreateIfTheTypesAreStrings:
+    def test_it_doesnt_work_until_we_resolve_types(self):
         with pytest.raises(
             strcs.errors.UnableToConvert,
             match="Unsupported type: 'Other'. Register a structure hook for it.+",
