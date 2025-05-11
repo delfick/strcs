@@ -15,6 +15,7 @@ import operator
 import sys
 import types
 import typing as tp
+from collections.abc import Mapping
 
 import attrs
 
@@ -102,7 +103,7 @@ class WithClassGetItem(tp.Protocol[C]):
 def resolve_type(
     typ: object,
     globalns: dict[str, object] | None = None,
-    localns: dict[str, object] | None = None,
+    localns: Mapping[str, object] | None = None,
 ) -> object:
     """
     Resolve a single type annotation such that all ForwardRefs under this type are
@@ -114,7 +115,8 @@ def resolve_type(
         typ = tp.ForwardRef(typ)
 
     if isinstance(typ, tp.ForwardRef):
-        return typ._evaluate(globalns, localns, recursive_guard=set())  # type: ignore
+        recursive_guard: frozenset[str] = frozenset()
+        return typ._evaluate(globalns, localns, recursive_guard=recursive_guard)
 
     elif WithCopyWith.has(typ):
         resolved = tuple(resolve_type(t, globalns, localns) for t in typ.__args__)
