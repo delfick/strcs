@@ -15,7 +15,7 @@ import operator
 import sys
 import types
 import typing
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import (
     TYPE_CHECKING,
     ForwardRef,
@@ -110,6 +110,19 @@ class WithClassGetItem(Protocol[C]):
         )
 
 
+class IsCallable(Protocol):
+    """
+    Used to identify objects that are unions
+    """
+
+    __args__: tuple
+    __origin__: WithClassGetItem
+
+    @classmethod
+    def has(self, obj: object) -> TypeGuard["IsCallable"]:
+        return typing.get_origin(obj) in (Callable,)
+
+
 def resolve_type(
     typ: object,
     globalns: dict[str, object] | None = None,
@@ -140,13 +153,18 @@ def resolve_type(
             return typ
         return functools.reduce(operator.or_, resolved)
 
+    elif IsCallable.has(typ):
+        resolved = tuple(resolve_type(t, globalns, localns) for t in typ.__args__)
+        if len(resolved) == 0:
+            return typ
+        *args, ret = resolved
+        return typ.__origin__.__class_getitem__((args, ret))
+
     elif isinstance(origin, type) and WithClassGetItem.has(typ, origin):
         resolved = tuple(resolve_type(t, globalns, localns) for t in typ.__args__)
         if resolved == typ.__args__:
             return typ
-        return typ.__origin__.__class_getitem__(
-            tuple(resolve_type(t, globalns, localns) for t in typ.__args__)
-        )
+        return typ.__origin__.__class_getitem__(resolved)
 
     else:
         return typ
