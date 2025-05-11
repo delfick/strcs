@@ -1,0 +1,18 @@
+[project]
+name = "tools"
+version = "0.1"
+dependencies = [
+    "tox==4.15.1",
+    "click>=8.1.7",
+    "ruff==0.11.9",
+    "remote-pdb==2.1.0"
+]
+
+[project.optional-dependencies]
+docs = [
+    "sphinx-autobuild==2024.10.3",
+    "sphinx-rtd-theme==3.0.2",
+    "sphinx-toolbox==3.9.0",
+    "sphinx==8.2.3",
+    "enum-tools==0.13.0"
+]

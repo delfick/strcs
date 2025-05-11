@@ -4,9 +4,10 @@ import sys
 sys.path.append(str(pathlib.Path(__file__).parent))
 
 extensions = [
+    "sphinx_toolbox.more_autodoc.autoprotocol",
+    "sphinx_toolbox.more_autodoc.genericalias",
     "sphinx.ext.autodoc",
     "sphinx_rtd_theme",
-    "sphinx_toolbox.more_autodoc.autoprotocol",
     "strcs_sphinx_ext",
 ]
 

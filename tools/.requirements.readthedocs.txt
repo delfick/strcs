@@ -1,0 +1,5 @@
+sphinx-autobuild==2024.10.3
+sphinx-rtd-theme==3.0.2
+sphinx-toolbox==3.9.0
+sphinx==8.2.3
+enum-tools==0.13.0

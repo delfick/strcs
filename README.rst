@@ -1,7 +1,7 @@
 Structures
 ==========
 
-A Python3.10+ library that wraps `cattrs <https://cattrs.readthedocs.io>`_ for a
+A Python3.13+ library that wraps `cattrs <https://cattrs.readthedocs.io>`_ for a
 modular approach to constructing objects with the ability to string data through
 the process.
 

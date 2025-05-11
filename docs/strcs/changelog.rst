@@ -3,6 +3,12 @@
 Changelog
 ---------
 
+.. _release-0.5.0:
+
+0.5.0 - TBD
+    * Changed development tooling
+    * strcs is now Python 3.13+
+
 .. _release-0.4.1:
 
 0.4.1 - 14 September 2024

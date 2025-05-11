@@ -2,7 +2,15 @@
 
 name: Lint
 
-on: [push, pull_request]
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
@@ -13,35 +21,33 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
-      - name: Install deps
-        shell: bash
-        env:
-          VENVSTARTER_ONLY_MAKE_VENV: "1"
-        run: python ./tools/venv
+      - name: Install venv
+        run: ./tools/uv sync --locked
 
       - name: Ensure linter is happy
-        run: ./lint
+        run: ./tools/ci lint
 
   types:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13"]
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Install deps
-        shell: bash
-        env:
-          VENVSTARTER_ONLY_MAKE_VENV: "1"
-        run: python ./tools/venv
+      - name: Install venv
+        run: ./tools/uv sync --locked
 
       - name: Ensure mypy is happy
-        run: ./types
+        run: ./tools/ci types
 
   format:
     runs-on: ubuntu-latest
@@ -51,17 +57,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
-      - name: Install deps
-        shell: bash
-        env:
-          VENVSTARTER_ONLY_MAKE_VENV: "1"
-        run: python ./tools/venv
+      - name: Install venv
+        run: ./tools/uv sync --locked
 
       - name: Ensure code is formatted
         run: |
-          ./format
+          ./tools/ci format
+
+          git status --porcelain
 
           # Complain if there were changes
           if [[ ! -z "$(git status --porcelain)" ]]; then
