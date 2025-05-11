@@ -5,9 +5,10 @@ Changelog
 
 .. _release-0.5.0:
 
-0.5.0 - TBD
+0.5.0 - 11 May 2025
     * Changed development tooling
     * strcs is now Python 3.13+
+    * The 0.5.0 branch will see more changes so that it works with later versions of cattrs
 
 .. _release-0.4.1:
 
