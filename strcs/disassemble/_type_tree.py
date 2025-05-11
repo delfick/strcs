@@ -1,7 +1,8 @@
 import itertools
-import typing as tp
+import typing
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
+from typing import Generic, ParamSpec, Protocol, TypeGuard, TypeVar
 
 import attrs
 
@@ -11,7 +12,7 @@ from ._base import Field, Type
 from ._cache import TypeCache
 
 
-class HasOrigBases(tp.Protocol):
+class HasOrigBases(Protocol):
     """
     Used to figure out the origin classes for an object.
     """
@@ -19,7 +20,7 @@ class HasOrigBases(tp.Protocol):
     __orig_bases__: tuple[object]
 
     @classmethod
-    def has(self, thing: object) -> tp.TypeGuard["HasOrigBases"]:
+    def has(self, thing: object) -> TypeGuard["HasOrigBases"]:
         return isinstance(getattr(thing, "__orig_bases__", None), tuple)
 
     @classmethod
@@ -29,7 +30,7 @@ class HasOrigBases(tp.Protocol):
 
         Python type annotations are difficult to parse and does not make our lives easy here.
 
-        ``tp.get_origin`` and ``__orig_bases__`` are specific to generics and we want to know
+        ``typing.get_origin`` and ``__orig_bases__`` are specific to generics and we want to know
         if this class is not generic, has generic as a direct parent, or generic as a distant
         parent.
 
@@ -40,7 +41,7 @@ class HasOrigBases(tp.Protocol):
         class and not from a distant parent.
         """
         if HasOrigBases.has(orig):
-            bases = [tp.get_origin(base) or base for base in orig.__orig_bases__]
+            bases = [typing.get_origin(base) or base for base in orig.__orig_bases__]
             if any(mro.index(base) == 1 for base in bases):
                 return orig.__orig_bases__
 
@@ -91,7 +92,7 @@ class MRO:
         """
 
         owner: type
-        typevar: tp.TypeVar
+        typevar: TypeVar
         value: object
 
     @classmethod
@@ -99,12 +100,12 @@ class MRO:
         """
         Given some object and a type cache, return a filled instance of the MRO.
         """
-        args = tp.get_args(start) or ()
+        args = typing.get_args(start) or ()
 
         mro: tuple[type, ...]
         origin: type | None
 
-        origin = start if isinstance(start, type) and not args else tp.get_origin(start)
+        origin = start if isinstance(start, type) and not args else typing.get_origin(start)
         mro = () if origin is None or not hasattr(origin, "__mro__") else origin.__mro__
 
         orig_bases = HasOrigBases.determine_orig_bases(origin, mro)
@@ -138,7 +139,7 @@ class MRO:
         self._memoized_cache = {}
 
     @memoized_property
-    def typevars(self) -> OrderedDict[tuple[type, tp.TypeVar | int], object]:
+    def typevars(self) -> OrderedDict[tuple[type, TypeVar | int], object]:
         """
         Return an ordered dictionary mapping all the typevars in this objects MRO with their value.
 
@@ -148,17 +149,17 @@ class MRO:
 
         .. code-block:: python
 
-            import typing as tp
+            from typing import TypeVar, Generic
             import strcs
 
-            T = tp.TypeVar("T")
-            T = tp.TypeVar("U")
+            T = TypeVar("T")
+            T = TypeVar("U")
 
 
-            class One(tp.Generic[T]):
+            class One(Generic[T]):
                 pass
 
-            class Two(tp.Generic[U], One[U]):
+            class Two(Generic[U], One[U]):
                 pass
 
             type_cache = strcs.TypeCache()
@@ -182,16 +183,16 @@ class MRO:
                 (One, T): MRO.Referal(owner=Two, typevar=U, value=str)
             }
         """
-        values: OrderedDict[tuple[type, tp.TypeVar | int], object] = OrderedDict()
+        values: OrderedDict[tuple[type, TypeVar | int], object] = OrderedDict()
 
-        parameters: list[tp.TypeVar | tp.ParamSpec] = []
+        parameters: list[TypeVar | ParamSpec] = []
         if (
             (origin := self.origin)
             and hasattr(origin, "__parameters__")
             and isinstance(origin.__parameters__, Iterable)
         ):
             for param in origin.__parameters__:
-                assert isinstance(param, tp.TypeVar | tp.ParamSpec)
+                assert isinstance(param, TypeVar | ParamSpec)
                 parameters.append(param)
 
         for index, (tv, val) in enumerate(itertools.zip_longest(parameters, self.args)):
@@ -199,8 +200,8 @@ class MRO:
             origin = self.origin
             assert origin is not None, origin
 
-            if not isinstance(tv, tp.TypeVar):
-                if origin is tp.Generic:
+            if not isinstance(tv, TypeVar):
+                if origin is Generic:
                     continue
                 values[(origin, index + 1)] = val
             else:
@@ -211,14 +212,14 @@ class MRO:
                 if (origin, tv) in values:
                     continue
 
-                if isinstance(val, tp.TypeVar):
+                if isinstance(val, TypeVar):
                     assert val in parameters
 
                     orig = self.origin
                     assert orig is not None
 
                     value = values[(orig, val)]
-                    if isinstance(value, tp.TypeVar):
+                    if isinstance(value, TypeVar):
                         val = MRO.Referal(owner=orig, typevar=val, value=Type.Missing)
                     else:
                         val = MRO.Referal(owner=orig, typevar=val, value=value)
@@ -250,7 +251,7 @@ class MRO:
         if self.args and not typevars and self.origin not in union_types:
             return tuple(self.type_cache.disassemble(arg) for arg in self.args)
 
-        found: set[tuple[type, tp.TypeVar | int]] = set()
+        found: set[tuple[type, TypeVar | int]] = set()
 
         for key, value in reversed(typevars):
             if isinstance(value, self.Referal):
@@ -281,18 +282,18 @@ class MRO:
 
         .. code-block:: python
 
-            import typing as tp
+            from typing import TypeVar, Generic
             import strcs
 
-            T = tp.TypeVar("T")
-            U = tp.TypeVar("U")
+            T = TypeVar("T")
+            U = TypeVar("U")
 
 
-            class One(tp.Generic[T]):
+            class One(Generic[T]):
                 pass
 
 
-            class Two(tp.Generic[U], One[U]):
+            class Two(Generic[U], One[U]):
                 pass
 
 
@@ -309,7 +310,7 @@ class MRO:
         string representation of the object it is wrapping.
         """
         found_with_missing: set[type] = set()
-        signature_typevars: list[tuple[tp.TypeVar | int, object]] = []
+        signature_typevars: list[tuple[TypeVar | int, object]] = []
         for (owner, tv), value in self.typevars.items():
             if value is Type.Missing and owner in self.bases:
                 found_with_missing.add(owner)
@@ -332,7 +333,7 @@ class MRO:
         return ", ".join(result)
 
     @memoized_property
-    def raw_fields(self) -> tp.Sequence[Field]:
+    def raw_fields(self) -> Sequence[Field]:
         """
         Return a sequence of :class:`strcs.Field` objects representing all the
         annotated fields on the class, including those it receives from it's
@@ -368,7 +369,7 @@ class MRO:
         return result
 
     @memoized_property
-    def fields(self) -> tp.Sequence[Field]:
+    def fields(self) -> Sequence[Field]:
         """
         Return a sequence of :class:`strcs.Field` objects representing the fields
         on the object, after resolving the type vars.
@@ -385,10 +386,10 @@ class MRO:
             field_type_info = self.type_cache.disassemble(field_type)
 
             extracted = field_type_info.extracted
-            if isinstance(extracted, tp.TypeVar):
+            if isinstance(extracted, TypeVar):
                 field_type = extracted
 
-            if isinstance(field_type, tp.TypeVar):
+            if isinstance(field_type, TypeVar):
                 replacement = typevars[
                     (self.type_cache.disassemble(field.original_owner).checkable, field_type)
                 ]
@@ -416,10 +417,10 @@ class MRO:
 
         .. code-block:: python
 
-            import typing as tp
+            from typing import TypeVar, Generic
             import strcs
 
-            T = tp.TypeVar("T")
+            T = TypeVar("T")
 
 
             class A:
@@ -434,7 +435,7 @@ class MRO:
                 pass
 
 
-            class One(tp.Generic[T]):
+            class One(Generic[T]):
                 pass
 
 

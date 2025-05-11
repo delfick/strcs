@@ -1,7 +1,7 @@
 import abc
-import typing as tp
 from collections import OrderedDict
 from collections.abc import Iterator
+from typing import Annotated, Generic, Optional, Protocol, TypeVar, Union
 
 import attrs
 import pytest
@@ -24,13 +24,13 @@ class MatchCheck:
     not_match: tuple[object, ...] = attrs.field(factory=lambda: ())
 
 
-class Expander(tp.Protocol):
+class Expander(Protocol):
     def __call__(
         self, checking: object, check_against: object
     ) -> Iterator[tuple[object, object, bool]]: ...
 
 
-class MatchAsserter(tp.Protocol):
+class MatchAsserter(Protocol):
     def __call__(
         self,
         *checks: MatchCheck,
@@ -78,11 +78,11 @@ class TestComparer:
         ):
             for dis in (
                 None,
-                tp.Annotated[None, "asdf"],
+                Annotated[None, "asdf"],
                 Dis(None).checkable,
                 type(None),
                 Dis(type(None)),
-                Dis(tp.Annotated[type(None), "asdf"]),
+                Dis(Annotated[type(None), "asdf"]),
                 Dis(type(None)).checkable,
             ):
                 assert comparer.distill(dis) == Distilled.valid(type(None))
@@ -103,18 +103,16 @@ class TestComparer:
             assert comparer.distill((int, str)) == Distilled.valid((int, str))
 
         def test_it_can_turn_an_optional_in_to_a_tuple(self, comparer: strcs.disassemble.Comparer):
-            assert comparer.distill(tp.Optional[int]) == Distilled.valid((int, type(None)))
-            assert comparer.distill(tp.Optional[int | str]) == Distilled.valid(
-                (str, int, type(None))
-            )
-            assert comparer.distill(tp.Annotated[int | str | None, "asdf"]) == Distilled.valid(
+            assert comparer.distill(Optional[int]) == Distilled.valid((int, type(None)))
+            assert comparer.distill(Optional[int | str]) == Distilled.valid((str, int, type(None)))
+            assert comparer.distill(Annotated[int | str | None, "asdf"]) == Distilled.valid(
                 (str, int, type(None))
             )
             assert comparer.distill(
-                tp.Annotated[int | tp.Annotated[str, "asdf"] | None, "asdf"]
+                Annotated[int | Annotated[str, "asdf"] | None, "asdf"]
             ) == Distilled.valid((str, int, type(None)))
             assert comparer.distill(
-                tp.Annotated[int | tp.Annotated[str | None, "asdf"] | None, "asdf"]
+                Annotated[int | Annotated[str | None, "asdf"] | None, "asdf"]
             ) == Distilled.valid((str, int, type(None)))
 
         def test_it_doesnt_confuse_int_and_boolean(
@@ -146,7 +144,7 @@ class TestComparer:
                 assert comparer.distill(Dis(thing)).original is thing
                 assert comparer.distill(Dis(thing).checkable).original is thing
                 chck = Dis(thing).checkable
-                want = tp.Annotated[chck, "asdf"]  # type: ignore[valid-type]
+                want = Annotated[chck, "asdf"]  # type: ignore[valid-type]
                 assert hasattr(want, "__args__")
                 assert want.__args__[0] is chck
                 assert comparer.distill(want).original is thing
@@ -181,21 +179,19 @@ class TestComparer:
                 assert comparer.distill(Dis(Dis(Dis(thing)).checkable)).original == expect
                 assert (
                     comparer.distill(
-                        tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
+                        Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
                     ).original
                     == expect
                 )
                 assert (
                     comparer.distill(
-                        Dis(tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"])
+                        Dis(Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"])
                     ).original
                     == expect
                 )
                 assert (
                     comparer.distill(
-                        Dis(
-                            tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
-                        ).checkable
+                        Dis(Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]).checkable
                     ).original
                     == expect
                 )
@@ -203,7 +199,7 @@ class TestComparer:
                     comparer.distill(
                         Dis(
                             Dis(
-                                tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
+                                Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
                             ).checkable
                         )
                     ).original
@@ -213,9 +209,9 @@ class TestComparer:
         def test_it_can_resolve_a_generic_to_its_original_type(
             self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
         ):
-            T = tp.TypeVar("T")
+            T = TypeVar("T")
 
-            class Thing(tp.Generic[T]):
+            class Thing(Generic[T]):
                 pass
 
             class Exact(ComparatorWithTypeRepr):
@@ -242,21 +238,19 @@ class TestComparer:
                 assert comparer.distill(Dis(Dis(Dis(thing)).checkable)).original == expect
                 assert (
                     comparer.distill(
-                        tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
+                        Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
                     ).original
                     == expect
                 )
                 assert (
                     comparer.distill(
-                        Dis(tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"])
+                        Dis(Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"])
                     ).original
                     == expect
                 )
                 assert (
                     comparer.distill(
-                        Dis(
-                            tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
-                        ).checkable
+                        Dis(Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]).checkable
                     ).original
                     == expect
                 )
@@ -264,7 +258,7 @@ class TestComparer:
                     comparer.distill(
                         Dis(
                             Dis(
-                                tp.Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
+                                Annotated[Dis(Dis(Dis(thing)).checkable).checkable, "asdf"]
                             ).checkable
                         )
                     ).original
@@ -279,17 +273,17 @@ class TestComparer:
 
             for typ in (int, str, bool, dict, list, set, Thing):
                 assert comparer.distill(Dis(typ)) == Distilled.valid(typ)
-                assert comparer.distill(Dis(tp.Union[typ, None])) == Distilled.valid(
+                assert comparer.distill(Dis(Union[typ, None])) == Distilled.valid(
                     (typ, type(None))
                 )
-                assert comparer.distill(Dis(tp.Annotated[typ | None, "asdf"])) == Distilled.valid(
+                assert comparer.distill(Dis(Annotated[typ | None, "asdf"])) == Distilled.valid(
                     (typ, type(None))
                 )
                 assert comparer.distill(
-                    tp.Union[Dis(tp.Annotated[typ | None, "asdf"]).checkable, None]
+                    Union[Dis(Annotated[typ | None, "asdf"]).checkable, None]
                 ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
-                    tp.Union[Dis(tp.Annotated[typ, "asdf"]).checkable, None]
+                    Union[Dis(Annotated[typ, "asdf"]).checkable, None]
                 ) == Distilled.valid((typ, type(None)))
 
         def test_it_can_get_the_type_from_a_strcsInstanceCheck_of_a_type(
@@ -300,17 +294,17 @@ class TestComparer:
 
             for typ in (int, str, bool, dict, list, set, Thing):
                 assert comparer.distill(Dis(typ).checkable) == Distilled.valid(typ)
-                assert comparer.distill(Dis(tp.Union[typ, None]).checkable) == Distilled.valid(
+                assert comparer.distill(Dis(Union[typ, None]).checkable) == Distilled.valid(
                     (typ, type(None))
                 )
                 assert comparer.distill(
-                    Dis(tp.Annotated[typ | None, "asdf"]).checkable
+                    Dis(Annotated[typ | None, "asdf"]).checkable
                 ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
-                    tp.Union[Dis(tp.Annotated[typ | None, "asdf"]).checkable, None]
+                    Union[Dis(Annotated[typ | None, "asdf"]).checkable, None]
                 ) == Distilled.valid((typ, type(None)))
                 assert comparer.distill(
-                    Dis(tp.Union[tp.Annotated[typ, "asdf"], None]).checkable
+                    Dis(Union[Annotated[typ, "asdf"], None]).checkable
                 ) == Distilled.valid((typ, type(None)))
 
         def test_it_can_get_the_type_from_strcsType_of_strcsType_of_strcsType_of_type(
@@ -321,8 +315,8 @@ class TestComparer:
 
             dis1 = Dis(Thing)
             dis2 = Dis(dis1)
-            dis3 = Dis(tp.Union[dis2.checkable, None])
-            dis4 = Dis(tp.Annotated[dis3.checkable, "asdf"])
+            dis3 = Dis(Union[dis2.checkable, None])
+            dis4 = Dis(Annotated[dis3.checkable, "asdf"])
             dis5 = Dis(dis4)
 
             for dis in (dis1, dis2, dis3, dis4, dis5):
@@ -343,10 +337,10 @@ class TestComparer:
         ):
             typ = int | str | bool
             assert comparer.distill(typ) == Distilled.valid((bool, str, int))
-            assert comparer.distill(tp.Union[typ, None]) == Distilled.valid(
+            assert comparer.distill(Union[typ, None]) == Distilled.valid(
                 (bool, str, int, type(None))
             )
-            assert comparer.distill(tp.Annotated[typ | None, "asdf"]) == Distilled.valid(
+            assert comparer.distill(Annotated[typ | None, "asdf"]) == Distilled.valid(
                 (bool, str, int, type(None))
             )
 
@@ -355,24 +349,24 @@ class TestComparer:
         def test_it_returns_class_of_generics(
             self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
         ):
-            T = tp.TypeVar("T")
+            T = TypeVar("T")
 
-            class Thing(tp.Generic[T]):
+            class Thing(Generic[T]):
                 pass
 
             for option in (Thing, Thing[int]):
                 for with_extra, expected, expected_generic in (
-                    (tp.Union[option, None], (Thing, type(None)), tp.Optional[option]),
-                    (tp.Annotated[option, "asdf"], Thing, option),
+                    (Union[option, None], (Thing, type(None)), Optional[option]),
+                    (Annotated[option, "asdf"], Thing, option),
                     (
-                        tp.Union[tp.Annotated[option, "asdf"], None],
+                        Union[Annotated[option, "asdf"], None],
                         (Thing, type(None)),
-                        tp.Optional[option],
+                        Optional[option],
                     ),
                     (
-                        tp.Union[tp.Annotated[option | None, "asdf"], None],
+                        Union[Annotated[option | None, "asdf"], None],
                         (Thing, type(None)),
-                        tp.Optional[option],
+                        Optional[option],
                     ),
                 ):
                     assert comparer.distill(with_extra) == Distilled.valid(
@@ -385,35 +379,35 @@ class TestComparer:
                         expected, as_generic=expected_generic
                     )
                     assert comparer.distill(
-                        tp.Union[Dis(with_extra).checkable, None]
-                    ) == Distilled.valid((Thing, type(None)), as_generic=tp.Optional[option])
+                        Union[Dis(with_extra).checkable, None]
+                    ) == Distilled.valid((Thing, type(None)), as_generic=Optional[option])
 
         def test_it_returns_tuple_of_generics(
             self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
         ):
-            T = tp.TypeVar("T")
+            T = TypeVar("T")
 
-            class Thing(tp.Generic[T]):
+            class Thing(Generic[T]):
                 pass
 
-            U = tp.TypeVar("U")
+            U = TypeVar("U")
 
-            class Stuff(tp.Generic[U]):
+            class Stuff(Generic[U]):
                 pass
 
             for option in (Thing | Stuff, Stuff[int] | Thing[str]):
                 for with_extra, expected, expected_generic in (
-                    (tp.Union[option, None], (Thing, Stuff, type(None)), tp.Optional[option]),
-                    (tp.Annotated[option, "asdf"], (Thing, Stuff), option),
+                    (Union[option, None], (Thing, Stuff, type(None)), Optional[option]),
+                    (Annotated[option, "asdf"], (Thing, Stuff), option),
                     (
-                        tp.Union[tp.Annotated[option, "asdf"], None],
+                        Union[Annotated[option, "asdf"], None],
                         (Thing, Stuff, type(None)),
-                        tp.Optional[option],
+                        Optional[option],
                     ),
                     (
-                        tp.Union[tp.Annotated[option | None, "asdf"], None],
+                        Union[Annotated[option | None, "asdf"], None],
                         (Thing, Stuff, type(None)),
-                        tp.Optional[option],
+                        Optional[option],
                     ),
                 ):
                     assert comparer.distill(with_extra) == Distilled.valid(
@@ -426,40 +420,38 @@ class TestComparer:
                         expected, as_generic=expected_generic
                     )
                     assert comparer.distill(
-                        tp.Union[Dis(with_extra).checkable, None]
-                    ) == Distilled.valid(
-                        (Thing, Stuff, type(None)), as_generic=tp.Optional[option]
-                    )
+                        Union[Dis(with_extra).checkable, None]
+                    ) == Distilled.valid((Thing, Stuff, type(None)), as_generic=Optional[option])
 
         def test_it_returns_tuple_of_complex_generics(
             self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
         ):
-            T = tp.TypeVar("T")
+            T = TypeVar("T")
 
-            class Thing(tp.Generic[T]):
+            class Thing(Generic[T]):
                 pass
 
-            U = tp.TypeVar("U")
+            U = TypeVar("U")
 
-            class Stuff(tp.Generic[U]):
+            class Stuff(Generic[U]):
                 pass
 
-            typ1: strcs.Type[object] = Dis(tp.Annotated[Thing[int], "adf"])
-            typ2: object = tp.Annotated[typ1.checkable, "asdf"]
+            typ1: strcs.Type[object] = Dis(Annotated[Thing[int], "adf"])
+            typ2: object = Annotated[typ1.checkable, "asdf"]
             typ3: strcs.Type[object] = Dis(Dis(typ2).checkable)
-            typ4: object = tp.Union[typ3.checkable, str]
+            typ4: object = Union[typ3.checkable, str]
 
             typ5: object = Stuff[dict]
-            typ6: strcs.Type[object] = Dis(tp.Annotated[typ5, "asdf"])
-            typ7: object = tp.Optional[typ6.checkable]
+            typ6: strcs.Type[object] = Dis(Annotated[typ5, "asdf"])
+            typ7: object = Optional[typ6.checkable]
             typ8: object = Dis(typ7).checkable
 
             typ9: object = Thing[typ6.checkable]  # type:ignore[name-defined]
 
-            assert comparer.distill(tp.Union[typ4, typ8, bool, typ9]) == Distilled(
+            assert comparer.distill(Union[typ4, typ8, bool, typ9]) == Distilled(
                 original=(Thing, Stuff, bool, str, type(None)),
                 is_valid=True,
-                as_generic=tp.Union[
+                as_generic=Union[
                     str,
                     bool,
                     Stuff[dict],
@@ -472,31 +464,29 @@ class TestComparer:
         def test_it_says_complex_stuff_is_valid_when_it_is(
             self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
         ):
-            provided = tp.Union[
-                tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
-            ]
+            provided = Union[Annotated[list[int], "str"], Annotated[int | str | None, '"hello']]
             assert comparer.distill(provided) == Distilled.valid(
-                (str, int, list, type(None)), as_generic=tp.Optional[str | int | list[int]]
+                (str, int, list, type(None)), as_generic=Optional[str | int | list[int]]
             )
 
-            assert comparer.distill(tp.Union[provided, dict]) == Distilled.valid(
+            assert comparer.distill(Union[provided, dict]) == Distilled.valid(
                 (str, int, list, dict, type(None)),
-                as_generic=tp.Optional[str | int | list[int] | dict],
+                as_generic=Optional[str | int | list[int] | dict],
             )
 
-            assert comparer.distill(Dis(tp.Union[provided, dict])) == Distilled.valid(
+            assert comparer.distill(Dis(Union[provided, dict])) == Distilled.valid(
                 (str, int, list, dict, type(None)),
-                as_generic=tp.Optional[str | int | list[int] | dict],
+                as_generic=Optional[str | int | list[int] | dict],
             )
 
             assert comparer.distill(
-                tp.Union[Dis(tp.Union[provided, dict]).checkable, None]
+                Union[Dis(Union[provided, dict]).checkable, None]
             ) == Distilled.valid(
                 (str, int, list, dict, type(None)),
-                as_generic=tp.Optional[str | int | list[int] | dict],
+                as_generic=Optional[str | int | list[int] | dict],
             )
 
-            assert comparer.distill(tp.Union[list[int], list[str]]) == Distilled.valid(
+            assert comparer.distill(Union[list[int], list[str]]) == Distilled.valid(
                 list, as_generic=list[int] | list[str]
             )
 
@@ -516,7 +506,7 @@ class TestComparer:
         ):
             dis1 = Dis({})
             dis2 = Dis(dis1)
-            dis3 = Dis(tp.Annotated[dis2.checkable, "asdf"])
+            dis3 = Dis(Annotated[dis2.checkable, "asdf"])
             dis4 = Dis(dis3)
 
             for dis in (dis1, dis2, dis3, dis4):
@@ -549,31 +539,31 @@ class TestComparer:
                 assert not comparer.issubclass(Dis(a), b)
                 assert not comparer.issubclass(a, Dis(b))
                 assert not comparer.issubclass(Dis(a), Dis(b))
-                assert not comparer.issubclass(tp.Union[Dis(a).checkable, None], Dis(b))
+                assert not comparer.issubclass(Union[Dis(a).checkable, None], Dis(b))
                 assert not comparer.issubclass(
-                    tp.Union[Dis(a).checkable, None], tp.Union[Dis(b).checkable, None]
+                    Union[Dis(a).checkable, None], Union[Dis(b).checkable, None]
                 )
-                assert not comparer.issubclass(Dis(a).checkable, tp.Union[Dis(b).checkable, None])
+                assert not comparer.issubclass(Dis(a).checkable, Union[Dis(b).checkable, None])
 
         def test_it_match_with_generic_vars(
             self, Dis: Disassembler, comparer: strcs.disassemble.Comparer
         ):
-            T = tp.TypeVar("T")
-            U = tp.TypeVar("U")
+            T = TypeVar("T")
+            U = TypeVar("U")
 
-            class Thing(tp.Generic[T, U]):
+            class Thing(Generic[T, U]):
                 pass
 
-            class Other(tp.Generic[T, U], Thing[T, U]):
+            class Other(Generic[T, U], Thing[T, U]):
                 pass
 
-            class Another(tp.Generic[T, U]):
+            class Another(Generic[T, U]):
                 pass
 
-            class More(tp.Generic[T]):
+            class More(Generic[T]):
                 pass
 
-            class Most(tp.Generic[T]):
+            class Most(Generic[T]):
                 pass
 
             for comparing, comparing_to in [
@@ -586,7 +576,7 @@ class TestComparer:
                 (Thing[int | None, str], Thing),
                 (Thing[int | None, str], Thing[int, str]),
                 (Thing[int, str], Thing[int | None, str]),
-                (Thing[tp.Annotated[bool, "asdf"], str], Thing[int, str]),
+                (Thing[Annotated[bool, "asdf"], str], Thing[int, str]),
             ]:
                 assert comparer.issubclass(comparing, comparing_to)
                 assert comparer.issubclass(Dis(comparing), comparing_to)
@@ -599,7 +589,7 @@ class TestComparer:
                 assert comparer.issubclass(comparing, Dis(comparing_to).checkable)
 
             for comparing, comparing_to in [
-                (Thing[tp.Annotated[int, "asdf"], str], Thing[bool, str]),
+                (Thing[Annotated[int, "asdf"], str], Thing[bool, str]),
                 (Other[str, str], Thing[int, str]),
                 *[(Thing, other) for other in (Other, Another, More, Most)],
                 *[(other, Thing) for other in (Another, More, Most)],
@@ -617,7 +607,7 @@ class TestComparer:
                 assert not comparer.issubclass(comparing, Dis(comparing_to).checkable)
 
     class TestIsinstance:
-        class IsInstanceAsserter(tp.Protocol):
+        class IsInstanceAsserter(Protocol):
             def __call__(
                 self,
                 val: object,
@@ -647,7 +637,7 @@ class TestComparer:
 
                 round_one = [Dis(typ), Dis(typ).checkable]
                 if isinstance(typ, type):
-                    round_one.append(Dis(tp.Annotated[typ, "asdf"]))
+                    round_one.append(Dis(Annotated[typ, "asdf"]))
 
                 for dis in round_one:
                     assert maybe_reverse(comparer.isinstance(val, dis))
@@ -660,10 +650,10 @@ class TestComparer:
                     return
 
                 for dis in [
-                    Dis(tp.Union[typ, None]),
-                    Dis(tp.Annotated[typ | None, "asdf"]),
-                    tp.Union[Dis(tp.Annotated[typ | None, "asdf"]).checkable, None],
-                    tp.Union[Dis(tp.Annotated[typ, "asdf"]).checkable, None],
+                    Dis(Union[typ, None]),
+                    Dis(Annotated[typ | None, "asdf"]),
+                    Union[Dis(Annotated[typ | None, "asdf"]).checkable, None],
+                    Union[Dis(Annotated[typ, "asdf"]).checkable, None],
                 ]:
                     assert maybe_reverse(comparer.isinstance(val, dis))
                     assert comparer.isinstance(None, dis)
@@ -688,9 +678,9 @@ class TestComparer:
                 assertIsInstance(val, typ)
 
         def test_it_works_on_classes(self, assertIsInstance: IsInstanceAsserter):
-            T = tp.TypeVar("T")
+            T = TypeVar("T")
 
-            class Thing(tp.Generic[T]):
+            class Thing(Generic[T]):
                 pass
 
             thing: Thing[int] = Thing()
@@ -698,7 +688,7 @@ class TestComparer:
             assertIsInstance(thing, Thing[int])
             assertIsInstance(thing, Thing[str])
 
-            class Other(tp.Generic[T], Thing[T]):
+            class Other(Generic[T], Thing[T]):
                 pass
 
             assertIsInstance(thing, Other, reverse=True)
@@ -786,27 +776,27 @@ class TestComparer:
 
                 yield (
                     checking,
-                    tp.Union[check_against_type, None],
+                    Union[check_against_type, None],
                     True,
                 )
                 yield (
-                    tp.Annotated[Dis(checking).checkable, "asdf"],
-                    tp.Union[check_against_type, None],
+                    Annotated[Dis(checking).checkable, "asdf"],
+                    Union[check_against_type, None],
                     True,
                 )
                 yield (
-                    Dis(tp.Annotated[checking_type, "asdf"]),
-                    Dis(tp.Union[check_against_type, None]),
+                    Dis(Annotated[checking_type, "asdf"]),
+                    Dis(Union[check_against_type, None]),
                     True,
                 )
                 yield (
-                    Dis(tp.Annotated[checking_type, "asdf"]).checkable,
-                    Dis(tp.Union[check_against_type, None]).checkable,
+                    Dis(Annotated[checking_type, "asdf"]).checkable,
+                    Dis(Union[check_against_type, None]).checkable,
                     True,
                 )
                 yield (
-                    Dis(Dis(tp.Annotated[checking_type, "asdf"]).checkable),
-                    Dis(Dis(tp.Union[check_against_type, None]).checkable),
+                    Dis(Dis(Annotated[checking_type, "asdf"]).checkable),
+                    Dis(Dis(Union[check_against_type, None]).checkable),
                     True,
                 )
 

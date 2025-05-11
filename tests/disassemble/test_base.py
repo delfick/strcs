@@ -3,8 +3,9 @@ import functools
 import inspect
 import re
 import types
-import typing as tp
 from collections import OrderedDict
+from collections.abc import Callable
+from typing import Annotated, Generic, NewType, Optional, TypeVar, Union
 
 import attrs
 import pytest
@@ -27,7 +28,7 @@ class Partial:
     got: object
     equals: bool
 
-    def __init__(self, func: tp.Callable, *args: object):
+    def __init__(self, func: Callable, *args: object):
         self.func = func
         self.args = args
 
@@ -52,8 +53,8 @@ class Partial:
         return repr(self.got)
 
 
-T = tp.TypeVar("T")
-U = tp.TypeVar("U")
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 class TestType:
@@ -91,7 +92,7 @@ class TestType:
     def test_it_doesnt_overcome_python_limitations_with_annotating_None_and_thinks_we_annotated_type_of_None(
         self, type_cache: strcs.TypeCache
     ):
-        provided = tp.Annotated[None, 1]
+        provided = Annotated[None, 1]
         disassembled = Type.create(provided, expect=type(None), cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is False
@@ -186,9 +187,7 @@ class TestType:
         assert disassembled.for_display() == "str | int"
 
     def test_it_works_on_a_complicated_union(self, type_cache: strcs.TypeCache):
-        provided = tp.Union[
-            tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
-        ]
+        provided = Union[Annotated[list[int], "str"], Annotated[int | str | None, '"hello']]
         disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is False
@@ -210,8 +209,8 @@ class TestType:
         assert disassembled.without_annotation == provided
         assert disassembled.without_optional == provided
         assert disassembled.nonoptional_union_types == (
-            tp.Annotated[int | str | None, '"hello'],
-            tp.Annotated[list[int], "str"],
+            Annotated[int | str | None, '"hello'],
+            Annotated[list[int], "str"],
         )
         assert disassembled.fields == []
         assert disassembled.fields_from == provided
@@ -232,7 +231,7 @@ class TestType:
         )
 
     def test_it_works_on_a_typing_union(self, type_cache: strcs.TypeCache):
-        provided = tp.Union[int, str]
+        provided = Union[int, str]
         disassembled = Type.create(provided, expect=types.UnionType, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is False
@@ -326,7 +325,7 @@ class TestType:
 
     def test_it_works_on_annotated_simple_type(self, type_cache: strcs.TypeCache):
         anno = "hello"
-        provided = tp.Annotated[int, anno]
+        provided = Annotated[int, anno]
         disassembled = Type.create(provided, expect=int, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is False
@@ -341,7 +340,7 @@ class TestType:
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == int
-        assert disassembled.without_optional == tp.Annotated[int, anno]
+        assert disassembled.without_optional == Annotated[int, anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == int
@@ -356,7 +355,7 @@ class TestType:
 
     def test_it_works_on_optional_annotated_simple_type(self, type_cache: strcs.TypeCache):
         anno = "hello"
-        provided = tp.Annotated[int | None, anno]
+        provided = Annotated[int | None, anno]
         disassembled = Type.create(provided, expect=int, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -373,7 +372,7 @@ class TestType:
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == int | None
-        assert disassembled.without_optional == tp.Annotated[int, anno]
+        assert disassembled.without_optional == Annotated[int, anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == int
@@ -485,7 +484,7 @@ class TestType:
     def test_it_works_on_optional_builtin_container_to_multiple_simple_types(
         self, type_cache: strcs.TypeCache
     ):
-        provided = tp.Optional[dict[str, int]]
+        provided = Optional[dict[str, int]]
         disassembled = Type.create(provided, expect=dict, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -520,7 +519,7 @@ class TestType:
         self, type_cache: strcs.TypeCache
     ):
         anno = "stuff"
-        provided = tp.Annotated[dict[str, int] | None, anno]
+        provided = Annotated[dict[str, int] | None, anno]
         disassembled = Type.create(provided, expect=dict, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -538,7 +537,7 @@ class TestType:
         assert disassembled.annotated is provided
         assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int] | None
-        assert disassembled.without_optional == tp.Annotated[dict[str, int], anno]
+        assert disassembled.without_optional == Annotated[dict[str, int], anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
@@ -555,7 +554,7 @@ class TestType:
         self, type_cache: strcs.TypeCache
     ):
         anno = "stuff"
-        provided = tp.Optional[tp.Annotated[dict[str, int], anno]]
+        provided = Optional[Annotated[dict[str, int], anno]]
         disassembled = Type.create(provided, expect=dict, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -570,10 +569,10 @@ class TestType:
         )
         assert disassembled.annotations == (anno,)
         assert disassembled.is_annotated
-        assert disassembled.annotated is tp.Annotated[dict[str, int], anno]
+        assert disassembled.annotated is Annotated[dict[str, int], anno]
         assert disassembled.mro.all_vars == (str, int)
         assert disassembled.without_annotation == dict[str, int] | None
-        assert disassembled.without_optional == tp.Annotated[dict[str, int], anno]
+        assert disassembled.without_optional == Annotated[dict[str, int], anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from == dict
@@ -764,19 +763,19 @@ class TestType:
     def test_it_works_on_class_with_complicated_hierarchy(
         self, type_cache: strcs.TypeCache, Dis: Disassembler
     ):
-        assert isinstance(T, tp.TypeVar)
+        assert isinstance(T, TypeVar)
 
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             def __init__(self, one: int, two: str):
                 self.one = one
                 self.two = two
 
-        class Stuff(tp.Generic[T], Thing[int, T]):
+        class Stuff(Generic[T], Thing[int, T]):
             def __init__(self, one: int, two: str, three: bool):
                 super().__init__(one, two)
                 self.three = three
 
-        class Blah(tp.Generic[U], Stuff[str]):
+        class Blah(Generic[U], Stuff[str]):
             pass
 
         class Meh(Blah[bool]):
@@ -841,7 +840,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing, anno]
+        provided = Annotated[Thing, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is False
@@ -856,7 +855,7 @@ class TestType:
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == Thing
-        assert disassembled.without_optional == tp.Annotated[Thing, anno]
+        assert disassembled.without_optional == Annotated[Thing, anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, disassembled_type=Dis(int)),
@@ -892,7 +891,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing | None, anno]
+        provided = Annotated[Thing | None, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -909,7 +908,7 @@ class TestType:
         assert disassembled.is_annotated
         assert disassembled.annotated is provided
         assert disassembled.without_annotation == Thing | None
-        assert disassembled.without_optional == tp.Annotated[Thing, anno]
+        assert disassembled.without_optional == Annotated[Thing, anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, disassembled_type=Dis(int)),
@@ -939,13 +938,13 @@ class TestType:
         self, type_cache: strcs.TypeCache, Dis: Disassembler
     ):
         @dataclasses.dataclass
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             one: T
             two: U
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing[int, str] | None, anno]
+        provided = Annotated[Thing[int, str] | None, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -963,7 +962,7 @@ class TestType:
         assert disassembled.annotated is provided
         assert disassembled.mro.all_vars == (int, str)
         assert disassembled.without_annotation == Thing[int, str] | None
-        assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
+        assert disassembled.without_optional == Annotated[Thing[int, str], anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, disassembled_type=Dis(int)),
@@ -993,13 +992,13 @@ class TestType:
         self, type_cache: strcs.TypeCache, Dis: Disassembler
     ):
         @attrs.define
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             one: T
             two: U
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing | None, anno]
+        provided = Annotated[Thing | None, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -1017,7 +1016,7 @@ class TestType:
         assert disassembled.annotated is provided
         assert disassembled.mro.all_vars == (strcs.Type.Missing, strcs.Type.Missing)
         assert disassembled.without_annotation == Thing | None
-        assert disassembled.without_optional == tp.Annotated[Thing, anno]
+        assert disassembled.without_optional == Annotated[Thing, anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, disassembled_type=Dis(object)),
@@ -1047,13 +1046,13 @@ class TestType:
         self, type_cache: strcs.TypeCache, Dis: Disassembler
     ):
         @attrs.define
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             one: T
             two: U
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing[int, str] | None, anno]
+        provided = Annotated[Thing[int, str] | None, anno]
         disassembled = Type.create(provided, expect=Thing, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -1071,7 +1070,7 @@ class TestType:
         assert disassembled.annotated is provided
         assert disassembled.mro.all_vars == (strcs.Type.Missing, strcs.Type.Missing)
         assert disassembled.without_annotation == Thing[int, str] | None
-        assert disassembled.without_optional == tp.Annotated[Thing[int, str], anno]
+        assert disassembled.without_optional == Annotated[Thing[int, str], anno]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == [
             Field(name="one", owner=Thing, disassembled_type=Dis(int)),
@@ -1155,10 +1154,10 @@ class TestType:
             assert not disassembled.is_equivalent_type_for(bool)
 
     def test_it_works_with_primitive_NewType(self, type_cache: strcs.TypeCache, Dis: Disassembler):
-        MyInt = tp.NewType("MyInt", int)
-        MyIntSuper = tp.NewType("MyIntSuper", MyInt)
-        MyStr = tp.NewType("MyStr", str)
-        MyOtherInt = tp.NewType("MyOtherInt", int)
+        MyInt = NewType("MyInt", int)
+        MyIntSuper = NewType("MyIntSuper", MyInt)
+        MyStr = NewType("MyStr", str)
+        MyOtherInt = NewType("MyOtherInt", int)
 
         provided = MyInt
         disassembled = Type.create(provided, expect=MyInt, cache=type_cache)
@@ -1215,10 +1214,10 @@ class TestType:
         assert disassembled.for_display() == "MyInt"
 
     def test_it_works_with_wrapped_NewType(self, type_cache: strcs.TypeCache, Dis: Disassembler):
-        MyInt = tp.NewType("MyInt", int)
-        MyOtherInt = tp.NewType("MyOtherInt", int)
+        MyInt = NewType("MyInt", int)
+        MyOtherInt = NewType("MyOtherInt", int)
 
-        provided = tp.Annotated[MyInt | None, "asdf"] | None
+        provided = Annotated[MyInt | None, "asdf"] | None
         disassembled = Type.create(provided, expect=MyInt, cache=type_cache)
         assert disassembled.original is provided
         assert disassembled.optional is True
@@ -1236,10 +1235,10 @@ class TestType:
 
         assert disassembled.annotations == ("asdf",)
         assert disassembled.is_annotated
-        assert disassembled.annotated == tp.Annotated[MyInt | None, "asdf"]
+        assert disassembled.annotated == Annotated[MyInt | None, "asdf"]
         assert disassembled.mro.all_vars == ()
         assert disassembled.without_annotation == MyInt | None
-        assert disassembled.without_optional == tp.Annotated[MyInt, "asdf"]
+        assert disassembled.without_optional == Annotated[MyInt, "asdf"]
         assert disassembled.nonoptional_union_types == ()
         assert disassembled.fields == []
         assert disassembled.fields_from is MyInt
@@ -1264,7 +1263,7 @@ class TestGettingFields:
 
         @attrs.define
         class Thing:
-            stuff: tp.Optional["Stuff"]
+            stuff: Optional["Stuff"]
 
         resolve_types(Thing, globals(), locals(), type_cache=type_cache)
 
@@ -1402,7 +1401,7 @@ class TestAnnotations:
     def test_it_can_return_an_annotation_with_new_creator(self, Dis: Disassembler):
         def creator(value: object, /, _meta: strcs.Meta): ...
 
-        ann = Dis(tp.Annotated[int, creator]).ann
+        ann = Dis(Annotated[int, creator]).ann
         assert isinstance(ann, strcs.Ann)
         assert ann.creator is creator
 
@@ -1417,7 +1416,7 @@ class TestAnnotations:
                 return meta.clone({"one": 1})
 
         adjustment = AdjustMeta()
-        ann = Dis(tp.Annotated[int, adjustment]).ann
+        ann = Dis(Annotated[int, adjustment]).ann
         assert ann is adjustment
         assert isinstance(ann, strcs.AdjustableMeta)
 
@@ -1434,7 +1433,7 @@ class TestAnnotations:
             three: str
 
         info = Info(three="three")
-        ann = Dis(tp.Annotated[int, info]).ann
+        ann = Dis(Annotated[int, info]).ann
         assert isinstance(ann, strcs.Ann), ann
         assert ann.creator is None
         assert ann.meta is info
@@ -1452,7 +1451,7 @@ class TestAnnotations:
             three: str
 
         info = Info(three="three")
-        ann = Dis(tp.Annotated[int, info]).ann
+        ann = Dis(Annotated[int, info]).ann
         assert isinstance(ann, strcs.Ann), ann
         assert ann.creator is None
         assert ann.meta is info
@@ -1477,7 +1476,7 @@ class TestAnnotations:
                 return meta.clone({"one": 1})
 
         a = A(creator=creator2)
-        ann = Dis(tp.Annotated[int, a]).ann
+        ann = Dis(Annotated[int, a]).ann
         assert isinstance(ann, strcs.Ann), ann
         assert ann is a
 
@@ -1495,7 +1494,7 @@ class TestEquality:
         typ = Dis(int)
         assert typ == strcs.Type.Missing
 
-        typ2 = Dis(tp.Annotated[None, 1])
+        typ2 = Dis(Annotated[None, 1])
         assert typ2 == strcs.Type.Missing
 
         class Thing:
@@ -1516,7 +1515,7 @@ class TestEquality:
         class Thing:
             pass
 
-        typ3 = Dis(tp.Annotated[Thing, 1])
+        typ3 = Dis(Annotated[Thing, 1])
         assert typ3 == Thing
         assert typ3 == typ3.checkable
         assert typ3 != typ2.checkable
@@ -1537,7 +1536,7 @@ class TestEquality:
         class Thing:
             pass
 
-        typ3 = Dis(tp.Annotated[Thing | None, 1])
+        typ3 = Dis(Annotated[Thing | None, 1])
         assert typ3 == Thing
         assert typ3 == nun
         assert typ3 == typ3.checkable
@@ -1564,7 +1563,7 @@ class TestEquality:
         class Thing:
             pass
 
-        typ3 = Dis(tp.Annotated[Thing | bool | None, 1])
+        typ3 = Dis(Annotated[Thing | bool | None, 1])
         assert typ3 == Thing
         assert typ3 == nun
         assert typ3 != str
@@ -1589,9 +1588,9 @@ class TestFindingProvidedSubtype:
         class ItemC(Item):
             pass
 
-        I = tp.TypeVar("I", bound=Item)
+        I = TypeVar("I", bound=Item)
 
-        class Container(tp.Generic[I]):
+        class Container(Generic[I]):
             pass
 
         container_a = Dis(Container[ItemA])
@@ -1621,10 +1620,10 @@ class TestFindingProvidedSubtype:
         class TwoB(Two):
             pass
 
-        O = tp.TypeVar("O", bound=One)
-        T = tp.TypeVar("T", bound=Two)
+        O = TypeVar("O", bound=One)
+        T = TypeVar("T", bound=Two)
 
-        class Container(tp.Generic[O, T]):
+        class Container(Generic[O, T]):
             pass
 
         container_a = Dis(Container[OneA, TwoB])
@@ -1652,10 +1651,10 @@ class TestFindingProvidedSubtype:
         class TwoB(Two):
             pass
 
-        O = tp.TypeVar("O", bound=One)
-        T = tp.TypeVar("T", bound=Two)
+        O = TypeVar("O", bound=One)
+        T = TypeVar("T", bound=Two)
 
-        class Container(tp.Generic[O, T]):
+        class Container(Generic[O, T]):
             pass
 
         container_a = Dis(Container[OneA, TwoA])
@@ -1674,9 +1673,9 @@ class TestFindingProvidedSubtype:
         class OneB(One):
             pass
 
-        O = tp.TypeVar("O", bound=One)
+        O = TypeVar("O", bound=One)
 
-        class Container(tp.Generic[O]):
+        class Container(Generic[O]):
             pass
 
         container_a = Dis(Container[OneA])
@@ -1698,9 +1697,9 @@ class TestFindingProvidedSubtype:
         class OneB(One):
             pass
 
-        O = tp.TypeVar("O", bound=One)
+        O = TypeVar("O", bound=One)
 
-        class Container(tp.Generic[O]):
+        class Container(Generic[O]):
             pass
 
         container_a = Dis(Container[OneA])

@@ -1,9 +1,10 @@
 import abc
-import typing as tp
+import typing
+from typing import TYPE_CHECKING
 
 from ..standard import union_types
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ._base import Type
 
 
@@ -117,8 +118,8 @@ def create_checkable(disassembled: "Type") -> type[InstanceCheck]:
     Meta.disassembled = disassembled
     check_against: object | None
 
-    if tp.get_origin(Meta.extracted) in union_types:
-        check_against = tuple(disassembled.disassemble(a) for a in tp.get_args(Meta.extracted))
+    if typing.get_origin(Meta.extracted) in union_types:
+        check_against = tuple(disassembled.disassemble(a) for a in typing.get_args(Meta.extracted))
 
         reprstr = " | ".join(repr(c) for c in check_against)
 

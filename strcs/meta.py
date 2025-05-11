@@ -1,7 +1,7 @@
 import fnmatch
 import inspect
-import typing as tp
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
+from typing import Protocol, TypeVar, cast, overload
 
 import attrs
 import cattrs
@@ -9,15 +9,15 @@ import cattrs
 from . import errors
 from .disassemble import TypeCache
 
-T = tp.TypeVar("T")
-U = tp.TypeVar("U")
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 class Empty:
     pass
 
 
-class NarrowCB(tp.Protocol):
+class NarrowCB(Protocol):
     def __call__(self, *patterns: str, obj: Mapping | object = Empty) -> dict[str, object]: ...
 
 
@@ -98,8 +98,8 @@ class Narrower:
     def __init__(self, obj: Mapping | object):
         self.obj = obj
 
-    def keys_from(self, options: object) -> tp.Iterable[str]:
-        if isinstance(options, Mapping | tp.Iterable):
+    def keys_from(self, options: object) -> Iterable[str]:
+        if isinstance(options, Mapping | Iterable):
             yield from iter(options)
         else:
             yield from [n for n in dir(options) if not n.startswith("_")]
@@ -117,7 +117,7 @@ class Narrower:
                 pattern = pattern[1:]
             for n in self.keys_from(obj):
                 if progress.obj_is_mapping:
-                    v = tp.cast(Mapping, obj)[n]
+                    v = cast(Mapping, obj)[n]
                 else:
                     v = getattr(obj, n)
 
@@ -153,8 +153,8 @@ class Meta:
 
     def clone(
         self,
-        data_extra: tp.Mapping[str, object] | None = None,
-        data_override: tp.Mapping[str, object] | None = None,
+        data_extra: Mapping[str, object] | None = None,
+        data_override: Mapping[str, object] | None = None,
         converter: cattrs.Converter | None = None,
     ) -> "Meta":
         if converter is None:
@@ -185,7 +185,7 @@ class Meta:
     def find_by_type(
         self,
         typ: object,
-        data: tp.Mapping[str, object] | type[Empty] = Empty,
+        data: Mapping[str, object] | type[Empty] = Empty,
         *,
         remove_nones: bool = True,
         type_cache: TypeCache | None,
@@ -193,7 +193,7 @@ class Meta:
         """
         Return (optional, found)
 
-        Where optional is True if the type is a tp.Optional and found is a dictionary
+        Where optional is True if the type is a Optional and found is a dictionary
         of names in Meta to the found data for that name, which matches the specified type
         """
         if type_cache is None:
@@ -202,7 +202,7 @@ class Meta:
         if data is Empty:
             data = self.data
 
-        data = tp.cast(dict[str, object], data)
+        data = cast(dict[str, object], data)
 
         if typ is object:
             return False, data
@@ -241,7 +241,7 @@ class Meta:
         _, found = self.find_by_type(typ, data=data, type_cache=type_cache)
         return found
 
-    @tp.overload
+    @overload
     def retrieve_one(
         self,
         typ: type[T],
@@ -251,7 +251,7 @@ class Meta:
         type_cache: TypeCache | None,
     ) -> T: ...
 
-    @tp.overload
+    @overload
     def retrieve_one(
         self,
         typ: object,
@@ -288,7 +288,7 @@ class Meta:
             if with_patterns or typ is object:
                 data = with_patterns
             elif default is not inspect._empty:
-                return tp.cast(T, default)
+                return cast(T, default)
 
         optional, found = self.find_by_type(typ, data=data, type_cache=type_cache)
 
@@ -296,7 +296,7 @@ class Meta:
             raise errors.FoundWithWrongType(patterns=list(patterns), want=typ)
 
         if optional and not found:
-            return tp.cast(T, None)
+            return cast(T, None)
 
         if len(found) == 1:
             for thing in found.values():
@@ -306,7 +306,7 @@ class Meta:
             raise errors.MultipleNamesForType(want=typ, found=sorted(found))
 
         if default is not inspect._empty:
-            return tp.cast(T, default)
+            return cast(T, default)
 
         raise errors.NoDataByTypeName(
             want=typ,

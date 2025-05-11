@@ -1,4 +1,4 @@
-import typing as tp
+from typing import Annotated
 
 import attrs
 
@@ -30,10 +30,10 @@ class Sentence:
 
 @attrs.define
 class Overall:
-    one: tp.Annotated[Number, NumberAnnotation(add=12)]
-    two: tp.Annotated[Number, NumberAnnotation(add=10)]
+    one: Annotated[Number, NumberAnnotation(add=12)]
+    two: Annotated[Number, NumberAnnotation(add=10)]
 
-    three: tp.Annotated[Sentence, SentenceAnnotation(prefix="stuff")]
+    three: Annotated[Sentence, SentenceAnnotation(prefix="stuff")]
     four: Sentence
 
 

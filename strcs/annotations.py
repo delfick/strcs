@@ -19,7 +19,7 @@ Callable objects will also be turned into a ``strcs.Ann`` by treating the callab
 object as a creator override.
 """
 
-import typing as tp
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast, runtime_checkable
 
 import attrs
 
@@ -32,14 +32,14 @@ from .decorator import (
 from .disassemble import Type, TypeCache
 from .meta import Meta
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from .register import CreateRegister
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
-@tp.runtime_checkable
-class AdjustableMeta(tp.Protocol[T]):
+@runtime_checkable
+class AdjustableMeta(Protocol[T]):
     """
     An interface used to modify the meta object when creating a field.
 
@@ -55,8 +55,8 @@ class AdjustableMeta(tp.Protocol[T]):
     def adjusted_meta(self, meta: Meta, typ: Type[T], type_cache: TypeCache) -> Meta: ...
 
 
-@tp.runtime_checkable
-class AdjustableCreator(tp.Protocol[T]):
+@runtime_checkable
+class AdjustableCreator(Protocol[T]):
     """
     An interface used to modify the creator used when creating a field.
 
@@ -105,7 +105,7 @@ class MetaAnnotation:
     .. code-block:: python
 
         import attrs
-        import typing as tp
+        from typing import Annotated
         import strcs
 
         reg = strcs.CreateRegister()
@@ -120,7 +120,7 @@ class MetaAnnotation:
 
         @attrs.define
         class MyKls:
-            key: tp.Annotated[str, MyAnnotation(one=1, two=2)]
+            key: Annotated[str, MyAnnotation(one=1, two=2)]
 
 
         @creator(MyKls)
@@ -147,7 +147,7 @@ class MergedMetaAnnotation:
     .. code-block:: python
 
         import attrs
-        import typing as tp
+        from typing import Annotated
         import strcs
 
         reg = strcs.CreateRegister()
@@ -162,7 +162,7 @@ class MergedMetaAnnotation:
 
         @attrs.define
         class MyKls:
-            key: tp.Annotated[str, MyAnnotation(one=1, two=2)]
+            key: Annotated[str, MyAnnotation(one=1, two=2)]
 
 
 
@@ -193,7 +193,7 @@ class MergedMetaAnnotation:
     """
 
 
-class Ann(tp.Generic[T]):
+class Ann(Generic[T]):
     """
     A concrete implementation of both ``strcs.AdjustedMeta`` and
     ``strcs.AdjustedCreator``.
@@ -270,7 +270,7 @@ class FromMeta:
     .. code-block:: python
 
         import attrs
-        import typing as tp
+        from typing import Annotated
         import strcs
 
         reg = strcs.CreateRegister()
@@ -284,7 +284,7 @@ class FromMeta:
 
         @attrs.define
         class Wizard:
-            magic: tp.Annotated[Magic, strcs.FromMeta("magic")]
+            magic: Annotated[Magic, strcs.FromMeta("magic")]
 
 
         wizard = reg.create(Wizard, meta=reg.meta({"magic": Magic()}))
@@ -305,7 +305,7 @@ class FromMeta:
         type_cache: TypeCache,
     ) -> ConvertFunction[T] | None:
         def retrieve(value: object, /, _meta: Meta) -> ConvertResponse[T]:
-            return tp.cast(T, _meta.retrieve_one(object, "retrieved", type_cache=type_cache))
+            return cast(T, _meta.retrieve_one(object, "retrieved", type_cache=type_cache))
 
         a = Ann[T](creator=retrieve)
         return a.adjusted_creator(creator, register, typ, type_cache)

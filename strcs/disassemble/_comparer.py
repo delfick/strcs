@@ -1,6 +1,7 @@
 import functools
 import operator
-import typing as tp
+import typing
+from typing import TYPE_CHECKING, Annotated, NewType, Optional, cast
 
 import attrs
 
@@ -8,7 +9,7 @@ from ..errors import NotValidType
 from ..standard import union_types
 from ._instance_check import InstanceCheckMeta
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ._base import Type
     from ._cache import TypeCache
 
@@ -20,13 +21,13 @@ class Distilled:
     original: object
     is_valid: bool
     as_generic: object | None = None
-    new_type_path: list[tp.NewType] | None = None
+    new_type_path: list[NewType] | None = None
 
     @property
     def classinfo(self) -> type | tuple[type, ...]:
         if not self.is_valid:
             raise NotValidType()
-        return tp.cast(type | tuple[type, ...], self.original)
+        return cast(type | tuple[type, ...], self.original)
 
     @property
     def as_tuple(self) -> tuple[type, ...]:
@@ -41,7 +42,7 @@ class Distilled:
         cls,
         original: object,
         *,
-        new_type_path: list[tp.NewType] | None = None,
+        new_type_path: list[NewType] | None = None,
         as_generic: object | None = None,
     ) -> "Distilled":
         return cls(
@@ -56,7 +57,7 @@ class Distilled:
         cls,
         original: object,
         *,
-        new_type_path: list[tp.NewType] | None = None,
+        new_type_path: list[NewType] | None = None,
         as_generic: object | None = None,
     ) -> "Distilled":
         return cls(
@@ -71,7 +72,7 @@ class Distilled:
         cls,
         classinfo: object,
         *,
-        new_type_path: list[tp.NewType] | None = None,
+        new_type_path: list[NewType] | None = None,
         as_generic: object | None = None,
         comparer: "Comparer",
         _chain: list[object] | None = None,
@@ -94,8 +95,8 @@ class Distilled:
         optional: bool = False
 
         while (
-            issubclass(classinfo_type := type(classinfo), InstanceCheckMeta | Type | tp.NewType)
-            or tp.get_origin(classinfo) is tp.Annotated
+            issubclass(classinfo_type := type(classinfo), InstanceCheckMeta | Type | NewType)
+            or typing.get_origin(classinfo) is Annotated
         ):
             if issubclass(classinfo_type, InstanceCheckMeta):
                 assert hasattr(classinfo, "Meta")
@@ -107,12 +108,12 @@ class Distilled:
                 assert hasattr(classinfo, "optional")
                 optional = optional or classinfo.optional
                 classinfo = classinfo.extracted
-            elif tp.get_origin(classinfo) is tp.Annotated:
-                args = tp.get_args(classinfo)
+            elif typing.get_origin(classinfo) is Annotated:
+                args = typing.get_args(classinfo)
                 assert len(args) > 0
                 classinfo = args[0]
-            elif issubclass(classinfo_type, tp.NewType):
-                assert isinstance(classinfo, tp.NewType)
+            elif issubclass(classinfo_type, NewType):
+                assert isinstance(classinfo, NewType)
                 new_type_path.append(classinfo)
                 classinfo = classinfo.__supertype__
 
@@ -131,7 +132,7 @@ class Distilled:
             as_generic = disassembled.extracted
             if (
                 issubclass(type(as_generic), InstanceCheckMeta | Type)
-                or tp.get_origin(as_generic) is tp.Annotated
+                or typing.get_origin(as_generic) is Annotated
             ):
                 as_generic = cls.create(
                     as_generic, new_type_path=new_type_path, comparer=comparer, _chain=list(_chain)
@@ -142,7 +143,7 @@ class Distilled:
             if len(classinfo) == 1:
                 classinfo = classinfo[0]
         elif type(classinfo) in union_types:
-            classinfo = tp.get_args(classinfo)
+            classinfo = typing.get_args(classinfo)
 
         result: object
 
@@ -200,18 +201,18 @@ class Distilled:
                 distilled = cls.valid(classinfo, as_generic=as_generic)
 
         if is_valid:
-            if tp.get_origin(as_generic) in union_types:
+            if typing.get_origin(as_generic) in union_types:
                 as_generic = functools.reduce(
                     operator.or_,
                     sorted(
-                        tp.get_args(as_generic),
+                        typing.get_args(as_generic),
                         key=lambda part: comparer.type_cache.disassemble(part).score,
                     ),
                 )
             if isinstance(classinfo, tuple):
                 classinfo = tuple(
                     sorted(
-                        tp.get_args(classinfo),
+                        typing.get_args(classinfo),
                         key=lambda part: comparer.type_cache.disassemble(part).score,
                     )
                 )
@@ -227,7 +228,7 @@ class Distilled:
                 result = tuple((*result, type(None)))
 
         if optional and as_generic is not None and is_valid:
-            as_generic = tp.Optional[as_generic]  # noqa: UP007
+            as_generic = Optional[as_generic]  # noqa: UP007
 
         return cls(
             original=result,
@@ -370,14 +371,14 @@ class Comparer:
             if all(isinstance(part, type) for part in chck_type):
                 chck_type = functools.reduce(operator.or_, chck_type)
             elif len(chck_type) == 2 and chck_type[1] in (None, type(None)):
-                chck_type = tp.Optional[self.type_cache.disassemble(chck_type[0]).checkable]  # noqa: UP007
+                chck_type = Optional[self.type_cache.disassemble(chck_type[0]).checkable]  # noqa: UP007
 
         chck_against_type = chck_against.as_generic or chck_against.original
         if isinstance(chck_against_type, tuple) and chck_against_type:
             if all(isinstance(part, type) for part in chck_against_type):
                 chck_against_type = functools.reduce(operator.or_, chck_against_type)
             elif len(chck_against_type) == 2 and chck_against_type[1] in (None, type(None)):
-                chck_against_type = tp.Optional[  # noqa: UP007
+                chck_against_type = Optional[  # noqa: UP007
                     self.type_cache.disassemble(chck_against_type[0]).checkable
                 ]
 

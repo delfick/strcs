@@ -1,6 +1,6 @@
 import dataclasses
 import random
-import typing as tp
+from collections.abc import Generator
 from unittest import mock
 
 import attrs
@@ -23,7 +23,7 @@ class TestMatchingAType:
 
     def shuffles(
         self, inp: list[tuple[strcs.Type, strcs.ConvertFunction]]
-    ) -> tp.Generator[list[tuple[strcs.Type, strcs.ConvertFunction]]]:
+    ) -> Generator[list[tuple[strcs.Type, strcs.ConvertFunction]]]:
         shuffling = list(inp)
         for _ in range(5):
             random.shuffle(shuffling)

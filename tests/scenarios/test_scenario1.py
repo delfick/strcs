@@ -1,4 +1,5 @@
-import typing as tp
+from collections.abc import Generator
+from typing import Generic, TypeVar
 
 import attrs
 import pytest
@@ -8,7 +9,7 @@ import strcs
 reg = strcs.CreateRegister()
 creator = reg.make_decorator()
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
 @attrs.define
@@ -44,7 +45,7 @@ class ItemTwo(Item):
 
 
 @attrs.define
-class Container(tp.Generic[T]):
+class Container(Generic[T]):
     category: str
     item: T
 
@@ -100,7 +101,7 @@ def create_project(
     /,
     _meta: strcs.Meta,
     _register: strcs.CreateRegister,
-) -> tp.Generator[dict, Project]:
+) -> Generator[dict, Project]:
     if isinstance(value, dict):
         details = []
         if "details" in value:

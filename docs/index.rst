@@ -65,7 +65,7 @@ Here is a contrived example that shows a couple features. Read the
     from my_library import Renderer 
 
     from attrs import define
-    import typing as tp
+    from typing import Annotated
     import strcs
 
 
@@ -82,7 +82,7 @@ Here is a contrived example that shows a couple features. Read the
 
         # Here we're using dependency injection to say get ``renderer`` from
         # the meta object we provide when creating objects.
-        renderer: tp.Annotated[Renderer, strcs.FromMeta("renderer")]
+        renderer: Annotated[Renderer, strcs.FromMeta("renderer")]
 
 
     @define

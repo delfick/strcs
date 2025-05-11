@@ -1,7 +1,7 @@
 import fnmatch
 import textwrap
 import traceback
-import typing as tp
+from collections.abc import Generator
 
 import attrs
 import pytest
@@ -41,7 +41,7 @@ def create_other(value: object, /, multiply: int = 1) -> dict:
 
 
 @creator(Sub)
-def create_sub(value: object, /) -> tp.Generator[dict | None, Sub]:
+def create_sub(value: object, /) -> Generator[dict | None, Sub]:
     if isinstance(value, dict):
         res = yield value
 

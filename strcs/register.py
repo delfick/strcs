@@ -3,7 +3,7 @@ The register is how the developer can associate creator functions with
 specific types.
 """
 
-import typing as tp
+from typing import Annotated, ClassVar, Generic, Protocol, TypeVar, cast
 
 import cattrs
 
@@ -19,10 +19,10 @@ from .hooks import CreateStructureHook
 from .meta import Meta
 from .not_specified import NotSpecified
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
-class Registerer(tp.Protocol[T]):
+class Registerer(Protocol[T]):
     """
     Protocol representing an object that can decorate a ConvertDefinition for
     adding it to the register.
@@ -35,7 +35,7 @@ class Registerer(tp.Protocol[T]):
     ) -> ConvertDefinition[T] | None: ...
 
 
-class Creator(tp.Protocol[T]):
+class Creator(Protocol[T]):
     """
     Protocol representing an object that when called will returned a Registerer.
     """
@@ -153,12 +153,12 @@ class CreateRegister:
 
         register = self
 
-        class Decorator(tp.Generic[T]):
+        class Decorator(Generic[T]):
             typ: Type[T]
             func: ConvertDefinition[T]
             wrapped: WrappedCreator[T]
 
-            register: tp.ClassVar[CreateRegister]
+            register: ClassVar[CreateRegister]
 
             def __init__(self, typ: object, *, assume_unchanged_converted: bool = True):
                 self.original = typ
@@ -173,12 +173,12 @@ class CreateRegister:
                     typ = self.original
 
                 self.wrapped = WrappedCreator[T](
-                    tp.cast(Type[T], typ),
+                    cast(Type[T], typ),
                     func,
                     type_cache=register.type_cache,
                     assume_unchanged_converted=self.assume_unchanged_converted,
                 )
-                self.typ = tp.cast(Type[T], typ)
+                self.typ = cast(Type[T], typ)
                 self.func = self.wrapped.func
 
                 register[typ] = self.wrapped
@@ -241,7 +241,7 @@ class CreateRegister:
         if isinstance(typ, Type):
             want = typ
         else:
-            want = tp.cast(Type[T], self.type_cache.disassemble(tp.Annotated[typ, ann]))
+            want = cast(Type[T], self.type_cache.disassemble(Annotated[typ, ann]))
 
         return CreateStructureHook.structure(
             register=self,

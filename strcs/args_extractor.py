@@ -10,21 +10,21 @@ related information and returns what the function should be called with.
 """
 
 import inspect
-import typing as tp
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import cattrs
 
 from .disassemble import Type
 from .meta import Meta
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from .decorator import ConvertDefinition
     from .register import CreateRegister
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
-class ArgsExtractor(tp.Generic[T]):
+class ArgsExtractor(Generic[T]):
     def __init__(
         self,
         *,

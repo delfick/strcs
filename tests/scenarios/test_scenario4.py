@@ -1,4 +1,4 @@
-import typing as tp
+from typing import Annotated
 
 import attrs
 
@@ -17,7 +17,7 @@ creator = reg.make_decorator()
 class Image:
     author: str
     filename: str
-    renderer: tp.Annotated[Renderer, strcs.FromMeta("renderer")]
+    renderer: Annotated[Renderer, strcs.FromMeta("renderer")]
 
 
 @attrs.define

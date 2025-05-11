@@ -1,4 +1,4 @@
-import typing as tp
+from typing import Annotated
 
 import attrs
 
@@ -26,16 +26,16 @@ def change(value: object, /, addition: int = 0, multiply_by: int = 1) -> float |
 
 @attrs.define
 class Thing:
-    base: tp.Annotated[float, change]
-    raised: tp.Annotated[float, strcs.Ann(AdditionAnnotation(addition=30), change)]
-    elevated: tp.Annotated[float, strcs.Ann(AdditionAnnotation(addition=40), change)]
+    base: Annotated[float, change]
+    raised: Annotated[float, strcs.Ann(AdditionAnnotation(addition=30), change)]
+    elevated: Annotated[float, strcs.Ann(AdditionAnnotation(addition=40), change)]
 
 
 @attrs.define
 class Things:
     once: Thing
-    twice: tp.Annotated[Thing, MultiplicationAnnotation(multiply_by=2)]
-    thrice: tp.Annotated[Thing, MultiplicationAnnotation(multiply_by=3)]
+    twice: Annotated[Thing, MultiplicationAnnotation(multiply_by=2)]
+    thrice: Annotated[Thing, MultiplicationAnnotation(multiply_by=3)]
 
 
 @creator(Thing)

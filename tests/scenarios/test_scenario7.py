@@ -1,4 +1,4 @@
-import typing as tp
+from typing import Annotated
 
 import attrs
 import pytest
@@ -17,7 +17,7 @@ class MultiplyAnnotation(strcs.MergedMetaAnnotation):
 @attrs.define
 class SubOther:
     other: "Other"
-    another: tp.Annotated["Other", MultiplyAnnotation(multiply=2)]
+    another: Annotated["Other", MultiplyAnnotation(multiply=2)]
 
 
 @attrs.define

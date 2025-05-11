@@ -1,15 +1,16 @@
 import dataclasses
 import inspect
 import sys
-import typing as tp
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import attrs
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ._base import Type, TypeCache
 
-T = tp.TypeVar("T")
-U = tp.TypeVar("U")
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 def _get_type() -> type["Type"]:
@@ -59,7 +60,7 @@ def kind_name_repr(kind: int) -> str:
 
 
 @attrs.define
-class Field(tp.Generic[T]):
+class Field(Generic[T]):
     """
     A container representing a single field on a class. Used to replicate the field functionality used in
     attrs and dataclasses.
@@ -79,7 +80,7 @@ class Field(tp.Generic[T]):
     )
     "The inspect.Parameter kind of the field"
 
-    default: tp.Callable[[], object | None] | None = attrs.field(default=None)
+    default: Callable[[], object | None] | None = attrs.field(default=None)
     "A callable returning the default value for the field"
 
     original_owner: object = attrs.field(default=attrs.Factory(lambda s: s.owner, takes_self=True))
@@ -127,7 +128,7 @@ class Field(tp.Generic[T]):
             )
 
 
-def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
+def fields_from_class(type_cache: "TypeCache", typ: type) -> Sequence[Field]:
     """
     Given some class, return a sequence of :class:`strcs.Field` objects.
 
@@ -147,7 +148,7 @@ def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
         if param.kind in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL):
             name = ""
 
-        dflt: tp.Callable[[], object | None] | None = None
+        dflt: Callable[[], object | None] | None = None
         if param.default is not inspect.Parameter.empty:
             dflt = Default(param.default)
         result.append(
@@ -163,7 +164,7 @@ def fields_from_class(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     return result
 
 
-def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
+def fields_from_attrs(type_cache: "TypeCache", typ: type) -> Sequence[Field]:
     """
     Given some attrs type, return a sequence of :class:`strcs.Field` objects.
 
@@ -184,7 +185,7 @@ def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
         if field.kw_only:
             kind = inspect.Parameter.KEYWORD_ONLY.value
 
-        dflt: tp.Callable[[], object | None] | None = None
+        dflt: Callable[[], object | None] | None = None
         if hasattr(field.default, "factory") and callable(field.default.factory):
             if not field.default.takes_self:
                 dflt = field.default.factory
@@ -215,7 +216,7 @@ def fields_from_attrs(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
     return result
 
 
-def fields_from_dataclasses(type_cache: "TypeCache", typ: type) -> tp.Sequence[Field]:
+def fields_from_dataclasses(type_cache: "TypeCache", typ: type) -> Sequence[Field]:
     """
     Given some dataclasses.dataclass type return a sequence of :class:`strcs.Field` objects.
 
@@ -234,7 +235,7 @@ def fields_from_dataclasses(type_cache: "TypeCache", typ: type) -> tp.Sequence[F
         if field.kw_only:
             kind = inspect.Parameter.KEYWORD_ONLY.value
 
-        dflt: tp.Callable[[], object | None] | None = None
+        dflt: Callable[[], object | None] | None = None
         if field.default is not dataclasses.MISSING:
             dflt = Default(field.default)
 

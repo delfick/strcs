@@ -45,7 +45,6 @@ this by returning a dictionary that cattrs will then use to create the instance.
 
 .. code-block:: python
 
-   import typing as tp
    import strcs
 
 
@@ -189,7 +188,7 @@ argument in the creator so that an infinite loop may be avoided.
 .. code-block:: python
 
     import attrs
-    import typing as tp
+    from typing import Annotated
     import secrets
     import strcs
 
@@ -201,7 +200,7 @@ argument in the creator so that an infinite loop may be avoided.
     @attrs.define
     class Part:
         one: int
-        identity: tp.Annotated[str, strcs.FromMeta("identity")]
+        identity: Annotated[str, strcs.FromMeta("identity")]
 
 
     @attrs.define
@@ -298,7 +297,7 @@ Generator creators may also yield other generators:
 .. code-block:: python
 
     import attrs
-    import typing as tp
+    from collections.abc import Generator
     import strcs
 
     reg = strcs.CreateRegister()
@@ -317,7 +316,7 @@ Generator creators may also yield other generators:
             self.three = None
 
 
-    def recursion_is_fun(value: object) -> tp.Generator[dict, Thing, None]:
+    def recursion_is_fun(value: object) -> Generator[dict, Thing, None]:
         assert isinstance(value, dict)
         assert value == {"one": 20}
         called.append(2)
@@ -327,7 +326,7 @@ Generator creators may also yield other generators:
 
 
     @creator(Thing)
-    def make(value: object) -> tp.Generator[tp.Generator[dict, Thing, None], Thing, None]:
+    def make(value: object) -> Generator[Generator[dict, Thing, None], Thing, None]:
         called.append(1)
         made = yield recursion_is_fun(value)
         made.three = 222

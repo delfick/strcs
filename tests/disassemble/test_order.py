@@ -1,5 +1,6 @@
 import random
-import typing as tp
+from collections.abc import Callable
+from typing import Annotated, Generic, TypeVar
 
 import pytest
 
@@ -10,7 +11,7 @@ Disassembler = strcs.disassemble.Disassembler
 
 class Sorter:
     @classmethod
-    def make_fixture(cls) -> tp.Callable[[Disassembler], "Sorter"]:
+    def make_fixture(cls) -> Callable[[Disassembler], "Sorter"]:
         @pytest.fixture
         def fixture(Dis: Disassembler) -> Sorter:
             return cls(Dis)
@@ -75,12 +76,12 @@ class TestOrderingTypes:
 
     def test_it_orders_annotated_at_the_start_of_the_list(self, sorter: Sorter):
         sorter.assert_reverse_order(
-            tp.Annotated[bool | None, 1],
-            tp.Annotated[int | None, 1],
-            tp.Annotated[dict | None, 1],
-            tp.Annotated[bool, 1],
-            tp.Annotated[int, 1],
-            tp.Annotated[dict, 1],
+            Annotated[bool | None, 1],
+            Annotated[int | None, 1],
+            Annotated[dict | None, 1],
+            Annotated[bool, 1],
+            Annotated[int, 1],
+            Annotated[dict, 1],
             bool | None,
             int | None,
             dict | None,
@@ -108,8 +109,8 @@ class TestOrderingTypes:
 
     def test_it_prefers_annotations(self, sorter: Sorter):
         sorter.assert_reverse_order(
-            tp.Annotated[int | str, False],
-            bool | tp.Annotated[int, True],
+            Annotated[int | str, False],
+            bool | Annotated[int, True],
             bool | str,
         )
 
@@ -134,8 +135,8 @@ class TestOrderingTypes:
             pass
 
         sorter.assert_reverse_order(
-            tp.Annotated[Stuff | int | None, True],
-            tp.Annotated[str | int | None, True],
+            Annotated[Stuff | int | None, True],
+            Annotated[str | int | None, True],
             str | int | None,
             bool | str | Thing | Stuff,
             str | int | Thing,
@@ -175,10 +176,10 @@ class TestOrderingTypes:
         )
 
     def test_it_orders_generic_classes(self, sorter: Sorter):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
         class Two(One[str]):
@@ -196,7 +197,7 @@ class TestOrderingTypes:
         class Deux(Une):
             pass
 
-        class Ichi(tp.Generic[T, U]):
+        class Ichi(Generic[T, U]):
             pass
 
         class Ni(Ichi[str, int]):
@@ -205,7 +206,7 @@ class TestOrderingTypes:
         class San(Ichi[int, str]):
             pass
 
-        class Shi(tp.Generic[T], Ichi[str, T]):
+        class Shi(Generic[T], Ichi[str, T]):
             pass
 
         class Go(Shi[int]):
@@ -243,10 +244,10 @@ class TestOrderingTypes:
         )
 
     def test_it_doesnt_reorder_typevars(self, sorter: Sorter):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
-        class One(tp.Generic[T, U]):
+        class One(Generic[T, U]):
             pass
 
         class Two(One[str, int]):
@@ -255,18 +256,18 @@ class TestOrderingTypes:
         class Three(One[int, str]):
             pass
 
-        class Four(tp.Generic[T], One[bool, T]):
+        class Four(Generic[T], One[bool, T]):
             pass
 
-        class Five(tp.Generic[T], One[dict, T]):
+        class Five(Generic[T], One[dict, T]):
             pass
 
         class Six:
             pass
 
         sorter.assert_reverse_order(
-            # One[bool, tp.Annotated[dict]] + 1mro
-            Four[tp.Annotated[dict, False]],
+            # One[bool, Annotated[dict]] + 1mro
+            Four[Annotated[dict, False]],
             # One[bool, bool] + 1mro
             Four[bool],
             # One[bool, dict] + 1mro
@@ -275,20 +276,20 @@ class TestOrderingTypes:
             Two,
             # One[int, str] + 1mro
             Three,
-            # One[dict, tp.Annotated[dict]] + 1mro
-            Five[tp.Annotated[dict, False]],
+            # One[dict, Annotated[dict]] + 1mro
+            Five[Annotated[dict, False]],
             # One[dict, bool] + 1mro
             Five[bool],
             # One[dict, dict] + 1mro
             Five[dict],
             # One[bool, T] + 1mro
             Four,
-            One[tp.Annotated[bool, False], int],
-            One[tp.Annotated[int, False], int],
+            One[Annotated[bool, False], int],
+            One[Annotated[int, False], int],
             One[Six | None, int],
             One[Six, int],
-            One[bool, tp.Annotated[bool, False]],
-            One[bool, tp.Annotated[dict, False]],
+            One[bool, Annotated[bool, False]],
+            One[bool, Annotated[dict, False]],
             One[bool, bool],
             One[bool, dict],
             One[dict, Six | None],

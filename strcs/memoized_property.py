@@ -1,10 +1,10 @@
-import typing as tp
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
+from typing import Generic, TypeVar, Union, cast, overload
 
-PropRet = tp.TypeVar("PropRet")
+PropRet = TypeVar("PropRet")
 
 
-class memoized_property(tp.Generic[PropRet]):
+class memoized_property(Generic[PropRet]):
     """
     A descriptor that memoizes the value it creates. This requires that
     the object the descriptor is on has a ``_memoized_cache`` attribute that is
@@ -35,7 +35,7 @@ class memoized_property(tp.Generic[PropRet]):
     class Empty:
         pass
 
-    def __init__(self, func: tp.Callable[..., PropRet]):
+    def __init__(self, func: Callable[..., PropRet]):
         self.func = func
         self.__doc__ = func.__doc__
 
@@ -49,15 +49,15 @@ class memoized_property(tp.Generic[PropRet]):
         assert isinstance(cache, MutableMapping)
         return cache
 
-    @tp.overload
+    @overload
     def __get__(self, instance: None, owner: None) -> "memoized_property": ...
 
-    @tp.overload
+    @overload
     def __get__(self, instance: object, owner: type[object]) -> PropRet: ...
 
     def __get__(
         self, instance: object | None, owner: type[object] | None = None
-    ) -> tp.Union["memoized_property", PropRet]:
+    ) -> Union["memoized_property", PropRet]:
         if instance is None:
             return self
 
@@ -66,7 +66,7 @@ class memoized_property(tp.Generic[PropRet]):
         if self.name not in cache:
             cache[self.name] = self.func(instance)
 
-        return tp.cast(PropRet, cache[self.name])
+        return cast(PropRet, cache[self.name])
 
     def __delete__(self, instance: object) -> None:
         cache = self.cache(instance)

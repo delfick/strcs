@@ -1,5 +1,5 @@
 import inspect
-import typing as tp
+from typing import TypeVar
 from unittest import mock
 
 import cattrs
@@ -7,7 +7,7 @@ import pytest
 
 import strcs
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
 @pytest.fixture()

@@ -71,8 +71,8 @@ by the function returned by ``strcs.CreateRegister::make_decorator``
 """
 
 import inspect
-import typing as tp
-from collections.abc import Mapping
+from collections.abc import Callable, Generator, Mapping
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 import attrs
 import cattrs
@@ -84,14 +84,14 @@ from .meta import Meta
 from .not_specified import NotSpecified, NotSpecifiedMeta
 from .standard import builtin_types
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from .register import CreateRegister
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
 @attrs.define
-class CreateArgs(tp.Generic[T]):
+class CreateArgs(Generic[T]):
     """
     The object given to ``ConvertFunction`` objects to produce an instance of the
     desired type.
@@ -108,7 +108,7 @@ class CreateArgs(tp.Generic[T]):
 # Either a value instructing strcs to do something, an object that strcs should
 # use as is, or a generator that can operate on the object strcs creates.
 type ConvertResponseValues[T] = bool | dict[str, object] | T | NotSpecifiedMeta
-type ConvertResponseGenerator[T] = tp.Generator[ConvertResponseValues[T] | tp.Generator | None, T]
+type ConvertResponseGenerator[T] = Generator[ConvertResponseValues[T] | Generator | None, T]
 type ConvertResponse[T] = ConvertResponseValues[T] | ConvertResponseGenerator[T] | None
 
 # ConvertDefinition is the developer provided functions that do transformation
@@ -124,11 +124,11 @@ type ConvertResponse[T] = ConvertResponseValues[T] | ConvertResponseGenerator[T]
 # - want: Type[T] = The strcs.Type object for the desired type
 # - meta values are from the meta object, or the special objects known by
 #   strcs.ArgExtractor
-type ConvertDefinition[T] = tp.Callable[..., ConvertResponse[T]]
+type ConvertDefinition[T] = Callable[..., ConvertResponse[T]]
 
 # ConvertFunction is the object the strcs.CreateRegister interacts with to invoke
 # the ConvertDefinition objects.
-type ConvertFunction[T] = tp.Callable[[CreateArgs[T]], T]
+type ConvertFunction[T] = Callable[[CreateArgs[T]], T]
 
 
 def take_or_make(value: object, want: Type[T], /) -> ConvertResponse[T]:
@@ -148,7 +148,7 @@ def take_or_make(value: object, want: Type[T], /) -> ConvertResponse[T]:
         return None
 
 
-class WrappedCreator(tp.Generic[T]):
+class WrappedCreator(Generic[T]):
     """
     An implementation of ``strcs.ConvertFunction`` that operates on the provided
     ConvertDefinition.
@@ -197,7 +197,7 @@ class WrappedCreator(tp.Generic[T]):
 
         if self.assume_unchanged_converted and want.is_type_for(value):
             if want.origin_type not in builtin_types:
-                return tp.cast(T, value)
+                return cast(T, value)
 
         try:
             args = ArgsExtractor(
@@ -260,7 +260,7 @@ class WrappedCreator(tp.Generic[T]):
                         reason="Told to use NotSpecified as the final value",
                         creator=self.func,
                     )
-                return tp.cast(T, value)
+                return cast(T, value)
             else:
                 if not isinstance(res, Mapping) and issubclass(
                     want.checkable, self.type_cache.disassemble(type(res)).checkable
@@ -288,7 +288,7 @@ class WrappedCreator(tp.Generic[T]):
         self,
         res: ConvertResponseGenerator[T],
         value: object,
-        deal: tp.Callable[[ConvertResponse[T], object], T],
+        deal: Callable[[ConvertResponse[T], object], T],
     ) -> T:
         try:
             made: ConvertResponse[T]

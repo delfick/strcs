@@ -7,7 +7,7 @@ This is done without recursion errors and with the ability to customize the resu
 for specific properties on a class.
 """
 
-import typing as tp
+from typing import TYPE_CHECKING, TypeVar, cast
 
 import cattrs
 
@@ -17,11 +17,11 @@ from .disassemble import Type, TypeCache, fill, instantiate
 from .meta import Meta
 from .not_specified import NotSpecified
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from .register import CreateRegister
 
-T = tp.TypeVar("T")
-U = tp.TypeVar("U")
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 def _object_check(typ: type) -> bool:
@@ -208,4 +208,4 @@ class CreateStructureHook:
             self.converter._structure_func.dispatch.cache_clear()
         if isinstance(value, dict):
             value = fill(want, value)
-        return self.converter.structure(value, tp.cast(type, want.original))
+        return self.converter.structure(value, cast(type, want.original))

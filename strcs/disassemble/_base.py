@@ -2,9 +2,21 @@ import dataclasses
 import functools
 import json
 import operator
-import typing as tp
-from collections.abc import Sequence
+import typing
+from collections.abc import Callable, Sequence
 from functools import partial
+from typing import (
+    TYPE_CHECKING,
+    Generic,
+    NewType,
+    Optional,
+    Protocol,
+    TypeGuard,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 import attrs
 
@@ -22,19 +34,19 @@ from ._fields import (
 from ._instance_check import InstanceCheck, InstanceCheckMeta, create_checkable
 from ._score import Score
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ..annotations import AdjustableCreator, AdjustableMeta
     from ..decorator import ConvertFunction
     from ._cache import TypeCache
     from ._type_tree import MRO
 
 
-T = tp.TypeVar("T")
-U = tp.TypeVar("U")
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 @attrs.define
-class Type(tp.Generic[T]):
+class Type(Generic[T]):
     """
     Wraps any object to provide an interface for introspection. Used to represent
     python types and type annotations.
@@ -95,7 +107,7 @@ class Type(tp.Generic[T]):
     extracted: T
     "The extracted type if this object is optional or annotated or a ``typing.NewType`` object"
 
-    type_alias: tp.NewType | None
+    type_alias: NewType | None
     "The type alias used to reference this type if created with one"
 
     optional_inner: bool
@@ -127,7 +139,7 @@ class Type(tp.Generic[T]):
         original = typ
 
         if isinstance(typ, cls):
-            return tp.cast(Type[U], typ)
+            return cast(Type[U], typ)
 
         if typ in cache:
             return cache[original]
@@ -143,12 +155,12 @@ class Type(tp.Generic[T]):
         if annotations is None and optional_outer:
             extracted, annotated, annotations = extract_annotation(typ)
 
-        type_alias: tp.NewType | None = None
-        if isinstance(extracted, tp.NewType):
+        type_alias: NewType | None = None
+        if isinstance(extracted, NewType):
             type_alias = extracted
             extracted = extracted.__supertype__
 
-        constructor = tp.cast(tp.Callable[..., Type[U]], cls)
+        constructor = cast(Callable[..., Type[U]], cls)
 
         made = constructor(
             cache=cache,
@@ -177,7 +189,7 @@ class Type(tp.Generic[T]):
         """
         return repr(self.original)
 
-    def __eq__(self, o: object) -> tp.TypeGuard["Type"]:
+    def __eq__(self, o: object) -> TypeGuard["Type"]:
         """
         The :class:`strcs.Type` object is equal to another object if:
 
@@ -200,8 +212,8 @@ class Type(tp.Generic[T]):
         if issubclass(type(o), Type) and hasattr(o, "original"):
             o = o.original
 
-        other_alias: tp.NewType | None = None
-        if isinstance(o, tp.NewType):
+        other_alias: NewType | None = None
+        if isinstance(o, NewType):
             other_alias = o
             o = other_alias.__supertype__
 
@@ -218,7 +230,7 @@ class Type(tp.Generic[T]):
             return True
 
         if type(o) in union_types:
-            return len(set(tp.get_args(o)) - set(self.relevant_types)) == 0
+            return len(set(typing.get_args(o)) - set(self.relevant_types)) == 0
         else:
             for part in self.relevant_types:
                 disassembled = self.disassemble.typed(object, part)
@@ -377,9 +389,9 @@ class Type(tp.Generic[T]):
         return MRO.create(self.extracted, type_cache=self.cache)
 
     @memoized_property
-    def origin(self) -> type | tp.NewType:
+    def origin(self) -> type | NewType:
         """
-        if this type was created using a ``tp.NewType`` object, then that is returned.
+        if this type was created using a ``NewType`` object, then that is returned.
 
         Otherwise if ``typing.get_origin(self.extracted)`` is a python type, then return that.
 
@@ -392,7 +404,7 @@ class Type(tp.Generic[T]):
         if self.type_alias:
             return self.type_alias
 
-        origin = tp.get_origin(self.extracted)
+        origin = typing.get_origin(self.extracted)
         if isinstance(origin, type):
             return origin
 
@@ -404,13 +416,13 @@ class Type(tp.Generic[T]):
     @memoized_property
     def origin_type(self) -> type:
         """
-        Gets the result of ``self.origin``. If the result is a ``tp.NewType`` then the
+        Gets the result of ``self.origin``. If the result is a ``NewType`` then the
         type represented by that alias is returned, otherwise the origin is.
 
         This is memoized.
         """
         origin = self.origin
-        if isinstance(origin, tp.NewType):
+        if isinstance(origin, NewType):
             return origin.__supertype__  # type: ignore[return-value]
         else:
             return origin
@@ -423,7 +435,7 @@ class Type(tp.Generic[T]):
 
         This is memoized.
         """
-        return tp.get_origin(self.extracted) in union_types
+        return typing.get_origin(self.extracted) in union_types
 
     @memoized_property
     def without_optional(self) -> object:
@@ -455,7 +467,7 @@ class Type(tp.Generic[T]):
         """
         union: tuple[Type, ...] = ()
         if self.is_union:
-            origins = tp.get_args(self.extracted)
+            origins = typing.get_args(self.extracted)
             ds: list[Type] = []
             for origin in origins:
                 if origin is None:
@@ -476,7 +488,7 @@ class Type(tp.Generic[T]):
         return Score.create(self)
 
     @memoized_property
-    def relevant_types(self) -> tp.Sequence[type]:
+    def relevant_types(self) -> Sequence[type]:
         """
         Return a sequence of python types relevant to this instance.
 
@@ -492,7 +504,7 @@ class Type(tp.Generic[T]):
             relevant.append(type(None))
 
         if self.is_union:
-            relevant.extend(tp.get_args(self.extracted))
+            relevant.extend(typing.get_args(self.extracted))
         elif isinstance(self.extracted, type):
             relevant.append(self.extracted)
 
@@ -519,7 +531,7 @@ class Type(tp.Generic[T]):
             return self.origin
 
     @memoized_property
-    def fields_getter(self) -> tp.Callable[..., tp.Sequence[Field]] | None:
+    def fields_getter(self) -> Callable[..., Sequence[Field]] | None:
         """
         Return an appropriate function used to get fields from ``self.fields_from``.
 
@@ -543,7 +555,7 @@ class Type(tp.Generic[T]):
         elif dataclasses.is_dataclass(self.fields_from):
             return partial(fields_from_dataclasses, self.cache)
         elif (
-            tp.get_origin(self.extracted) is None
+            typing.get_origin(self.extracted) is None
             and isinstance(self.extracted, type)
             and self.extracted is not NotSpecifiedMeta
             and self.extracted not in builtin_types
@@ -590,14 +602,14 @@ class Type(tp.Generic[T]):
         """
         return self.mro.find_subtypes(*want)
 
-    def is_type_for(self, instance: object) -> tp.TypeGuard[T]:
+    def is_type_for(self, instance: object) -> TypeGuard[T]:
         """
         Whether this type represents the type for some object. Uses the
         ``isinstance`` check on the :class:`strcs.InstanceCheck` for this object.
         """
         return self.cache.comparer.isinstance(instance, self)
 
-    def is_equivalent_type_for(self, value: object) -> tp.TypeGuard[T]:
+    def is_equivalent_type_for(self, value: object) -> TypeGuard[T]:
         """
         Whether this type is equivalent to the passed in value.
 
@@ -612,7 +624,7 @@ class Type(tp.Generic[T]):
         return self.cache.comparer.issubclass(value, self.checkable)
 
     @memoized_property
-    def ann(self) -> tp.Union["AdjustableMeta[T]", "AdjustableCreator[T]"] | None:
+    def ann(self) -> Union["AdjustableMeta[T]", "AdjustableCreator[T]"] | None:
         """
         Return an object that fulfills :protocol:`strcs.AdjustableMeta` or
         :protocol:`strcs.AdjustableCreator` given any annotation on this type.
@@ -684,7 +696,7 @@ class Type(tp.Generic[T]):
 
     def func_from(
         self, options: list[tuple["Type", "ConvertFunction"]]
-    ) -> tp.Optional["ConvertFunction"]:
+    ) -> Optional["ConvertFunction"]:
         """
         Given a list of types to creators, choose the most appropriate function
         to create this type from.
@@ -711,7 +723,7 @@ class Type(tp.Generic[T]):
         Return ``self.checkable``, but the return type of this function is a
         python type of the inner type represented by this :class:`strcs.Type`
         """
-        return tp.cast(type[T], self.checkable)
+        return cast(type[T], self.checkable)
 
     @memoized_property
     def checkable(self) -> type[InstanceCheck]:
@@ -723,20 +735,20 @@ class Type(tp.Generic[T]):
         return create_checkable(self)
 
 
-class Disassembler(tp.Protocol):
+class Disassembler(Protocol):
     """
     Used to disassemble some type using an existing type cache
     """
 
     type_cache: "TypeCache"
 
-    @tp.overload
+    @overload
     def __call__(self, typ: type[U]) -> "Type[U]": ...
 
-    @tp.overload
+    @overload
     def __call__(self, typ: Type[U]) -> "Type[U]": ...
 
-    @tp.overload
+    @overload
     def __call__(self, typ: object) -> "Type[object]": ...
 
     def __call__(self, typ: type[U] | object) -> "Type[U] | Type[object]":

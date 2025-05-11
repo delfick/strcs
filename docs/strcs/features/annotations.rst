@@ -8,7 +8,7 @@ Annotations
 .. code-block:: python
 
     import attrs
-    import typing as tp
+    from typing import Annotated
     import strcs
 
     reg = strcs.CreateRegister()
@@ -27,14 +27,14 @@ Annotations
 
     @attrs.define
     class Thing:
-        val: tp.Annotated[int, strcs.Ann(MathsAnnotation(addition=20), do_maths)]
+        val: Annotated[int, strcs.Ann(MathsAnnotation(addition=20), do_maths)]
 
 
     @attrs.define
     class Holder:
         once: Thing
-        twice: tp.Annotated[Thing, MathsAnnotation(multiplication=2)]
-        thrice: tp.Annotated[Thing, MathsAnnotation(multiplication=3)]
+        twice: Annotated[Thing, MathsAnnotation(multiplication=2)]
+        thrice: Annotated[Thing, MathsAnnotation(multiplication=3)]
 
 
     @creator(Thing)

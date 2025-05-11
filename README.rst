@@ -16,7 +16,7 @@ Example
 
 .. code-block:: python
 
-    import typing as tp
+    from typing import Annotated, NewType
 
     import attrs
 
@@ -25,8 +25,8 @@ Example
     reg = strcs.CreateRegister()
     creator = reg.make_decorator()
 
-    Number = tp.NewType("Number", int)
-    Word = tp.NewType("Word", str)
+    Number = NewType("Number", int)
+    Word = NewType("Word", str)
 
 
     @attrs.define(frozen=True)
@@ -43,9 +43,9 @@ Example
 
     @attrs.define
     class Config:
-        thing: tp.Annotated[Thing, strcs.FromMeta("thing")]
+        thing: Annotated[Thing, strcs.FromMeta("thing")]
         words: list[Word]
-        some_number: tp.Annotated[Number, Maths(multiply=2)]
+        some_number: Annotated[Number, Maths(multiply=2)]
         contrived1: str
         contrived2: str
         some_other_number: int = 16

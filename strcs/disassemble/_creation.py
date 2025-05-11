@@ -1,5 +1,5 @@
-import typing as tp
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import TypeVar, cast
 
 import attrs
 import cattrs
@@ -7,10 +7,10 @@ import cattrs
 from ..not_specified import NotSpecified
 from ._base import Type
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
-def fill(want: Type[T], res: object) -> tp.Mapping[str, object]:
+def fill(want: Type[T], res: object) -> Mapping[str, object]:
     """
     Given a :class:`strcs.Type` and some object, ensure the object has ``NotSpecified`` as values for
     any missing key that we want to go through :class:`strcs` logic.
@@ -49,7 +49,7 @@ def instantiate(want: Type[T], res: object, converter: cattrs.Converter) -> T:
     """
     if res is None:
         if want.optional or want.original is None:
-            return tp.cast(T, None)
+            return cast(T, None)
 
         raise ValueError("Can't instantiate object with None")
 
@@ -70,7 +70,7 @@ def instantiate(want: Type[T], res: object, converter: cattrs.Converter) -> T:
             continue
 
         val = res[name]
-        attribute = tp.cast(attrs.Attribute, field)
+        attribute = cast(attrs.Attribute, field)
         conv_obj[name] = converter._structure_attribute(attribute, val)
 
     return instantiator(**conv_obj)

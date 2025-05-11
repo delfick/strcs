@@ -1,5 +1,6 @@
 import secrets
-import typing as tp
+from collections.abc import Generator
+from typing import Annotated, cast
 from unittest import mock
 
 import attrs
@@ -42,7 +43,7 @@ class IsMeta:
 
     @classmethod
     def test(kls) -> strcs.Meta:
-        return tp.cast(strcs.Meta, kls())
+        return cast(strcs.Meta, kls())
 
 
 class IsConverter:
@@ -60,7 +61,7 @@ class IsConverter:
 
     @classmethod
     def test(kls) -> cattrs.Converter:
-        return tp.cast(cattrs.Converter, kls())
+        return cast(cattrs.Converter, kls())
 
 
 class TestRegister:
@@ -73,8 +74,8 @@ class TestRegister:
         class Stuff:
             info: str
 
-        thing_maker = tp.cast(strcs.ConvertFunction, lambda args: {"data": 2})
-        stuff_maker = tp.cast(strcs.ConvertFunction, lambda args: {"info": "hi"})
+        thing_maker = cast(strcs.ConvertFunction, lambda args: {"data": 2})
+        stuff_maker = cast(strcs.ConvertFunction, lambda args: {"info": "hi"})
 
         assert creg.register == {}
 
@@ -342,12 +343,12 @@ class TestRegister:
 
             assert Thing not in creg
             with pytest.raises(ValueError, match="Can only check against types or Type instances"):
-                assert tp.cast(type, Thing()) not in creg
+                assert cast(type, Thing()) not in creg
 
-            creg[Thing] = tp.cast(strcs.ConvertFunction, mock.Mock(name="creator"))
+            creg[Thing] = cast(strcs.ConvertFunction, mock.Mock(name="creator"))
             assert Thing in creg
             with pytest.raises(ValueError, match="Can only check against types or Type instances"):
-                assert tp.cast(type, Thing()) not in creg
+                assert cast(type, Thing()) not in creg
 
 
 class TestCreators:
@@ -361,10 +362,10 @@ class TestCreators:
         assert not hasattr(dec, "func")
 
         make = mock.Mock(name="make", side_effect=lambda: thing)
-        decorated = dec(tp.cast(strcs.ConvertDefinition[Thing], make))
+        decorated = dec(cast(strcs.ConvertDefinition[Thing], make))
 
         assert decorated is make
-        assert tp.cast(strcs.WrappedCreator, dec).func is make
+        assert cast(strcs.WrappedCreator, dec).func is make
 
         assert creator.register.create(Thing) is thing
         make.assert_called_once_with()
@@ -385,7 +386,7 @@ class TestCreators:
 
         @attrs.define
         class Thing:
-            thing: tp.Annotated[int, strcs.Ann(Info(multiple=5), multiply)]
+            thing: Annotated[int, strcs.Ann(Info(multiple=5), multiply)]
 
         assert creg.create(Thing, {"thing": 20}).thing == 100
 
@@ -567,7 +568,7 @@ class TestCreators:
 
             @attrs.define
             class Thing:
-                one: tp.Annotated[Sentence, SentenceAnnotation(prefix="hello")]
+                one: Annotated[Sentence, SentenceAnnotation(prefix="hello")]
 
             @creator(Sentence)
             def create_sentence(
@@ -600,11 +601,11 @@ class TestCreators:
 
             @attrs.define
             class Thing:
-                child: tp.Annotated[Child, ChildAnnotation(two=30)]
+                child: Annotated[Child, ChildAnnotation(two=30)]
 
             @attrs.define
             class Overall:
-                thing: tp.Annotated[Thing, ThingAnnotation(one=40)]
+                thing: Annotated[Thing, ThingAnnotation(one=40)]
 
             @creator(Child)
             def create_thing(value: int, /, one: int, two: int):
@@ -693,7 +694,7 @@ class TestCreators:
 
             @attrs.define
             class Lotto:
-                results: tp.Annotated[list[Result], LottoAnnotation(numbers=(2, 6, 8, 10, 69))]
+                results: Annotated[list[Result], LottoAnnotation(numbers=(2, 6, 8, 10, 69))]
 
             @creator(Result)
             def create_result(value: object, /, numbers: tuple, powerball: int) -> dict | None:
@@ -736,7 +737,7 @@ class TestCreators:
             @attrs.define
             class Things:
                 thing1: Thing
-                thing2: tp.Annotated[Thing, lambda value, /: {"val": value * 3}]
+                thing2: Annotated[Thing, lambda value, /: {"val": value * 3}]
                 thing3: Thing
 
             things = creg.create(Things, {"thing1": 1, "thing2": 5, "thing3": 10})
@@ -770,7 +771,7 @@ class TestCreators:
             @attrs.define
             class Things:
                 thing1: Thing
-                thing2: tp.Annotated[Thing, strcs.Ann(ThingAnnotation(add=20), other_creator)]
+                thing2: Annotated[Thing, strcs.Ann(ThingAnnotation(add=20), other_creator)]
                 thing3: Thing
 
             things = creg.create(Things, {"thing1": 1, "thing2": 5, "thing3": 10})
@@ -789,7 +790,7 @@ class TestCreators:
 
             @attrs.define
             class Thing:
-                want: tp.Annotated[Other, strcs.FromMeta("other")]
+                want: Annotated[Other, strcs.FromMeta("other")]
 
             assert creg.create(Thing, meta=creg.meta({"o": other})).want is other
             assert creg.create(Thing, meta=creg.meta({"other": other})).want is other
@@ -1013,7 +1014,7 @@ class TestCreators:
             @attrs.define
             class Thing:
                 one: int
-                identity: tp.Annotated[str, strcs.FromMeta("identity")]
+                identity: Annotated[str, strcs.FromMeta("identity")]
 
             @attrs.define
             class Things:
@@ -1055,7 +1056,7 @@ class TestCreators:
             @attrs.define
             class Thing:
                 one: int
-                identity: tp.Annotated[str, strcs.FromMeta("identity")]
+                identity: Annotated[str, strcs.FromMeta("identity")]
 
             @creator(Thing)
             def create_thing(
@@ -1097,7 +1098,7 @@ class TestCreators:
                         self.two = None
 
                 @creator(Thing)
-                def make(value: object, /) -> tp.Generator[dict | bool, Thing]:
+                def make(value: object, /) -> Generator[dict | bool, Thing]:
                     if not isinstance(value, dict):
                         return None
                     made = yield value
@@ -1120,7 +1121,7 @@ class TestCreators:
                         self.two = None
 
                 @creator(Thing)
-                def make(value: object, /) -> tp.Generator[dict, Thing]:
+                def make(value: object, /) -> Generator[dict, Thing]:
                     if not isinstance(value, dict):
                         return None
                     made = yield value
@@ -1139,7 +1140,7 @@ class TestCreators:
                     one: int
 
                 @creator(Thing)
-                def make(value: object) -> tp.Generator[dict, Thing]:
+                def make(value: object) -> Generator[dict, Thing]:
                     if False:
                         yield value
 
@@ -1158,7 +1159,7 @@ class TestCreators:
                 @creator(Thing)
                 def make(
                     value: object, /
-                ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified], Thing]:
+                ) -> Generator[dict | Thing | type[strcs.NotSpecified], Thing]:
                     if not isinstance(value, dict | Thing | type(strcs.NotSpecified)):
                         return None
                     yield value
@@ -1188,7 +1189,7 @@ class TestCreators:
                         self.two = None
                         self.three = None
 
-                def recursion_is_fun(value: object) -> tp.Generator[dict, Thing]:
+                def recursion_is_fun(value: object) -> Generator[dict, Thing]:
                     assert isinstance(value, dict)
                     assert value == {"one": 20}
                     called.append(2)
@@ -1197,7 +1198,7 @@ class TestCreators:
                     called.append(3)
 
                 @creator(Thing)
-                def make(value: object, /) -> tp.Generator[tp.Generator[dict, Thing], Thing]:
+                def make(value: object, /) -> Generator[Generator[dict, Thing], Thing]:
                     called.append(1)
                     made = yield recursion_is_fun(value)
                     made.three = 222
@@ -1220,7 +1221,7 @@ class TestCreators:
                 @creator(Thing)
                 def make(
                     value: object, /
-                ) -> tp.Generator[dict | Thing | type[strcs.NotSpecified] | None, Thing]:
+                ) -> Generator[dict | Thing | type[strcs.NotSpecified] | None, Thing]:
                     made = yield {"one": 0}
                     assert isinstance(made, Thing)
                     assert made.one == 0

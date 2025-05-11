@@ -1,15 +1,16 @@
 import functools
 import operator
 import types
-import typing as tp
+import typing
 from collections.abc import Sequence
+from typing import Annotated, Protocol, TypeGuard, TypeVar
 
 from ..standard import union_types
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
-class IsAnnotated(tp.Protocol):
+class IsAnnotated(Protocol):
     """
     Protocol class used to determine if an object is a typing.Annotated
 
@@ -17,9 +18,9 @@ class IsAnnotated(tp.Protocol):
 
     .. code-block:: python
 
-        import typing as tp
+        from typing import Annotated
 
-        typ = tp.Annotated[int, "one"]
+        typ = Annotated[int, "one"]
 
         assert IsAnnotated.has(typ)
 
@@ -42,9 +43,9 @@ class IsAnnotated(tp.Protocol):
     def copy_with(self, args: tuple) -> type: ...
 
     @classmethod
-    def has(self, typ: object) -> tp.TypeGuard["IsAnnotated"]:
+    def has(self, typ: object) -> TypeGuard["IsAnnotated"]:
         return (
-            tp.get_origin(typ) is tp.Annotated
+            typing.get_origin(typ) is Annotated
             and hasattr(typ, "__args__")
             and hasattr(typ, "__metadata__")
         )
@@ -58,23 +59,23 @@ def extract_optional(typ: T) -> tuple[bool, T]:
     .. code-block:: python
 
         from strcs.disassemble import extract_optional
-        import typing as tp
+        from typing import Optional, Annotated
 
-        assert extract_optional(tp.Optional[int]) == (True, int)
+        assert extract_optional(Optional[int]) == (True, int)
         assert extract_optional(int | None) == (True, int)
         assert extract_optional(int | str | None) == (True, int | str)
 
         assert extract_optional(int) == (False, int)
         assert extract_optional(int | str) == (False, int | str)
 
-        assert extract_optional(tp.Annotated[int | str | None, "one"]) == (False, tp.Annotated[int | str | None, "one"])
+        assert extract_optional(Annotated[int | str | None, "one"]) == (False, Annotated[int | str | None, "one"])
     """
     optional = False
-    if tp.get_origin(typ) in union_types:
-        if type(None) in tp.get_args(typ):
+    if typing.get_origin(typ) in union_types:
+        if type(None) in typing.get_args(typ):
             optional = True
 
-            remaining = tuple(a for a in tp.get_args(typ) if a not in (types.NoneType,))
+            remaining = tuple(a for a in typing.get_args(typ) if a not in (types.NoneType,))
             if len(remaining) == 1:
                 typ = remaining[0]
             else:
@@ -90,12 +91,11 @@ def extract_annotation(typ: T) -> tuple[T, IsAnnotated | None, Sequence[object] 
     .. code-block:: python
 
         from strcs.disassemble import extract_annotation
-        import typing as tp
 
         assert extract_annotation(int) == (int, None, None)
         assert extract_annotation(int | None) == (int | None, None, None)
 
-        with_annotation = tp.Annotated[int, "one", "two"]
+        with_annotation = Annotated[int, "one", "two"]
         assert extract_annotation(with_annotation) == (int, with_annotation, ("one", "two"))
     """
     if IsAnnotated.has(typ):

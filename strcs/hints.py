@@ -14,26 +14,36 @@ import functools
 import operator
 import sys
 import types
-import typing as tp
+import typing
 from collections.abc import Mapping
+from typing import (
+    TYPE_CHECKING,
+    ForwardRef,
+    Protocol,
+    TypeGuard,
+    TypeVar,
+    Union,
+    cast,
+    runtime_checkable,
+)
 
 import attrs
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from .disassemble import TypeCache
     from .register import CreateRegister
 
-T = tp.TypeVar("T")
-C = tp.TypeVar("C", bound=type)
+T = TypeVar("T")
+C = TypeVar("C", bound=type)
 
 
-class IsField(tp.Protocol):
+class IsField(Protocol):
     type: type
     name: str
 
 
-@tp.runtime_checkable
-class WithResolvedTypes(tp.Protocol[C]):
+@runtime_checkable
+class WithResolvedTypes(Protocol[C]):
     """
     Strcs will mark classes it has resolved types for to prevent recursive loops.
     """
@@ -41,7 +51,7 @@ class WithResolvedTypes(tp.Protocol[C]):
     __strcs_types_resolved__: C
 
 
-class WithCopyWith(tp.Protocol[T]):
+class WithCopyWith(Protocol[T]):
     """
     The typing.Generic class has a ``copy_with`` method that lets you create a new
     version of that instance with different arguments.
@@ -52,11 +62,11 @@ class WithCopyWith(tp.Protocol[T]):
     def copy_with(self, args: tuple) -> T: ...
 
     @classmethod
-    def has(self, obj: T) -> tp.TypeGuard["WithCopyWith"]:
-        return tp.get_origin(obj) is not None and hasattr(obj, "copy_with")
+    def has(self, obj: T) -> TypeGuard["WithCopyWith"]:
+        return typing.get_origin(obj) is not None and hasattr(obj, "copy_with")
 
 
-class WithOrigin(tp.Protocol):
+class WithOrigin(Protocol):
     """
     Used to identify objects that have a result from ``typing.get_origin``
     """
@@ -64,11 +74,11 @@ class WithOrigin(tp.Protocol):
     __args__: tuple
 
     @classmethod
-    def has(self, obj: object) -> tp.TypeGuard["WithOrigin"]:
-        return tp.get_origin(obj) is not None
+    def has(self, obj: object) -> TypeGuard["WithOrigin"]:
+        return typing.get_origin(obj) is not None
 
 
-class IsUnion(tp.Protocol):
+class IsUnion(Protocol):
     """
     Used to identify objects that are unions
     """
@@ -76,11 +86,11 @@ class IsUnion(tp.Protocol):
     __args__: tuple
 
     @classmethod
-    def has(self, obj: object) -> tp.TypeGuard["IsUnion"]:
-        return tp.get_origin(obj) in (types.UnionType, tp.Union)
+    def has(self, obj: object) -> TypeGuard["IsUnion"]:
+        return typing.get_origin(obj) in (types.UnionType, Union)
 
 
-class WithClassGetItem(tp.Protocol[C]):
+class WithClassGetItem(Protocol[C]):
     """
     Used to find objects that are filled generics.
     """
@@ -92,9 +102,9 @@ class WithClassGetItem(tp.Protocol[C]):
     def __class_getitem__(self, item: tuple) -> type[C]: ...
 
     @classmethod
-    def has(self, obj: T, origin: type[C]) -> tp.TypeGuard["WithClassGetItem"]:
+    def has(self, obj: T, origin: type[C]) -> TypeGuard["WithClassGetItem"]:
         return (
-            hasattr(tp.get_origin(obj), "__class_getitem__")
+            hasattr(typing.get_origin(obj), "__class_getitem__")
             and getattr(obj, "__origin__", None) is origin
             and hasattr(obj, "__args__")
         )
@@ -109,12 +119,12 @@ def resolve_type(
     Resolve a single type annotation such that all ForwardRefs under this type are
     replaced with concrete types.
     """
-    origin = tp.get_origin(typ)
+    origin = typing.get_origin(typ)
 
     if isinstance(typ, str):
-        typ = tp.ForwardRef(typ)
+        typ = ForwardRef(typ)
 
-    if isinstance(typ, tp.ForwardRef):
+    if isinstance(typ, ForwardRef):
         recursive_guard: frozenset[str] = frozenset()
         return typ._evaluate(globalns, localns, recursive_guard=recursive_guard)
 
@@ -142,7 +152,7 @@ def resolve_type(
         return typ
 
 
-class AnnotationUpdater(tp.Protocol):
+class AnnotationUpdater(Protocol):
     """
     Protocol for an object that can change the annotations on an object
     """
@@ -191,7 +201,7 @@ def resolve_types(
     globalns: dict[str, object] | None = None,
     localns: dict[str, object] | None = None,
     *,
-    type_cache: tp.Union["CreateRegister", "TypeCache"],
+    type_cache: Union["CreateRegister", "TypeCache"],
 ) -> C:
     """
     Resolve any strings and forward annotations in type annotations.
@@ -274,7 +284,7 @@ def resolve_types(
         else:
             return cls
 
-        tp.cast(WithResolvedTypes[C], cls).__strcs_types_resolved__ = cls
+        cast(WithResolvedTypes[C], cls).__strcs_types_resolved__ = cls
 
         # Copied from standard library typing.get_type_hints
         # Cause I need globals/locals to resolve nested types that don't have forwardrefs
@@ -301,7 +311,7 @@ def resolve_types(
                 if value is None:
                     value = type(None)
                 if isinstance(value, str):
-                    value = tp.ForwardRef(value, is_argument=False, is_class=True)
+                    value = ForwardRef(value, is_argument=False, is_class=True)
 
                 if name in allfields:
                     disassembled = type_cache.disassemble(value)

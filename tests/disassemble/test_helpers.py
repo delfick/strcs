@@ -1,6 +1,7 @@
 import dataclasses
 import inspect
-import typing as tp
+from collections.abc import Callable, Sequence
+from typing import Annotated, Optional, cast
 
 import attrs
 import pytest
@@ -19,7 +20,7 @@ from strcs.disassemble import (
 Disassembler = strcs.disassemble.Disassembler
 
 
-def assertParams(got: tp.Sequence[strcs.Field], want: list[strcs.Field]):
+def assertParams(got: Sequence[strcs.Field], want: list[strcs.Field]):
     print("GOT :")
     for i, g in enumerate(got):
         print("  ", i, ": ", g)
@@ -364,7 +365,7 @@ class TestFieldsFromAttrs:
             ],
         )
 
-        thing = tp.cast(tp.Callable, Thing)(stuff="one", wat="blah", blah=3)
+        thing = cast(Callable, Thing)(stuff="one", wat="blah", blah=3)
         assert thing.stuff == "one"
         assert thing._thing == "blah"
         assert thing.other == 3
@@ -584,59 +585,59 @@ class TestIsAnnotated:
         assert not IsAnnotated.has(int)
         assert not IsAnnotated.has(int | None)
         assert not IsAnnotated.has(list[int])
-        assert IsAnnotated.has(tp.Annotated[int, "stuff"])
-        assert IsAnnotated.has(tp.Annotated[int | None, "stuff"])
-        assert IsAnnotated.has(tp.Annotated[list[int], "stuff"])
+        assert IsAnnotated.has(Annotated[int, "stuff"])
+        assert IsAnnotated.has(Annotated[int | None, "stuff"])
+        assert IsAnnotated.has(Annotated[list[int], "stuff"])
 
 
 class TestExtractOptional:
     def test_it_can_extract_the_outer_most_optional(self):
         assert extract_optional(int) == (False, int)
-        assert extract_optional(tp.Annotated[int, "stuff"]) == (False, tp.Annotated[int, "stuff"])
+        assert extract_optional(Annotated[int, "stuff"]) == (False, Annotated[int, "stuff"])
         assert extract_optional(int | None) == (True, int)
-        assert extract_optional(tp.Optional[int]) == (True, int)
-        assert extract_optional(tp.Optional[tp.Annotated[int, "stuff"]]) == (
+        assert extract_optional(Optional[int]) == (True, int)
+        assert extract_optional(Optional[Annotated[int, "stuff"]]) == (
             True,
-            tp.Annotated[int, "stuff"],
+            Annotated[int, "stuff"],
         )
-        assert extract_optional(tp.Optional[int | str]) == (True, int | str)
+        assert extract_optional(Optional[int | str]) == (True, int | str)
         assert extract_optional(int | str | None) == (True, int | str)
         assert extract_optional(int | str) == (False, int | str)
         assert extract_optional(list[int | None] | None) == (True, list[int | None])
         assert extract_optional(list[int | None]) == (False, list[int | None])
 
-        assert extract_optional(tp.Annotated[list[int | None] | None, "stuff"]) == (
+        assert extract_optional(Annotated[list[int | None] | None, "stuff"]) == (
             False,
-            tp.Annotated[list[int | None] | None, "stuff"],
+            Annotated[list[int | None] | None, "stuff"],
         )
-        assert extract_optional(tp.Annotated[list[int | None], "stuff"]) == (
+        assert extract_optional(Annotated[list[int | None], "stuff"]) == (
             False,
-            tp.Annotated[list[int | None], "stuff"],
+            Annotated[list[int | None], "stuff"],
         )
 
 
 class TestExtractAnnotation:
     def test_it_extracts_the_outer_most_annotation(self):
-        assert extract_annotation(tp.Annotated[int, "stuff"]) == (
+        assert extract_annotation(Annotated[int, "stuff"]) == (
             int,
-            tp.Annotated[int, "stuff"],
+            Annotated[int, "stuff"],
             ("stuff",),
         )
         assert extract_annotation(int) == (int, None, None)
-        assert extract_annotation(tp.Optional[tp.Annotated[int, "stuff"]]) == (
-            tp.Optional[tp.Annotated[int, "stuff"]],
+        assert extract_annotation(Optional[Annotated[int, "stuff"]]) == (
+            Optional[Annotated[int, "stuff"]],
             None,
             None,
         )
-        assert extract_annotation(list[tp.Annotated[int, "stuff"]]) == (
-            list[tp.Annotated[int, "stuff"]],
+        assert extract_annotation(list[Annotated[int, "stuff"]]) == (
+            list[Annotated[int, "stuff"]],
             None,
             None,
         )
 
     def test_it_returns_multiple_annotation(self):
-        assert extract_annotation(tp.Annotated[tp.Annotated[int, "other"], "stuff"]) == (
+        assert extract_annotation(Annotated[Annotated[int, "other"], "stuff"]) == (
             int,
-            tp.Annotated[int, "other", "stuff"],
+            Annotated[int, "other", "stuff"],
             ("other", "stuff"),
         )

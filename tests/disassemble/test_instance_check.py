@@ -1,7 +1,9 @@
 import copy
 import dataclasses
 import types
-import typing as tp
+import typing
+from collections.abc import Callable
+from typing import Annotated, Generic, NewType, TypeVar, Union, cast
 
 import attrs
 import pytest
@@ -11,7 +13,7 @@ import strcs
 Disassembler = strcs.disassemble.Disassembler
 
 
-T = tp.TypeVar("T")
+T = TypeVar("T")
 
 
 class TestInstanceCheck:
@@ -110,9 +112,7 @@ class TestInstanceCheck:
     def test_it_can_find_instances_and_subclasses_of_complicated_union_type(
         self, Dis: Disassembler
     ):
-        provided = tp.Union[
-            tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, "hello"]
-        ]
+        provided = Union[Annotated[list[int], "str"], Annotated[int | str | None, "hello"]]
         db = Dis(provided)
         assert isinstance(23, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -202,7 +202,7 @@ class TestInstanceCheck:
         assert db.checkable.Meta.without_annotation == int | None
 
     def test_it_can_find_instances_and_subclasses_of_annotated_types(self, Dis: Disassembler):
-        db = Dis(tp.Annotated[int | None, "stuff"])
+        db = Dis(Annotated[int | None, "stuff"])
         assert isinstance(23, db.checkable)
         assert isinstance(None, db.checkable)
         assert not isinstance(23.4, db.checkable)
@@ -235,9 +235,9 @@ class TestInstanceCheck:
         assert not issubclass(db.checkable, Dis(NotMyInt).checkable)
 
         assert db.checkable.Meta.typ == int | None
-        assert db.checkable.Meta.original == tp.Annotated[int | None, "stuff"]
+        assert db.checkable.Meta.original == Annotated[int | None, "stuff"]
         assert db.checkable.Meta.optional
-        assert db.checkable.Meta.without_optional == tp.Annotated[int, "stuff"]
+        assert db.checkable.Meta.without_optional == Annotated[int, "stuff"]
         assert db.checkable.Meta.without_annotation == int | None
 
     def test_it_can_find_instances_and_subclasses_of_user_defined_classes(self, Dis: Disassembler):
@@ -291,7 +291,7 @@ class TestInstanceCheck:
         class Mine:
             pass
 
-        MineT = tp.NewType("MineT", Mine)
+        MineT = NewType("MineT", Mine)
 
         db = Dis(MineT)
         assert not isinstance(23, db.checkable)
@@ -342,7 +342,7 @@ class TestInstanceCheck:
     def test_it_can_find_instances_and_subclasses_of_primtive_NewType_objects(
         self, Dis: Disassembler
     ):
-        MyInt = tp.NewType("MyInt", int)
+        MyInt = NewType("MyInt", int)
 
         db = Dis(MyInt)
         assert isinstance(23, db.checkable)
@@ -375,7 +375,7 @@ class TestInstanceCheck:
 
     def test_it_can_instantiate_the_provided_type(self, Dis: Disassembler):
         checkable = Dis(dict[str, bool]).checkable
-        made = tp.cast(tp.Callable, checkable)([("1", True), ("2", False)])
+        made = cast(Callable, checkable)([("1", True), ("2", False)])
         assert made == {"1": True, "2": False}
 
         assert checkable.Meta.typ == dict
@@ -389,7 +389,7 @@ class TestInstanceCheck:
                 self.one = one
 
         checkable = Dis(Thing).checkable
-        made = tp.cast(tp.Callable, checkable)(one=1)
+        made = cast(Callable, checkable)(one=1)
         assert isinstance(made, Thing)
         assert made.one == 1
 
@@ -399,7 +399,7 @@ class TestInstanceCheck:
         assert checkable.Meta.without_optional == Thing
         assert checkable.Meta.without_annotation == Thing
 
-        constructor: tp.Callable = Dis(int | str).checkable
+        constructor: Callable = Dis(int | str).checkable
         with pytest.raises(ValueError, match="Cannot instantiate this type"):
             constructor(1)
 
@@ -408,7 +408,7 @@ class TestInstanceCheck:
             one: int
             two: str
 
-        class Two(tp.Generic[T]):
+        class Two(Generic[T]):
             one: T
             two: str
 
@@ -433,8 +433,8 @@ class TestInstanceCheck:
             (Three, repr(Three)),
             (int | str, f"{int!r} | {str!r}"),
             (int | None, f"{int!r} | {type(None)!r}"),
-            (tp.Union[int, str], f"{int!r} | {str!r}"),
-            (tp.Union[bool, None], f"{bool!r} | {type(None)!r}"),
+            (Union[int, str], f"{int!r} | {str!r}"),
+            (Union[bool, None], f"{bool!r} | {type(None)!r}"),
             (One | int, f"{One!r} | {int!r}"),
         ]
         for thing, expected in examples:
@@ -442,61 +442,61 @@ class TestInstanceCheck:
             assert repr(checkable) == expected
 
     def test_it_can_get_typing_origin(self, Dis: Disassembler):
-        assert tp.get_origin(Dis(str | int).checkable) == types.UnionType
-        assert tp.get_origin(Dis(dict[str, int]).checkable) == dict
-        assert tp.get_origin(Dis(dict[str, int] | None).checkable) == types.UnionType
+        assert typing.get_origin(Dis(str | int).checkable) == types.UnionType
+        assert typing.get_origin(Dis(dict[str, int]).checkable) == dict
+        assert typing.get_origin(Dis(dict[str, int] | None).checkable) == types.UnionType
         assert (
-            tp.get_origin(Dis(tp.Annotated[dict[str, int] | None, "hi"]).checkable)
+            typing.get_origin(Dis(Annotated[dict[str, int] | None, "hi"]).checkable)
             == types.UnionType
         )
 
-        assert tp.get_origin(Dis(dict).checkable) is None
-        assert tp.get_origin(Dis(dict | None).checkable) is types.UnionType
-        assert tp.get_origin(Dis(tp.Annotated[dict | None, "hi"]).checkable) is types.UnionType
+        assert typing.get_origin(Dis(dict).checkable) is None
+        assert typing.get_origin(Dis(dict | None).checkable) is types.UnionType
+        assert typing.get_origin(Dis(Annotated[dict | None, "hi"]).checkable) is types.UnionType
 
-        assert tp.get_origin(Dis(dict | str).checkable) is types.UnionType
+        assert typing.get_origin(Dis(dict | str).checkable) is types.UnionType
 
-        class Thing(tp.Generic[T]):
+        class Thing(Generic[T]):
             pass
 
-        assert tp.get_origin(Dis(Thing).checkable) is None
-        assert tp.get_origin(Dis(Thing[int]).checkable) is Thing
+        assert typing.get_origin(Dis(Thing).checkable) is None
+        assert typing.get_origin(Dis(Thing[int]).checkable) is Thing
 
     def test_it_can_get_typing_args(self, Dis: Disassembler):
-        assert tp.get_args(Dis(str | int).checkable) == (str, int)
-        assert tp.get_args(Dis(dict[str, int]).checkable) == (str, int)
-        assert tp.get_args(Dis(dict[str, int] | None).checkable) == (
+        assert typing.get_args(Dis(str | int).checkable) == (str, int)
+        assert typing.get_args(Dis(dict[str, int]).checkable) == (str, int)
+        assert typing.get_args(Dis(dict[str, int] | None).checkable) == (
             dict[str, int],
             type(None),
         )
-        assert tp.get_args(Dis(tp.Annotated[dict[str, int] | None, "hi"]).checkable) == (
+        assert typing.get_args(Dis(Annotated[dict[str, int] | None, "hi"]).checkable) == (
             dict[str, int],
             type(None),
         )
 
-        assert tp.get_args(Dis(dict).checkable) == ()
-        assert tp.get_args(Dis(dict | None).checkable) == (
+        assert typing.get_args(Dis(dict).checkable) == ()
+        assert typing.get_args(Dis(dict | None).checkable) == (
             dict,
             type(None),
         )
-        assert tp.get_args(Dis(tp.Annotated[dict | None, "hi"]).checkable) == (dict, type(None))
+        assert typing.get_args(Dis(Annotated[dict | None, "hi"]).checkable) == (dict, type(None))
 
-        assert tp.get_args(Dis(dict | str).checkable) == (dict, str)
+        assert typing.get_args(Dis(dict | str).checkable) == (dict, str)
 
-        class Thing(tp.Generic[T]):
+        class Thing(Generic[T]):
             pass
 
-        assert tp.get_args(Dis(Thing).checkable) == ()
-        assert tp.get_args(Dis(Thing[int]).checkable) == (int,)
+        assert typing.get_args(Dis(Thing).checkable) == ()
+        assert typing.get_args(Dis(Thing[int]).checkable) == (int,)
 
     def test_it_can_get_typing_hints(self, Dis: Disassembler):
-        assert tp.get_type_hints(Dis(int).checkable) == {}
+        assert typing.get_type_hints(Dis(int).checkable) == {}
 
         class Thing:
             one: int
             two: str
 
-        class Other(tp.Generic[T]):
+        class Other(Generic[T]):
             one: T
             two: str
 
@@ -517,12 +517,12 @@ class TestInstanceCheck:
             got_error: Exception | None = None
 
             try:
-                want_result = tp.get_type_hints(thing)
+                want_result = typing.get_type_hints(thing)
             except Exception as e:
                 want_error = e
 
             try:
-                got_result = tp.get_type_hints(Dis(thing).checkable)
+                got_result = typing.get_type_hints(Dis(thing).checkable)
             except Exception as e:
                 got_error = e
 
@@ -582,8 +582,8 @@ class TestInstanceCheck:
         class Thing:
             pass
 
-        Alias = tp.NewType("Alias", Thing)
+        Alias = NewType("Alias", Thing)
 
         checkable = Dis(Alias).checkable
-        assert isinstance(checkable, tp.NewType)
+        assert isinstance(checkable, NewType)
         assert checkable.__supertype__ is Thing

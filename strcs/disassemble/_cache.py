@@ -1,12 +1,12 @@
-import typing as tp
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
+from typing import TYPE_CHECKING, TypeVar, overload
 
 from ._comparer import Comparer
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ._base import Disassembler, Type
 
-U = tp.TypeVar("U")
+U = TypeVar("U")
 
 
 class _TypeCacheDisassembler:
@@ -16,13 +16,13 @@ class _TypeCacheDisassembler:
         self.Type = Type
         self.type_cache = type_cache
 
-    @tp.overload
+    @overload
     def __call__(self, typ: type[U]) -> "Type[U]": ...
 
-    @tp.overload
+    @overload
     def __call__(self, typ: "Type[U]") -> "Type[U]": ...
 
-    @tp.overload
+    @overload
     def __call__(self, typ: object) -> "Type[object]": ...
 
     def __call__(self, typ: type[U] | object) -> "Type[U] | Type[object]":
@@ -102,7 +102,7 @@ class TypeCache(MutableMapping[object, "Type"]):
         else:
             return self.key(k) in self.cache
 
-    def __iter__(self) -> tp.Iterator[object]:
+    def __iter__(self) -> Iterator[object]:
         return iter(self.cache)
 
     def __len__(self) -> int:

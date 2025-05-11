@@ -1,5 +1,5 @@
 import secrets
-import typing as tp
+from typing import Annotated
 
 import attrs
 
@@ -23,7 +23,7 @@ class Other:
 @attrs.define
 class Part:
     one: int
-    identity: tp.Annotated[str, strcs.FromMeta("identity")]
+    identity: Annotated[str, strcs.FromMeta("identity")]
 
 
 @attrs.define

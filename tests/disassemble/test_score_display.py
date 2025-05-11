@@ -2,7 +2,7 @@ import dataclasses
 import itertools
 import sys
 import textwrap
-import typing as tp
+from typing import Annotated, Generic, NewType, Optional, TypeVar, Union
 
 import attrs
 import pytest
@@ -13,8 +13,8 @@ from strcs import Type
 Disassembler = strcs.disassemble.Disassembler
 
 
-T = tp.TypeVar("T")
-U = tp.TypeVar("U")
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 class TestType:
@@ -58,7 +58,7 @@ class TestType:
     def test_it_doesnt_overcome_python_limitations_with_annotating_None_and_thinks_we_annotated_type_of_None(
         self, Dis: Disassembler
     ):
-        provided = tp.Annotated[None, 1]
+        provided = Annotated[None, 1]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -167,9 +167,7 @@ class TestType:
 
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
     def test_it_works_on_a_complicated_union(self, Dis: Disassembler):
-        provided = tp.Union[
-            tp.Annotated[list[int], "str"], tp.Annotated[int | str | None, '"hello']
-        ]
+        provided = Union[Annotated[list[int], "str"], Annotated[int | str | None, '"hello']]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -293,7 +291,7 @@ class TestType:
 
     @pytest.mark.skipif(sys.version_info < (3, 11), reason="requires python3.11 or higher")
     def test_it_works_on_a_typing_union(self, Dis: Disassembler):
-        provided = tp.Union[int, str]
+        provided = Union[int, str]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -451,7 +449,7 @@ class TestType:
 
     def test_it_works_on_annotated_simple_type(self, Dis: Disassembler):
         anno = "hello"
-        provided = tp.Annotated[int, anno]
+        provided = Annotated[int, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -477,7 +475,7 @@ class TestType:
 
     def test_it_works_on_optional_annotated_simple_type(self, Dis: Disassembler):
         anno = "hello"
-        provided = tp.Annotated[int | None, anno]
+        provided = Annotated[int | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -643,7 +641,7 @@ class TestType:
     def test_it_works_on_optional_builtin_container_to_multiple_simple_types(
         self, Dis: Disassembler
     ):
-        provided = tp.Optional[dict[str, int]]
+        provided = Optional[dict[str, int]]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -703,7 +701,7 @@ class TestType:
         self, Dis: Disassembler
     ):
         anno = "stuff"
-        provided = tp.Annotated[dict[str, int] | None, anno]
+        provided = Annotated[dict[str, int] | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -763,7 +761,7 @@ class TestType:
         self, Dis: Disassembler
     ):
         anno = "stuff"
-        provided = tp.Optional[tp.Annotated[dict[str, int], anno]]
+        provided = Optional[Annotated[dict[str, int], anno]]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -974,17 +972,17 @@ class TestType:
         )
 
     def test_it_works_on_class_with_complicated_hierarchy(self, Dis: Disassembler):
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             def __init__(self, one: int, two: str):
                 self.one = one
                 self.two = two
 
-        class Stuff(tp.Generic[T], Thing[int, T]):
+        class Stuff(Generic[T], Thing[int, T]):
             def __init__(self, one: int, two: str, three: bool):
                 super().__init__(one, two)
                 self.three = three
 
-        class Blah(tp.Generic[U], Stuff[str]):
+        class Blah(Generic[U], Stuff[str]):
             pass
 
         class Meh(Blah[bool]):
@@ -1099,7 +1097,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing, anno]
+        provided = Annotated[Thing, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1131,7 +1129,7 @@ class TestType:
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing | None, anno]
+        provided = Annotated[Thing | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1157,13 +1155,13 @@ class TestType:
 
     def test_it_works_on_an_optional_annotated_generic_class(self, Dis: Disassembler):
         @dataclasses.dataclass
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             one: T
             two: U
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing[int, str] | None, anno]
+        provided = Annotated[Thing[int, str] | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1227,13 +1225,13 @@ class TestType:
         self, Dis: Disassembler
     ):
         @attrs.define
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             one: T
             two: U
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing | None, anno]
+        provided = Annotated[Thing | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1281,13 +1279,13 @@ class TestType:
         self, Dis: Disassembler
     ):
         @attrs.define
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             one: T
             two: U
 
         anno = "blah"
 
-        provided = tp.Annotated[Thing[int, str] | None, anno]
+        provided = Annotated[Thing[int, str] | None, anno]
         disassembled = Dis(provided)
         self.assertDisplay(
             disassembled,
@@ -1349,12 +1347,12 @@ class TestType:
 
     def test_it_works_with_NewType_generic_params(self, Dis: Disassembler):
         @attrs.define
-        class Thing(tp.Generic[T, U]):
+        class Thing(Generic[T, U]):
             one: T
             two: U
 
-        One = tp.NewType("One", int)
-        Two = tp.NewType("Two", int)
+        One = NewType("One", int)
+        Two = NewType("Two", int)
 
         provided = Thing[One, Two]
         disassembled = Dis(provided)
@@ -1422,7 +1420,7 @@ class TestType:
         class Thing(str):
             pass
 
-        ThingAlias = tp.NewType("ThingAlias", Thing)
+        ThingAlias = NewType("ThingAlias", Thing)
 
         provided = ThingAlias
         disassembled = Dis(provided)

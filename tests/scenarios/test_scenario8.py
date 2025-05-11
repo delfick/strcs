@@ -1,4 +1,4 @@
-import typing as tp
+from typing import Annotated
 
 import attrs
 
@@ -22,7 +22,7 @@ class Stuff:
 class SubOther:
     other: "Other"
     stuff: "Stuff"
-    another: tp.Annotated["Other", MultiplyAnnotation(multiply=2)]
+    another: Annotated["Other", MultiplyAnnotation(multiply=2)]
 
 
 @attrs.define

@@ -1,4 +1,4 @@
-import typing as tp
+from typing import Annotated
 
 import attrs
 import cattrs
@@ -36,7 +36,7 @@ class TestFill:
 
         @attrs.define
         class Thing:
-            one: tp.Annotated[int, 1]
+            one: Annotated[int, 1]
             two: Two
             three: bool
             four: int
@@ -51,7 +51,7 @@ class TestFill:
 
         @attrs.define
         class Thing:
-            one: tp.Annotated[int, 1]
+            one: Annotated[int, 1]
             two: Two
             three: bool
             four: int
@@ -124,7 +124,7 @@ class TestCreation:
             return val * 2
 
         class Thing:
-            def __init__(self, one: tp.Annotated[int, strcs.Ann(creator=doubler)]):
+            def __init__(self, one: Annotated[int, strcs.Ann(creator=doubler)]):
                 self.one = one
 
         thing = Thing(one=1)
@@ -141,7 +141,7 @@ class TestCreation:
             return 200
 
         class Thing:
-            def __init__(self, one: tp.Annotated[int, strcs.Ann(creator=doubler)]):
+            def __init__(self, one: Annotated[int, strcs.Ann(creator=doubler)]):
                 self.one = one
 
         with pytest.raises(TypeError):

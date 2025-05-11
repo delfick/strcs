@@ -1,6 +1,5 @@
 import secrets
-import typing as tp
-from typing import ClassVar
+from typing import ClassVar, Optional, Union
 
 import cattrs
 import pytest
@@ -280,7 +279,7 @@ class TestMeta:
                 False,
                 {"a": 1, "b": 2, "c": 3},
             )
-            assert meta.find_by_type(tp.Optional[object], type_cache=type_cache) == (
+            assert meta.find_by_type(Optional[object], type_cache=type_cache) == (
                 True,
                 {"a": 1, "b": 2, "c": 3},
             )
@@ -293,7 +292,7 @@ class TestMeta:
                 False,
                 {"a": 1, "b": 2, "c": 3},
             )
-            assert meta.find_by_type(tp.Optional[object], data=data, type_cache=type_cache) == (
+            assert meta.find_by_type(Optional[object], data=data, type_cache=type_cache) == (
                 True,
                 {"a": 1, "b": 2, "c": 3},
             )
@@ -312,25 +311,25 @@ class TestMeta:
 
             assert meta.find_by_type(int, type_cache=type_cache) == (False, {"a": 1, "f": 20})
             assert meta.find_by_type(bool, type_cache=type_cache) == (False, {"b": True})
-            assert meta.find_by_type(tp.Optional[bool], type_cache=type_cache) == (
+            assert meta.find_by_type(Optional[bool], type_cache=type_cache) == (
                 True,
                 {"b": True},
             )
             assert meta.find_by_type(str, type_cache=type_cache) == (False, {"d": "asdf"})
             assert meta.find_by_type(Shape, type_cache=type_cache) == (False, {"e": square})
-            assert meta.find_by_type(tp.Optional[Shape], type_cache=type_cache) == (
+            assert meta.find_by_type(Optional[Shape], type_cache=type_cache) == (
                 True,
                 {"e": square},
             )
-            assert meta.find_by_type(tp.Union[int, float], type_cache=type_cache) == (
+            assert meta.find_by_type(Union[int, float], type_cache=type_cache) == (
                 False,
                 {"a": 1, "c": 2.0, "f": 20},
             )
-            assert meta.find_by_type(tp.Union[int, bool, float], type_cache=type_cache) == (
+            assert meta.find_by_type(Union[int, bool, float], type_cache=type_cache) == (
                 False,
                 {"a": 1, "b": True, "c": 2.0, "f": 20},
             )
-            assert meta.find_by_type(tp.Optional[str | float], type_cache=type_cache) == (
+            assert meta.find_by_type(Optional[str | float], type_cache=type_cache) == (
                 True,
                 {"d": "asdf", "c": 2.0},
             )
@@ -344,16 +343,16 @@ class TestMeta:
 
             assert meta.find_by_type(int, type_cache=type_cache) == (False, {})
             assert meta.find_by_type(bool, type_cache=type_cache) == (False, {})
-            assert meta.find_by_type(tp.Optional[bool], type_cache=type_cache) == (True, {})
+            assert meta.find_by_type(Optional[bool], type_cache=type_cache) == (True, {})
             assert meta.find_by_type(str, type_cache=type_cache) == (False, {})
             assert meta.find_by_type(Shape, type_cache=type_cache) == (False, {})
-            assert meta.find_by_type(tp.Optional[Shape], type_cache=type_cache) == (True, {})
-            assert meta.find_by_type(tp.Union[int, float], type_cache=type_cache) == (False, {})
-            assert meta.find_by_type(tp.Union[int, bool, float], type_cache=type_cache) == (
+            assert meta.find_by_type(Optional[Shape], type_cache=type_cache) == (True, {})
+            assert meta.find_by_type(Union[int, float], type_cache=type_cache) == (False, {})
+            assert meta.find_by_type(Union[int, bool, float], type_cache=type_cache) == (
                 False,
                 {},
             )
-            assert meta.find_by_type(tp.Optional[str | float], type_cache=type_cache) == (
+            assert meta.find_by_type(Optional[str | float], type_cache=type_cache) == (
                 True,
                 {},
             )
@@ -395,8 +394,7 @@ class TestMeta:
             meta["nup"] = "hello"
 
             assert (
-                meta.retrieve_one(tp.Optional[int], refined_type=int, type_cache=type_cache)
-                is None
+                meta.retrieve_one(Optional[int], refined_type=int, type_cache=type_cache) is None
             )
 
         def test_it_can_complain_if_there_are_0_found_values(self, type_cache: strcs.TypeCache):
@@ -428,7 +426,7 @@ class TestMeta:
             blah = Blah()
 
             class Thing:
-                e: tp.ClassVar[Blah] = blah
+                e: ClassVar[Blah] = blah
 
             meta["d"] = Thing()
 

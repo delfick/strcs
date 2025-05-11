@@ -1,5 +1,6 @@
 import dataclasses
-import typing as tp
+from collections.abc import Callable, Iterable
+from typing import Annotated, Optional, Protocol, cast
 
 import attrs
 
@@ -10,7 +11,7 @@ class Stuff:
     two: str
 
 
-class IsField(tp.Protocol):
+class IsField(Protocol):
     type: type
     name: str
 
@@ -25,7 +26,7 @@ class TestResolveTypes:
     def test_it_just_returns_the_object_if_its_not_an_attrs_dataclass_class(self) -> None:
         thing: object
         for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
-            assert strcs.resolve_types(tp.cast(type, thing), type_cache=strcs.TypeCache()) is thing
+            assert strcs.resolve_types(cast(type, thing), type_cache=strcs.TypeCache()) is thing
 
     def test_it_clears_the_type_cache(self) -> None:
         type_cache = strcs.TypeCache()
@@ -48,24 +49,24 @@ class TestResolveTypes:
 
     def assertWorks(
         self,
-        decorator: tp.Callable[[type], type] | None,
-        get_fields: tp.Callable[[type], tp.Iterable[IsField]],
+        decorator: Callable[[type], type] | None,
+        get_fields: Callable[[type], Iterable[IsField]],
     ) -> None:
         class One:
             one: "int"
-            two: tp.Optional["str"]
-            three: tp.Annotated[tp.Optional["str"], 32]
-            four: tp.Annotated[str | None, 32]
-            five: tp.Annotated["Stuff", 32]
+            two: Optional["str"]
+            three: Annotated[Optional["str"], 32]
+            four: Annotated[str | None, 32]
+            five: Annotated["Stuff", 32]
             six: dict[int, "Stuff"]
-            seven: tp.Annotated[dict[int, "Stuff"], 32]
-            eight: tp.Callable[[int], "Stuff"]
+            seven: Annotated[dict[int, "Stuff"], 32]
+            eight: Callable[[int], "Stuff"]
             nine: dict[int, "Stuff"]
             ten: list["Stuff"]
             eleven: list["Stuff"]
             twelve: dict["Stuff", list[tuple["Stuff", "Stuff"]]]
             thirteen: dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None
-            fourteen: tp.Annotated[dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None, 56]
+            fourteen: Annotated[dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None, 56]
 
         if decorator:
             decorated_One = decorator(One)
@@ -74,13 +75,13 @@ class TestResolveTypes:
 
         fields = {field.name: field.type for field in get_fields(decorated_One)}
         assert fields["one"] == "int"
-        assert fields["two"] == tp.Optional["str"]
-        assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
-        assert fields["four"] == tp.Annotated[str | None, 32]
-        assert fields["five"] == tp.Annotated["Stuff", 32]
+        assert fields["two"] == Optional["str"]
+        assert fields["three"] == Annotated[Optional["str"], 32]
+        assert fields["four"] == Annotated[str | None, 32]
+        assert fields["five"] == Annotated["Stuff", 32]
         assert fields["six"] == dict[int, "Stuff"]
-        assert fields["seven"] == tp.Annotated[dict[int, "Stuff"], 32]
-        assert fields["eight"] == tp.Callable[[int], "Stuff"]
+        assert fields["seven"] == Annotated[dict[int, "Stuff"], 32]
+        assert fields["eight"] == Callable[[int], "Stuff"]
         assert fields["nine"] == dict[int, "Stuff"]
         assert fields["ten"] == list["Stuff"]
         assert fields["eleven"] == list["Stuff"]
@@ -88,28 +89,26 @@ class TestResolveTypes:
         assert fields["thirteen"] == dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None
         assert (
             fields["fourteen"]
-            == tp.Annotated[dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None, 56]
+            == Annotated[dict["Stuff", list[tuple["Stuff", "Stuff"]]] | None, 56]
         )
 
         strcs.resolve_types(decorated_One, type_cache=strcs.TypeCache())
 
         fields = {field.name: field.type for field in get_fields(decorated_One)}
         assert fields["one"] == int
-        assert fields["two"] == tp.Optional[str]
-        assert fields["three"] == tp.Annotated[str | None, 32]
-        assert fields["four"] == tp.Annotated[str | None, 32]
-        assert fields["five"] == tp.Annotated[Stuff, 32]
+        assert fields["two"] == Optional[str]
+        assert fields["three"] == Annotated[str | None, 32]
+        assert fields["four"] == Annotated[str | None, 32]
+        assert fields["five"] == Annotated[Stuff, 32]
         assert fields["six"] == dict[int, Stuff]
-        assert fields["seven"] == tp.Annotated[dict[int, Stuff], 32]
-        assert fields["eight"] == tp.Callable[[int], Stuff]
+        assert fields["seven"] == Annotated[dict[int, Stuff], 32]
+        assert fields["eight"] == Callable[[int], Stuff]
         assert fields["nine"] == dict[int, Stuff]
         assert fields["ten"] == list[Stuff]
         assert fields["eleven"] == list[Stuff]
         assert fields["twelve"] == dict[Stuff, list[tuple[Stuff, Stuff]]]
         assert fields["thirteen"] == dict[Stuff, list[tuple[Stuff, Stuff]]] | None
-        assert (
-            fields["fourteen"] == tp.Annotated[dict[Stuff, list[tuple[Stuff, Stuff]]] | None, 56]
-        )
+        assert fields["fourteen"] == Annotated[dict[Stuff, list[tuple[Stuff, Stuff]]] | None, 56]
 
         class Thing:
             one: "int"
@@ -142,8 +141,8 @@ class TestResolveTypes:
         @attrs.define
         class One:
             one: "int"
-            two: tp.Optional["str"]
-            three: tp.Annotated[tp.Optional["str"], 32]
+            two: Optional["str"]
+            three: Annotated[Optional["str"], 32]
 
         @attrs.define
         class Holder:
@@ -154,8 +153,8 @@ class TestResolveTypes:
 
         fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == "int"
-        assert fields["two"] == tp.Optional["str"]
-        assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
+        assert fields["two"] == Optional["str"]
+        assert fields["three"] == Annotated[Optional["str"], 32]
 
         strcs.resolve_types(Holder, globals(), locals(), type_cache=strcs.TypeCache())
 
@@ -164,27 +163,27 @@ class TestResolveTypes:
 
         fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == int
-        assert fields["two"] == tp.Optional[str]
-        assert fields["three"] == tp.Annotated[str | None, 32]
+        assert fields["two"] == Optional[str]
+        assert fields["three"] == Annotated[str | None, 32]
 
     def test_it_finds_via_optional_properties(self) -> None:
         @attrs.define
         class One:
             one: "int"
-            two: tp.Optional["str"]
-            three: tp.Annotated[tp.Optional["str"], 32]
+            two: Optional["str"]
+            three: Annotated[Optional["str"], 32]
 
         @attrs.define
         class Holder:
-            one: tp.Optional["One"]
+            one: Optional["One"]
 
         fields = {field.name: field.type for field in attrs.fields(Holder)}
-        assert fields["one"] == tp.Optional["One"]
+        assert fields["one"] == Optional["One"]
 
         fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == "int"
-        assert fields["two"] == tp.Optional["str"]
-        assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
+        assert fields["two"] == Optional["str"]
+        assert fields["three"] == Annotated[Optional["str"], 32]
 
         strcs.resolve_types(Holder, globals(), locals(), type_cache=strcs.TypeCache())
 
@@ -193,15 +192,15 @@ class TestResolveTypes:
 
         fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == int
-        assert fields["two"] == tp.Optional[str]
-        assert fields["three"] == tp.Annotated[str | None, 32]
+        assert fields["two"] == Optional[str]
+        assert fields["three"] == Annotated[str | None, 32]
 
     def test_it_finds_via_annotated_properties(self) -> None:
         @attrs.define
         class One:
             one: "int"
-            two: tp.Optional["str"]
-            three: tp.Annotated[tp.Optional["str"], 32]
+            two: Optional["str"]
+            three: Annotated[Optional["str"], 32]
 
         @attrs.define
         class Two:
@@ -217,19 +216,19 @@ class TestResolveTypes:
 
         @attrs.define
         class Holder:
-            one: tp.Optional["One"]
-            two: tp.Annotated[tp.Optional["Two"], "hi"]
-            three: tp.Annotated["Three", "hi"] | None
+            one: Optional["One"]
+            two: Annotated[Optional["Two"], "hi"]
+            three: Annotated["Three", "hi"] | None
 
         fields = {field.name: field.type for field in attrs.fields(Holder)}
-        assert fields["one"] == tp.Optional["One"]
-        assert fields["two"] == tp.Annotated[tp.Optional["Two"], "hi"]
-        assert fields["three"] == tp.Optional[tp.Annotated["Three", "hi"]]
+        assert fields["one"] == Optional["One"]
+        assert fields["two"] == Annotated[Optional["Two"], "hi"]
+        assert fields["three"] == Optional[Annotated["Three", "hi"]]
 
         fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == "int"
-        assert fields["two"] == tp.Optional["str"]
-        assert fields["three"] == tp.Annotated[tp.Optional["str"], 32]
+        assert fields["two"] == Optional["str"]
+        assert fields["three"] == Annotated[Optional["str"], 32]
 
         fields = {field.name: field.type for field in attrs.fields(Two)}
         assert fields["one"] == "str"
@@ -244,13 +243,13 @@ class TestResolveTypes:
 
         fields = {field.name: field.type for field in attrs.fields(Holder)}
         assert fields["one"] == One | None
-        assert fields["two"] == tp.Annotated[Two | None, "hi"]
-        assert fields["three"] == tp.Optional[tp.Annotated[Three, "hi"]]
+        assert fields["two"] == Annotated[Two | None, "hi"]
+        assert fields["three"] == Optional[Annotated[Three, "hi"]]
 
         fields = {field.name: field.type for field in attrs.fields(One)}
         assert fields["one"] == int
         assert fields["two"] == str | None
-        assert fields["three"] == tp.Annotated[str | None, 32]
+        assert fields["three"] == Annotated[str | None, 32]
 
         fields = {field.name: field.type for field in attrs.fields(Two)}
         assert fields["one"] == str

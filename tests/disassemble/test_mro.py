@@ -1,6 +1,6 @@
 import re
-import typing as tp
 from collections import OrderedDict
+from typing import Annotated, Generic, Optional, TypeVar
 
 import attrs
 import pytest
@@ -18,25 +18,25 @@ class TestAssumptions:
             match=r"Parameters to Generic\[...\] must all be type variables or parameter specification variables.",
         ):
 
-            class One(tp.Generic[str]):  # type: ignore[misc]
+            class One(Generic[str]):  # type: ignore[misc]
                 pass
 
     def test_it_cant_have_Generic_and_unfilled_generic_parents(self):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
         with pytest.raises(TypeError, match="Cannot create a consistent method resolution"):
 
-            class Two(tp.Generic[U], One):
+            class Two(Generic[U], One):
                 pass
 
     def test_it_cant_do_a_diamond_of_two_of_the_same_type_with_different_parameters(self):
-        T = tp.TypeVar("T")
+        T = TypeVar("T")
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
         with pytest.raises(TypeError, match="duplicate base class One"):
@@ -214,17 +214,17 @@ class TestMRO:
         assert mro.signature_for_display == ""
 
     def test_it_works_for_simple_generic(self, type_cache: strcs.TypeCache):
-        T = tp.TypeVar("T")
+        T = TypeVar("T")
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
         mro = MRO.create(One, type_cache=type_cache)
         assert mro.start is One
         assert mro.args == ()
         assert mro.origin == One
-        assert mro.mro == (One, tp.Generic, object)
-        assert mro.bases == [tp.Generic[T]]
+        assert mro.mro == (One, Generic, object)
+        assert mro.bases == [Generic[T]]
         assert mro.typevars == OrderedDict([((One, T), strcs.Type.Missing)])
         assert mro.signature_for_display == "~T"
 
@@ -232,15 +232,15 @@ class TestMRO:
         assert mro.start is One[int]
         assert mro.args == (int,)
         assert mro.origin == One
-        assert mro.mro == (One, tp.Generic, object)
-        assert mro.bases == [tp.Generic[T]]
+        assert mro.mro == (One, Generic, object)
+        assert mro.bases == [Generic[T]]
         assert mro.typevars == OrderedDict([((One, T), int)])
         assert mro.signature_for_display == "int"
 
     def test_it_knows_unfilled_typevars_of_the_parent(self, type_cache: strcs.TypeCache):
-        T = tp.TypeVar("T")
+        T = TypeVar("T")
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
         class Two(One):
@@ -253,19 +253,19 @@ class TestMRO:
         assert mro.start is Three
         assert mro.args == ()
         assert mro.origin == Three
-        assert mro.mro == (Three, Two, One, tp.Generic, object)
-        assert mro.bases == [Two, One, tp.Generic, object]
+        assert mro.mro == (Three, Two, One, Generic, object)
+        assert mro.bases == [Two, One, Generic, object]
         assert mro.typevars == OrderedDict([((One, T), strcs.Type.Missing)])
         assert mro.signature_for_display == "~T"
 
     def test_it_knows_multiple_unfilled_typevars_of_the_parent(self, type_cache: strcs.TypeCache):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
-        class Two(One, tp.Generic[U]):
+        class Two(One, Generic[U]):
             pass
 
         class Three(Two):
@@ -275,8 +275,8 @@ class TestMRO:
         assert mro.start is Three
         assert mro.args == ()
         assert mro.origin == Three
-        assert mro.mro == (Three, Two, One, tp.Generic, object)
-        assert mro.bases == [Two, One, tp.Generic, object]
+        assert mro.mro == (Three, Two, One, Generic, object)
+        assert mro.bases == [Two, One, Generic, object]
         assert mro.typevars == OrderedDict(
             [((Two, U), strcs.Type.Missing), ((One, T), strcs.Type.Missing)]
         )
@@ -290,7 +290,7 @@ class TestMRO:
         assert mro.start is Four
         assert mro.args == ()
         assert mro.origin == Four
-        assert mro.mro == (Four, Two, One, tp.Generic, object)
+        assert mro.mro == (Four, Two, One, Generic, object)
         assert mro.bases == [Two[int]]
         assert mro.typevars == OrderedDict([((Two, U), int), ((One, T), strcs.Type.Missing)])
         # Can't access T from the signature
@@ -298,10 +298,10 @@ class TestMRO:
 
     def test_it_cant_partially_fill_out_type_vars(self, type_cache: strcs.TypeCache):
         # Sanity check for python error in version of python at time of writing
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
-        class One(tp.Generic[T, U]):
+        class One(Generic[T, U]):
             pass
 
         with pytest.raises(TypeError, match="Too few (arguments|parameters)"):
@@ -310,27 +310,27 @@ class TestMRO:
                 pass
 
     def test_it_works_for_multiple_generic_hierarchy(self, type_cache: strcs.TypeCache):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
-        assert isinstance(T, tp.TypeVar)
-        assert isinstance(U, tp.TypeVar)
+        assert isinstance(T, TypeVar)
+        assert isinstance(U, TypeVar)
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
-        class Two(tp.Generic[U]):
+        class Two(Generic[U]):
             pass
 
-        class Three(tp.Generic[U, T], Two[U], One[T]):
+        class Three(Generic[U, T], Two[U], One[T]):
             pass
 
         mro = MRO.create(Three, type_cache=type_cache)
         assert mro.start is Three
         assert mro.args == ()
         assert mro.origin == Three
-        assert mro.mro == (Three, Two, One, tp.Generic, object)
-        assert mro.bases == [tp.Generic[U, T], Two[U], One[T]]  # type: ignore[valid-type]
+        assert mro.mro == (Three, Two, One, Generic, object)
+        assert mro.bases == [Generic[U, T], Two[U], One[T]]  # type: ignore[valid-type]
         assert mro.typevars == OrderedDict(
             [
                 ((Three, U), strcs.Type.Missing),
@@ -346,8 +346,8 @@ class TestMRO:
         assert mro.start is start
         assert mro.args == (str, int)
         assert mro.origin == Three
-        assert mro.mro == (Three, Two, One, tp.Generic, object)
-        assert mro.bases == [tp.Generic[U, T], Two[U], One[T]]  # type: ignore[valid-type]
+        assert mro.mro == (Three, Two, One, Generic, object)
+        assert mro.bases == [Generic[U, T], Two[U], One[T]]  # type: ignore[valid-type]
         assert mro.typevars == OrderedDict(
             [
                 ((Three, U), str),
@@ -359,27 +359,27 @@ class TestMRO:
         assert mro.signature_for_display == "str, int"
 
     def test_it_works_for_partially_filled_generic_hierarchy(self, type_cache: strcs.TypeCache):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
-        Z = tp.TypeVar("Z")
+        T = TypeVar("T")
+        U = TypeVar("U")
+        Z = TypeVar("Z")
 
-        assert isinstance(Z, tp.TypeVar)
+        assert isinstance(Z, TypeVar)
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
-        class Two(tp.Generic[U]):
+        class Two(Generic[U]):
             pass
 
-        class Three(tp.Generic[Z], Two[Z], One[str]):
+        class Three(Generic[Z], Two[Z], One[str]):
             pass
 
         mro = MRO.create(Three, type_cache=type_cache)
         assert mro.start is Three
         assert mro.args == ()
         assert mro.origin == Three
-        assert mro.mro == (Three, Two, One, tp.Generic, object)
-        assert mro.bases == [tp.Generic[Z], Two[Z], One[str]]  # type: ignore[valid-type]
+        assert mro.mro == (Three, Two, One, Generic, object)
+        assert mro.bases == [Generic[Z], Two[Z], One[str]]  # type: ignore[valid-type]
         assert mro.typevars == OrderedDict(
             [
                 ((Three, Z), strcs.Type.Missing),
@@ -394,8 +394,8 @@ class TestMRO:
         assert mro.start is start
         assert mro.args == (bool,)
         assert mro.origin == Three
-        assert mro.mro == (Three, Two, One, tp.Generic, object)
-        assert mro.bases == [tp.Generic[Z], Two[Z], One[str]]  # type: ignore[valid-type]
+        assert mro.mro == (Three, Two, One, Generic, object)
+        assert mro.bases == [Generic[Z], Two[Z], One[str]]  # type: ignore[valid-type]
         assert mro.typevars == OrderedDict(
             [
                 ((Three, Z), bool),
@@ -406,19 +406,19 @@ class TestMRO:
         assert mro.signature_for_display == "bool"
 
     def test_it_works_for_fully_filled_generic_hierarchy(self, type_cache: strcs.TypeCache):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
-        Z = tp.TypeVar("Z")
+        T = TypeVar("T")
+        U = TypeVar("U")
+        Z = TypeVar("Z")
 
-        assert isinstance(Z, tp.TypeVar)
+        assert isinstance(Z, TypeVar)
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
-        class Two(tp.Generic[U]):
+        class Two(Generic[U]):
             pass
 
-        class Three(tp.Generic[Z], Two[Z], One[str]):
+        class Three(Generic[Z], Two[Z], One[str]):
             pass
 
         class Four(Three[int]):
@@ -428,7 +428,7 @@ class TestMRO:
         assert mro.start is Four
         assert mro.args == ()
         assert mro.origin == Four
-        assert mro.mro == (Four, Three, Two, One, tp.Generic, object)
+        assert mro.mro == (Four, Three, Two, One, Generic, object)
         assert mro.bases == [Three[int]]
         assert mro.typevars == OrderedDict(
             [
@@ -440,13 +440,13 @@ class TestMRO:
         assert mro.signature_for_display == ""
 
     def test_it_works_for_generics_filled_with_other_generics(self, type_cache: strcs.TypeCache):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
-        class Two(tp.Generic[U]):
+        class Two(Generic[U]):
             pass
 
         class Three(Two[One[str]]):
@@ -456,34 +456,34 @@ class TestMRO:
         assert mro.start is Three
         assert mro.args == ()
         assert mro.origin == Three
-        assert mro.mro == (Three, Two, tp.Generic, object)
+        assert mro.mro == (Three, Two, Generic, object)
         assert mro.bases == [Two[One[str]]]
         assert mro.typevars == OrderedDict([((Two, U), One[str])])
         assert mro.signature_for_display == ""
 
     def test_it_works_for_generics_filled_multiple_times(self, type_cache: strcs.TypeCache):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
-        Z = tp.TypeVar("Z")
+        T = TypeVar("T")
+        U = TypeVar("U")
+        Z = TypeVar("Z")
 
-        assert isinstance(Z, tp.TypeVar)
-        assert isinstance(U, tp.TypeVar)
+        assert isinstance(Z, TypeVar)
+        assert isinstance(U, TypeVar)
 
-        class One(tp.Generic[T]):
+        class One(Generic[T]):
             pass
 
-        class Two(tp.Generic[U], One[U]):
+        class Two(Generic[U], One[U]):
             pass
 
-        class Three(tp.Generic[Z], Two[Z]):
+        class Three(Generic[Z], Two[Z]):
             pass
 
         mro = MRO.create(Three, type_cache=type_cache)
         assert mro.start is Three
         assert mro.args == ()
         assert mro.origin == Three
-        assert mro.mro == (Three, Two, One, tp.Generic, object)
-        assert mro.bases == [tp.Generic[Z], Two[Z]]  # type: ignore[valid-type]
+        assert mro.mro == (Three, Two, One, Generic, object)
+        assert mro.bases == [Generic[Z], Two[Z]]  # type: ignore[valid-type]
         assert mro.typevars == OrderedDict(
             [
                 ((Three, Z), strcs.Type.Missing),
@@ -546,10 +546,10 @@ class TestMRO:
         assert mro.signature_for_display == ""
 
     def test_it_can_get_fields(self, type_cache: strcs.TypeCache, Dis: Disassembler):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
-        class One(tp.Generic[T, U]):
+        class One(Generic[T, U]):
             def __init__(self, one: T, two: U):
                 self.one = one
                 self.two = two
@@ -572,13 +572,13 @@ class TestMRO:
     def test_it_can_get_fields_with_modified_types(
         self, type_cache: strcs.TypeCache, Dis: Disassembler
     ):
-        T = tp.TypeVar("T")
-        U = tp.TypeVar("U")
+        T = TypeVar("T")
+        U = TypeVar("U")
 
         @attrs.define
-        class One(tp.Generic[T, U]):
+        class One(Generic[T, U]):
             one: T | None
-            two: tp.Annotated[U, "hello"]
+            two: Annotated[U, "hello"]
 
         @attrs.define
         class Two(One[str, int]):
@@ -588,30 +588,30 @@ class TestMRO:
 
         assert mro.raw_fields == [
             strcs.Field(
-                name="one", owner=Two, original_owner=One, disassembled_type=Dis(tp.Optional[T])
+                name="one", owner=Two, original_owner=One, disassembled_type=Dis(Optional[T])
             ),
             strcs.Field(
                 name="two",
                 owner=Two,
                 original_owner=One,
-                disassembled_type=Dis(tp.Annotated[U, "hello"]),
+                disassembled_type=Dis(Annotated[U, "hello"]),
             ),
         ]
 
         assert mro.fields == [
             strcs.Field(
-                name="one", owner=Two, original_owner=One, disassembled_type=Dis(tp.Optional[str])
+                name="one", owner=Two, original_owner=One, disassembled_type=Dis(Optional[str])
             ),
             strcs.Field(
                 name="two",
                 owner=Two,
                 original_owner=One,
-                disassembled_type=Dis(tp.Annotated[int, "hello"]),
+                disassembled_type=Dis(Annotated[int, "hello"]),
             ),
         ]
 
         @attrs.define
-        class Three(tp.Generic[T, U], One[T, U]):
+        class Three(Generic[T, U], One[T, U]):
             one: T
 
         @attrs.define
@@ -626,7 +626,7 @@ class TestMRO:
                 name="two",
                 owner=Four,
                 original_owner=One,
-                disassembled_type=Dis(tp.Annotated[U, "hello"]),
+                disassembled_type=Dis(Annotated[U, "hello"]),
             ),
         ]
 
@@ -636,7 +636,7 @@ class TestMRO:
                 name="two",
                 owner=Four,
                 original_owner=One,
-                disassembled_type=Dis(tp.Annotated[int, "hello"]),
+                disassembled_type=Dis(Annotated[int, "hello"]),
             ),
         ]
 
@@ -654,9 +654,9 @@ class TestMRO:
             class ItemC(Item):
                 pass
 
-            I = tp.TypeVar("I", bound=Item)
+            I = TypeVar("I", bound=Item)
 
-            class Container(tp.Generic[I]):
+            class Container(Generic[I]):
                 pass
 
             container_a = strcs.MRO.create(Container[ItemA], type_cache=type_cache)
@@ -686,10 +686,10 @@ class TestMRO:
             class TwoB(Two):
                 pass
 
-            O = tp.TypeVar("O", bound=One)
-            T = tp.TypeVar("T", bound=Two)
+            O = TypeVar("O", bound=One)
+            T = TypeVar("T", bound=Two)
 
-            class Container(tp.Generic[O, T]):
+            class Container(Generic[O, T]):
                 pass
 
             container_a = strcs.MRO.create(Container[OneA, TwoB], type_cache=type_cache)
@@ -717,10 +717,10 @@ class TestMRO:
             class TwoB(Two):
                 pass
 
-            O = tp.TypeVar("O", bound=One)
-            T = tp.TypeVar("T", bound=Two)
+            O = TypeVar("O", bound=One)
+            T = TypeVar("T", bound=Two)
 
-            class Container(tp.Generic[O, T]):
+            class Container(Generic[O, T]):
                 pass
 
             container_a = strcs.MRO.create(Container[OneA, TwoA], type_cache=type_cache)
@@ -739,9 +739,9 @@ class TestMRO:
             class OneB(One):
                 pass
 
-            O = tp.TypeVar("O", bound=One)
+            O = TypeVar("O", bound=One)
 
-            class Container(tp.Generic[O]):
+            class Container(Generic[O]):
                 pass
 
             container_a = strcs.MRO.create(Container[OneA], type_cache=type_cache)
@@ -763,9 +763,9 @@ class TestMRO:
             class OneB(One):
                 pass
 
-            O = tp.TypeVar("O", bound=One)
+            O = TypeVar("O", bound=One)
 
-            class Container(tp.Generic[O]):
+            class Container(Generic[O]):
                 pass
 
             container_a = strcs.MRO.create(Container[OneA], type_cache=type_cache)

@@ -1,7 +1,7 @@
 import inspect
 import textwrap
 import traceback
-import typing as tp
+from collections.abc import Callable
 
 import attrs
 from cattrs.errors import IterableValidationError
@@ -19,7 +19,7 @@ class NoCreatorFound(StructuresError):
 
 @attrs.define
 class UnableToConvert(StructuresError):
-    creator: tp.Callable
+    creator: Callable
     converting: object
     into: object
     reason: str

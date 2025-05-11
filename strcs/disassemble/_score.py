@@ -1,8 +1,9 @@
-import typing as tp
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Protocol
 
 import attrs
 
-if tp.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ._base import Type
 
 
@@ -155,10 +156,10 @@ class Score:
         """
         lines: list[str] = []
 
-        class WithDisplay(tp.Protocol):
+        class WithDisplay(Protocol):
             def for_display(self, indent="") -> str: ...
 
-        def extend(displayable: WithDisplay, extra: tp.Callable[[int], str]) -> None:
+        def extend(displayable: WithDisplay, extra: Callable[[int], str]) -> None:
             for i, line in enumerate(displayable.for_display(indent=indent).split("\n")):
                 lines.append(f"{extra(i)}{line}")
 
