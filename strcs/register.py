@@ -103,13 +103,13 @@ class CreateRegister:
         return type(self)(
             register=self.register,
             last_meta=last_meta,
-            last_type=last_type,
-            skip_creator=skip_creator,
+            last_type=last_type,  # type: ignore[arg-type]
+            skip_creator=skip_creator,  # type: ignore[arg-type]
             auto_resolve_string_annotations=self.auto_resolve_string_annotations,
         )
 
     def __setitem__(self, specification: type[T] | Type[T], creator: ConvertFunction[T]) -> None:
-        self.register[self.type_cache.disassemble(specification)] = creator
+        self.register[self.type_cache.disassemble(specification)] = creator  # type: ignore[assignment]
 
     def __contains__(self, typ: type | Type[T]) -> bool:
         if not isinstance(typ, type | Type):
@@ -210,7 +210,7 @@ class CreateRegister:
 
         return CreateStructureHook.structure(
             register=self,
-            typ=want,
+            typ=want,  # type: ignore[misc]
             meta=meta,
             value=value,
             creator=once_only_creator,
@@ -245,7 +245,7 @@ class CreateRegister:
 
         return CreateStructureHook.structure(
             register=self,
-            typ=want,
+            typ=want,  # type: ignore[misc]
             meta=meta,
             value=value,
             creator=once_only_creator,

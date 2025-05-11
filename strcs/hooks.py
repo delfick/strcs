@@ -81,9 +81,9 @@ class CreateStructureHook:
             converter=converter,
             meta=meta,
             last_meta=last_meta,
-            last_type=last_type,
-            skip_creator=skip_creator,
-            once_only_creator=creator,
+            last_type=last_type,  # type: ignore[arg-type]
+            skip_creator=skip_creator,  # type: ignore[arg-type]
+            once_only_creator=creator,  # type: ignore[arg-type]
             type_cache=type_cache,
         )
 
@@ -155,7 +155,12 @@ class CreateStructureHook:
             if isinstance(want.ann, AdjustableMeta):
                 meta = want.ann.adjusted_meta(meta, want, self.type_cache)
             if isinstance(want.ann, AdjustableCreator):
-                creator = want.ann.adjusted_creator(creator, self.register, want, self.type_cache)
+                creator = want.ann.adjusted_creator(  # type: ignore[assignment]
+                    creator,  # type: ignore[arg-type]
+                    self.register,
+                    want,
+                    self.type_cache,
+                )
             if meta is not self.meta:
                 return self.register.create(
                     self.type_cache.disassemble.typed(
@@ -163,7 +168,7 @@ class CreateStructureHook:
                     ),
                     value,
                     meta=meta,
-                    once_only_creator=creator,
+                    once_only_creator=creator,  # type: ignore[arg-type]
                 )
 
         if (
@@ -177,7 +182,15 @@ class CreateStructureHook:
                 or getattr(creator, "func", None) not in (None, self.skip_creator)
             )
         ):
-            return creator(CreateArgs(value, want, meta, self.converter, self.register))
+            return creator(
+                CreateArgs(
+                    value,
+                    want,  # type: ignore[arg-type]
+                    meta,
+                    self.converter,
+                    self.register,
+                )
+            )  # type: ignore[return-value]
 
         if want.is_type_for(value):
             return value

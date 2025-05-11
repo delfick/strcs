@@ -411,7 +411,7 @@ class Type(tp.Generic[T]):
         """
         origin = self.origin
         if isinstance(origin, tp.NewType):
-            return origin.__supertype__
+            return origin.__supertype__  # type: ignore[return-value]
         else:
             return origin
 

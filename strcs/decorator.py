@@ -294,7 +294,10 @@ class WrappedCreator(tp.Generic[T]):
             made: ConvertResponse[T]
 
             try:
-                made = deal(next(res), value)
+                made = deal(
+                    next(res),  # type: ignore[arg-type]
+                    value,
+                )
             except StopIteration:
                 made = None
             else:
@@ -302,7 +305,7 @@ class WrappedCreator(tp.Generic[T]):
                     made2 = res.send(made)
                     if made2 is True:
                         value = made
-                    made = made2
+                    made = made2  # type: ignore[assignment]
                 except StopIteration:
                     pass
 
