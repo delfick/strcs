@@ -14,7 +14,6 @@ from typing import (
     TypeGuard,
     TypeVar,
     Union,
-    cast,
     overload,
 )
 
@@ -139,7 +138,7 @@ class Type(Generic[T]):
         original = typ
 
         if isinstance(typ, cls):
-            return cast(Type[U], typ)
+            return typ  # type: ignore[return-value]
 
         if typ in cache:
             return cache[original]
@@ -160,7 +159,7 @@ class Type(Generic[T]):
             type_alias = extracted
             extracted = extracted.__supertype__
 
-        constructor = cast(Callable[..., Type[U]], cls)
+        constructor: Callable[..., Type[U]] = cls  # type: ignore[assignment]
 
         made = constructor(
             cache=cache,
@@ -723,7 +722,7 @@ class Type(Generic[T]):
         Return ``self.checkable``, but the return type of this function is a
         python type of the inner type represented by this :class:`strcs.Type`
         """
-        return cast(type[T], self.checkable)
+        return self.checkable  # type: ignore[return-value]
 
     @memoized_property
     def checkable(self) -> type[InstanceCheck]:

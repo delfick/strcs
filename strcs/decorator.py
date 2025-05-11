@@ -72,7 +72,7 @@ by the function returned by ``strcs.CreateRegister::make_decorator``
 
 import inspect
 from collections.abc import Callable, Generator, Mapping
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import attrs
 import cattrs
@@ -197,7 +197,7 @@ class WrappedCreator(Generic[T]):
 
         if self.assume_unchanged_converted and want.is_type_for(value):
             if want.origin_type not in builtin_types:
-                return cast(T, value)
+                return value  # type: ignore[return-value]
 
         try:
             args = ArgsExtractor(
@@ -260,7 +260,7 @@ class WrappedCreator(Generic[T]):
                         reason="Told to use NotSpecified as the final value",
                         creator=self.func,
                     )
-                return cast(T, value)
+                return value  # type: ignore[return-value]
             else:
                 if not isinstance(res, Mapping) and issubclass(
                     want.checkable, self.type_cache.disassemble(type(res)).checkable

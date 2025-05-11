@@ -1,5 +1,5 @@
 from collections.abc import Callable, MutableMapping
-from typing import Generic, TypeVar, Union, cast, overload
+from typing import Generic, TypeVar, Union, overload
 
 PropRet = TypeVar("PropRet")
 
@@ -66,7 +66,7 @@ class memoized_property(Generic[PropRet]):
         if self.name not in cache:
             cache[self.name] = self.func(instance)
 
-        return cast(PropRet, cache[self.name])
+        return cache[self.name]  # type: ignore[return-value]
 
     def __delete__(self, instance: object) -> None:
         cache = self.cache(instance)

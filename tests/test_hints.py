@@ -1,6 +1,6 @@
 import dataclasses
 from collections.abc import Callable, Iterable
-from typing import Annotated, Optional, Protocol, cast
+from typing import Annotated, Optional, Protocol
 
 import attrs
 
@@ -26,7 +26,13 @@ class TestResolveTypes:
     def test_it_just_returns_the_object_if_its_not_an_attrs_dataclass_class(self) -> None:
         thing: object
         for thing in (None, 0, 1, [], [1], {}, {1: 2}, True, False, lambda: 1):
-            assert strcs.resolve_types(cast(type, thing), type_cache=strcs.TypeCache()) is thing
+            assert (
+                strcs.resolve_types(  # type: ignore[type-var]
+                    thing,  # type: ignore[arg-type]
+                    type_cache=strcs.TypeCache(),
+                )
+                is thing
+            )
 
     def test_it_clears_the_type_cache(self) -> None:
         type_cache = strcs.TypeCache()

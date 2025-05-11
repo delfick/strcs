@@ -1,6 +1,6 @@
 import secrets
 from collections.abc import Generator
-from typing import Annotated, cast
+from typing import Annotated
 from unittest import mock
 
 import attrs
@@ -43,7 +43,7 @@ class IsMeta:
 
     @classmethod
     def test(kls) -> strcs.Meta:
-        return cast(strcs.Meta, kls())
+        return kls()  # type: ignore[return-value]
 
 
 class IsConverter:
@@ -61,7 +61,7 @@ class IsConverter:
 
     @classmethod
     def test(kls) -> cattrs.Converter:
-        return cast(cattrs.Converter, kls())
+        return kls()  # type: ignore[return-value]
 
 
 class TestRegister:
@@ -74,8 +74,8 @@ class TestRegister:
         class Stuff:
             info: str
 
-        thing_maker = cast(strcs.ConvertFunction, lambda args: {"data": 2})
-        stuff_maker = cast(strcs.ConvertFunction, lambda args: {"info": "hi"})
+        thing_maker: strcs.ConvertFunction = lambda args: {"data": 2}
+        stuff_maker: strcs.ConvertFunction = lambda args: {"info": "hi"}
 
         assert creg.register == {}
 
@@ -343,12 +343,12 @@ class TestRegister:
 
             assert Thing not in creg
             with pytest.raises(ValueError, match="Can only check against types or Type instances"):
-                assert cast(type, Thing()) not in creg
+                assert Thing() not in creg  # type: ignore[operator]
 
-            creg[Thing] = cast(strcs.ConvertFunction, mock.Mock(name="creator"))
+            creg[Thing] = mock.Mock(name="creator")
             assert Thing in creg
             with pytest.raises(ValueError, match="Can only check against types or Type instances"):
-                assert cast(type, Thing()) not in creg
+                assert Thing() not in creg  # type: ignore[operator]
 
 
 class TestCreators:
@@ -361,14 +361,14 @@ class TestCreators:
         dec = creator(Thing)
         assert not hasattr(dec, "func")
 
-        make = mock.Mock(name="make", side_effect=lambda: thing)
-        decorated = dec(cast(strcs.ConvertDefinition[Thing], make))
+        make: strcs.ConvertDefinition[Thing] = mock.Mock(name="make", side_effect=lambda: thing)
+        decorated = dec(make)
 
         assert decorated is make
-        assert cast(strcs.WrappedCreator, dec).func is make
+        assert dec.func is make  # type: ignore[attr-defined]
 
         assert creator.register.create(Thing) is thing
-        make.assert_called_once_with()
+        make.assert_called_once_with()  # type: ignore[attr-defined]
 
     def test_it_can_be_given_as_an_override_in_an_annotation(
         self, creator: strcs.Creator, creg: strcs.CreateRegister

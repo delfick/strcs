@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping
-from typing import TypeVar, cast
+from typing import TypeVar
 
 import attrs
 import cattrs
@@ -49,7 +49,7 @@ def instantiate(want: Type[T], res: object, converter: cattrs.Converter) -> T:
     """
     if res is None:
         if want.optional or want.original is None:
-            return cast(T, None)
+            return None  # type: ignore[return-value]
 
         raise ValueError("Can't instantiate object with None")
 
@@ -70,7 +70,7 @@ def instantiate(want: Type[T], res: object, converter: cattrs.Converter) -> T:
             continue
 
         val = res[name]
-        attribute = cast(attrs.Attribute, field)
+        attribute: attrs.Attribute = field  # type: ignore[assignment]
         conv_obj[name] = converter._structure_attribute(attribute, val)
 
     return instantiator(**conv_obj)

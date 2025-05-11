@@ -7,7 +7,7 @@ This is done without recursion errors and with the ability to customize the resu
 for specific properties on a class.
 """
 
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar
 
 import cattrs
 
@@ -208,4 +208,7 @@ class CreateStructureHook:
             self.converter._structure_func.dispatch.cache_clear()
         if isinstance(value, dict):
             value = fill(want, value)
-        return self.converter.structure(value, cast(type, want.original))
+        return self.converter.structure(
+            value,
+            want.original,  # type: ignore[arg-type]
+        )

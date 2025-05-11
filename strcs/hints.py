@@ -23,7 +23,6 @@ from typing import (
     TypeGuard,
     TypeVar,
     Union,
-    cast,
     runtime_checkable,
 )
 
@@ -302,7 +301,8 @@ def resolve_types(
         else:
             return cls
 
-        cast(WithResolvedTypes[C], cls).__strcs_types_resolved__ = cls
+        with_resolved_types: WithResolvedTypes[C] = cls  # type: ignore[assignment]
+        with_resolved_types.__strcs_types_resolved__ = cls
 
         # Copied from standard library typing.get_type_hints
         # Cause I need globals/locals to resolve nested types that don't have forwardrefs

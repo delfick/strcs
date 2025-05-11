@@ -19,7 +19,7 @@ Callable objects will also be turned into a ``strcs.Ann`` by treating the callab
 object as a creator override.
 """
 
-from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast, runtime_checkable
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, runtime_checkable
 
 import attrs
 
@@ -305,7 +305,7 @@ class FromMeta:
         type_cache: TypeCache,
     ) -> ConvertFunction[T] | None:
         def retrieve(value: object, /, _meta: Meta) -> ConvertResponse[T]:
-            return cast(T, _meta.retrieve_one(object, "retrieved", type_cache=type_cache))
+            return _meta.retrieve_one(object, "retrieved", type_cache=type_cache)  # type: ignore[return-value]
 
         a = Ann[T](creator=retrieve)
         return a.adjusted_creator(creator, register, typ, type_cache)

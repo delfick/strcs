@@ -3,7 +3,7 @@ import dataclasses
 import types
 import typing
 from collections.abc import Callable
-from typing import Annotated, Generic, NewType, TypeVar, Union, cast
+from typing import Annotated, Generic, NewType, TypeVar, Union
 
 import attrs
 import pytest
@@ -375,7 +375,7 @@ class TestInstanceCheck:
 
     def test_it_can_instantiate_the_provided_type(self, Dis: Disassembler):
         checkable = Dis(dict[str, bool]).checkable
-        made = cast(Callable, checkable)([("1", True), ("2", False)])
+        made = checkable([("1", True), ("2", False)])  # type: ignore[call-arg]
         assert made == {"1": True, "2": False}
 
         assert checkable.Meta.typ == dict
@@ -389,7 +389,7 @@ class TestInstanceCheck:
                 self.one = one
 
         checkable = Dis(Thing).checkable
-        made = cast(Callable, checkable)(one=1)
+        made = checkable(one=1)  # type: ignore[call-arg]
         assert isinstance(made, Thing)
         assert made.one == 1
 

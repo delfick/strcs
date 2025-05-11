@@ -3,7 +3,7 @@ The register is how the developer can associate creator functions with
 specific types.
 """
 
-from typing import Annotated, ClassVar, Generic, Protocol, TypeVar, cast
+from typing import Annotated, ClassVar, Generic, Protocol, TypeVar
 
 import cattrs
 
@@ -173,12 +173,12 @@ class CreateRegister:
                     typ = self.original
 
                 self.wrapped = WrappedCreator[T](
-                    cast(Type[T], typ),
+                    typ,  # type: ignore[arg-type]
                     func,
                     type_cache=register.type_cache,
                     assume_unchanged_converted=self.assume_unchanged_converted,
                 )
-                self.typ = cast(Type[T], typ)
+                self.typ = typ  # type: ignore[assignment]
                 self.func = self.wrapped.func
 
                 register[typ] = self.wrapped
@@ -238,10 +238,11 @@ class CreateRegister:
         This is the same as ``reg.create`` but the type will be wrapped with the
         provided annotation.
         """
+        want: Type[T]
         if isinstance(typ, Type):
             want = typ
         else:
-            want = cast(Type[T], self.type_cache.disassemble(Annotated[typ, ann]))
+            want = self.type_cache.disassemble(Annotated[typ, ann])  # type: ignore[assignment]
 
         return CreateStructureHook.structure(
             register=self,

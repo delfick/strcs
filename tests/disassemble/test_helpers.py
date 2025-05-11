@@ -1,7 +1,7 @@
 import dataclasses
 import inspect
-from collections.abc import Callable, Sequence
-from typing import Annotated, Optional, cast
+from collections.abc import Sequence
+from typing import Annotated, Optional
 
 import attrs
 import pytest
@@ -365,7 +365,7 @@ class TestFieldsFromAttrs:
             ],
         )
 
-        thing = cast(Callable, Thing)(stuff="one", wat="blah", blah=3)
+        thing = Thing(stuff="one", wat="blah", blah=3)
         assert thing.stuff == "one"
         assert thing._thing == "blah"
         assert thing.other == 3

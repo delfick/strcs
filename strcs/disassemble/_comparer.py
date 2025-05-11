@@ -1,7 +1,7 @@
 import functools
 import operator
 import typing
-from typing import TYPE_CHECKING, Annotated, NewType, Optional, cast
+from typing import TYPE_CHECKING, Annotated, NewType, Optional
 
 import attrs
 
@@ -27,7 +27,7 @@ class Distilled:
     def classinfo(self) -> type | tuple[type, ...]:
         if not self.is_valid:
             raise NotValidType()
-        return cast(type | tuple[type, ...], self.original)
+        return self.original  # type: ignore[return-value]
 
     @property
     def as_tuple(self) -> tuple[type, ...]:

@@ -1,7 +1,7 @@
 import fnmatch
 import inspect
 from collections.abc import Iterable, Mapping
-from typing import Protocol, TypeVar, cast, overload
+from typing import Protocol, TypeVar, overload
 
 import attrs
 import cattrs
@@ -117,7 +117,7 @@ class Narrower:
                 pattern = pattern[1:]
             for n in self.keys_from(obj):
                 if progress.obj_is_mapping:
-                    v = cast(Mapping, obj)[n]
+                    v = obj[n]  # type: ignore[index]
                 else:
                     v = getattr(obj, n)
 
@@ -202,7 +202,7 @@ class Meta:
         if data is Empty:
             data = self.data
 
-        data = cast(dict[str, object], data)
+        data: dict[str, object] = data  # type: ignore[assignment]
 
         if typ is object:
             return False, data
@@ -288,7 +288,7 @@ class Meta:
             if with_patterns or typ is object:
                 data = with_patterns
             elif default is not inspect._empty:
-                return cast(T, default)
+                return default  # type: ignore[return-value]
 
         optional, found = self.find_by_type(typ, data=data, type_cache=type_cache)
 
@@ -296,7 +296,7 @@ class Meta:
             raise errors.FoundWithWrongType(patterns=list(patterns), want=typ)
 
         if optional and not found:
-            return cast(T, None)
+            return None  # type: ignore[return-value]
 
         if len(found) == 1:
             for thing in found.values():
@@ -306,7 +306,7 @@ class Meta:
             raise errors.MultipleNamesForType(want=typ, found=sorted(found))
 
         if default is not inspect._empty:
-            return cast(T, default)
+            return default  # type: ignore[return-value]
 
         raise errors.NoDataByTypeName(
             want=typ,
