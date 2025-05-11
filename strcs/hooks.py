@@ -11,7 +11,10 @@ from typing import TYPE_CHECKING, TypeVar
 
 import cattrs
 
-from .annotations import AdjustableCreator, AdjustableMeta
+from .annotations import (
+    is_adjustable_creator,
+    is_adjustable_meta,
+)
 from .decorator import ConvertDefinition, ConvertFunction, CreateArgs
 from .disassemble import Type, TypeCache, fill, instantiate
 from .meta import Meta
@@ -151,10 +154,10 @@ class CreateStructureHook:
         if normal_creator and creator is None:
             creator = normal_creator
 
-        if isinstance(want.ann, AdjustableMeta | AdjustableCreator):
-            if isinstance(want.ann, AdjustableMeta):
+        if is_adjustable_meta(want.ann) or is_adjustable_creator(want.ann):
+            if is_adjustable_meta(want.ann):
                 meta = want.ann.adjusted_meta(meta, want, self.type_cache)
-            if isinstance(want.ann, AdjustableCreator):
+            if is_adjustable_creator(want.ann):
                 creator = want.ann.adjusted_creator(  # type: ignore[assignment]
                     creator,  # type: ignore[arg-type]
                     self.register,

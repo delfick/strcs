@@ -6,6 +6,8 @@ from .annotations import (
     FromMeta,
     MergedMetaAnnotation,
     MetaAnnotation,
+    is_adjustable_creator,
+    is_adjustable_meta,
 )
 from .args_extractor import ArgsExtractor
 from .decorator import (
@@ -49,5 +51,7 @@ __all__ = [
     "TypeCache",
     "WrappedCreator",
     "errors",
+    "is_adjustable_creator",
+    "is_adjustable_meta",
     "resolve_types",
 ]

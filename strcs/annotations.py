@@ -19,7 +19,7 @@ Callable objects will also be turned into a ``strcs.Ann`` by treating the callab
 object as a creator override.
 """
 
-from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Generic, Protocol, TypeGuard, TypeVar
 
 import attrs
 
@@ -38,7 +38,6 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-@runtime_checkable
 class AdjustableMeta(Protocol[T]):
     """
     An interface used to modify the meta object when creating a field.
@@ -55,7 +54,10 @@ class AdjustableMeta(Protocol[T]):
     def adjusted_meta(self, meta: Meta, typ: Type[T], type_cache: TypeCache) -> Meta: ...
 
 
-@runtime_checkable
+def is_adjustable_meta(meta: object) -> TypeGuard[AdjustableMeta]:
+    return hasattr(meta, "adjusted_meta")
+
+
 class AdjustableCreator(Protocol[T]):
     """
     An interface used to modify the creator used when creating a field.
@@ -86,6 +88,10 @@ class AdjustableCreator(Protocol[T]):
         typ: Type[T],
         type_cache: TypeCache,
     ) -> ConvertFunction[T] | None: ...
+
+
+def is_adjustable_creator(meta: object) -> TypeGuard[AdjustableCreator]:
+    return hasattr(meta, "adjusted_creator")
 
 
 @attrs.define
@@ -226,7 +232,7 @@ class Ann(Generic[T]):
         if self.meta is None:
             return meta
 
-        if isinstance(self.meta, AdjustableMeta):
+        if is_adjustable_meta(self.meta):
             return self.meta.adjusted_meta(meta, typ, type_cache)
 
         if attrs.has(self.meta.__class__):

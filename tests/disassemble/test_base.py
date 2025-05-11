@@ -1418,7 +1418,7 @@ class TestAnnotations:
         adjustment = AdjustMeta()
         ann = Dis(Annotated[int, adjustment]).ann
         assert ann is adjustment
-        assert isinstance(ann, strcs.AdjustableMeta)
+        assert strcs.is_adjustable_meta(ann)
 
         meta = strcs.Meta({"two": 2})
         m = ann.adjusted_meta(meta, Dis(int), type_cache)

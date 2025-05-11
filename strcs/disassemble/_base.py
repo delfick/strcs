@@ -653,11 +653,13 @@ class Type(Generic[T]):
             # TODO: support multiple annotations
             annotation = self.annotations[0]
 
-            if isinstance(annotation, AdjustableMeta):
+            from ..annotations import is_adjustable_creator, is_adjustable_meta
+
+            if is_adjustable_meta(annotation):
                 ann = annotation
             elif isinstance(annotation, MetaAnnotation | MergedMetaAnnotation):
                 ann = Ann[T](annotation)
-            elif isinstance(annotation, AdjustableCreator):
+            elif is_adjustable_creator(annotation):
                 ann = annotation
             elif callable(annotation):
                 ann = Ann[T](creator=annotation)

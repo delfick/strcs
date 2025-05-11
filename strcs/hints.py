@@ -23,7 +23,6 @@ from typing import (
     TypeGuard,
     TypeVar,
     Union,
-    runtime_checkable,
 )
 
 import attrs
@@ -41,7 +40,6 @@ class IsField(Protocol):
     name: str
 
 
-@runtime_checkable
 class WithResolvedTypes(Protocol[C]):
     """
     Strcs will mark classes it has resolved types for to prevent recursive loops.
